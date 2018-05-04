@@ -1,0 +1,6 @@
+std_msgs/Int32 baxter_angle
+std_msgs/Int32 robobo_angle
+---
+std_msgs/Bool baxter_valid
+std_msgs/Bool robobo_valid
+

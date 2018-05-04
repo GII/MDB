@@ -1,0 +1,3 @@
+std_msgs/String request
+---
+baxter_core_msgs/EndEffectorState current_gs

@@ -1,0 +1,8 @@
+std_msgs/Int32 point_num
+std_msgs/Int32 angle_num
+std_msgs/Float64 height
+std_msgs/Bool use_tag
+std_msgs/Bool use_arm
+std_msgs/Int32 row_to_calibrate
+---
+std_msgs/Bool result

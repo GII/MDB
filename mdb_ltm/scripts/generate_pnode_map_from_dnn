@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Copyright 2017 Richard J. Duro, Jose A. Becerra.
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+import argparse
+import numpy as np
+import tensorflow as tf
+import pandas as pd
+from mdb_ltm.pnode import PNode
+
+
+def scan_values(activation_map_size, n_perceptions, step):
+    """Function that allows to calculate the P-Node activation for every point in a multidimensional grid."""
+    perceptions = np.empty([activation_map_size, n_perceptions])
+    dist_values = np.arange(0.0, 1.0001, step)
+    ang_values = np.arange(-1.0, 1.0001, 0.1)
+    ball_size_values = np.array([0.15, 0.85])
+    box_size_values = np.array([0.9])
+    hand_values = np.array([0.0, 1.0])
+    position = 0
+    for ball_in_right_hand in hand_values:
+        for ball_dist in dist_values:
+            for box_size in box_size_values:
+                for ball_in_left_hand in hand_values:
+                    for box_ang in ang_values:
+                        for ball_ang in ang_values:
+                            for box_dist in dist_values:
+                                for ball_size in ball_size_values:
+                                    perceptions[position, 0] = ball_in_right_hand
+                                    perceptions[position, 1] = ball_dist
+                                    perceptions[position, 2] = box_size
+                                    perceptions[position, 3] = ball_in_left_hand
+                                    perceptions[position, 4] = box_ang
+                                    perceptions[position, 5] = ball_ang
+                                    perceptions[position, 6] = box_dist
+                                    perceptions[position, 7] = ball_size
+                                    position += 1
+    return perceptions
+
+
+def calculate_activations(headers, perceptions):
+    """Lala."""
+    feature_columns = [tf.feature_column.numeric_column(i) for i in headers[2:-1]]
+    net = tf.estimator.DNNClassifier(
+        hidden_units=[20, 10, 5],
+        feature_columns=feature_columns,
+        model_dir='pnode00_03000',
+        n_classes=2,
+        optimizer='Adam',
+        activation_fn=tf.nn.relu)
+    data = pd.DataFrame(perceptions, columns=headers[2:-1])
+    predict_input_fn = tf.estimator.inputs.pandas_input_fn(
+        x=data,
+        batch_size=1,
+        num_epochs=1,
+        shuffle=False)
+    predictions = net.predict(input_fn=predict_input_fn)
+    predictions_column = np.empty([perceptions.shape[0]])
+#    for i, prediction in enumerate(predictions):
+#        if prediction['class_ids'] == 1:
+#            predictions_column[i] = prediction['probabilities'][1]
+#        else:
+#            predictions_column[i] = -1.0
+    data.loc[:, 'Confidence'] = pd.Series(predictions_column, index=data.index)
+    return data
+
+def save_activation_map(data, iteration, pnode_name):
+    """Lala."""
+    file_name = pnode_name + '_' + str(iteration) + '_activation_map.txt.xz'
+    row_label = str(iteration) + '\t' + pnode_name + '\t'
+    data.to_csv(
+        path_or_buf=file_name,
+        sep='\t',
+        float_format='%.2f',
+        index_label=row_label,
+        encoding='utf-8',
+        compression='xz')
+
+
+def load_pnodes_file(file_name, pnode_name, iteration, class_name):
+    """Load P-nodes from a file."""
+    pnodes_file = open(file_name, 'r')
+    headers = pnodes_file.readline().split()
+    module_string, _, class_string = class_name.rpartition('.')
+    node_module = __import__(module_string, fromlist=[class_string])
+    node_class = getattr(node_module, class_string)
+    pnode = node_class(ident=pnode_name, node_type='PNode')
+    pnodes_file.close()
+    return headers, pnode
+
+
+def generate_pnode_map():
+    """Calculate the activation map for a given pnode."""
+    parser = argparse.ArgumentParser(
+        description='This script calculate the activation map for a P-node using the results of an experiment')
+    parser.add_argument(
+        '-f', '--file', help='File with all the points of all the P-nodes for every iteration of an experiment')
+    parser.add_argument('-p', '--pnode', help='Id of the P-node for which we want to generate the activation map')
+    parser.add_argument('-i', '--iteration', type=int, help='The number of the iteration we want to inspect')
+    parser.add_argument('-s', '--step', type=float, help='Resolution')
+    parser.add_argument('-t', '--pnode_class', help='P-Node class')
+    args, _ = parser.parse_known_args()
+    kwargs = vars(args)
+    file_name = kwargs['file']
+    pnode_name = kwargs['pnode']
+    iteration = kwargs['iteration']
+    step = kwargs['step']
+    pnode_class =kwargs['pnode_class']
+    if (file_name is None) or (pnode_name is None) or (iteration is None) or (step is None) or (pnode_class is None):
+        parser.print_help()
+    else:
+        headers, pnode = load_pnodes_file(file_name, pnode_name, iteration, pnode_class)
+        activation_map_size = int(((1.0 + 1.0 / step) ** 2) * ((1.0 + 2.0 / 0.1) ** 2) * (2 ** 4))
+        perceptions = scan_values(activation_map_size, pnode.n_perceptions, step)
+        data = calculate_activations(headers, perceptions)
+        save_activation_map(data, iteration, pnode_name)
+
+
+if __name__ == '__main__':
+    generate_pnode_map()

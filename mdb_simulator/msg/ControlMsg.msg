@@ -1,0 +1,2 @@
+string world
+bool reward

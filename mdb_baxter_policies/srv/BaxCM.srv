@@ -1,0 +1,8 @@
+mdb_baxter_policies/CMReq req
+std_msgs/Bool grab
+std_msgs/String orientation
+std_msgs/String arm
+std_msgs/Float64 scale
+std_msgs/String move
+---
+std_msgs/Bool result 

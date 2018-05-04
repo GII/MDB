@@ -1,0 +1,16 @@
+std_msgs/Bool request
+---
+std_msgs/Float64 obj_box_dist
+std_msgs/Float64 obj_grip_dist
+std_msgs/Float64 obj_rob_dist
+std_msgs/Float64 obj_x
+std_msgs/Float64 obj_y
+std_msgs/Float64 box_x
+std_msgs/Float64 box_y
+std_msgs/Float64 grip_x
+std_msgs/Float64 grip_y
+std_msgs/Float64 rob_x
+std_msgs/Float64 rob_y
+std_msgs/Float64 grip_angle
+std_msgs/Float64 rob_angle
+

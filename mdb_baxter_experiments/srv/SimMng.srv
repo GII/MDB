@@ -1,0 +1,4 @@
+std_msgs/String model_name
+mdb_baxter_detection/SensData sense
+---
+std_msgs/Bool resp

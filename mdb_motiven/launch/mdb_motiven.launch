@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="mdb_motiven" pkg="mdb_motiven" type="MDBCore.py" required="true" output="screen" />
+</launch>

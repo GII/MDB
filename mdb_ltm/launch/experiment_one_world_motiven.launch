@@ -1,0 +1,19 @@
+<launch>
+	<arg name="backup" default="ltm.backup"/>
+	<arg name="seed" default="$(find mdb_ltm)/config/experiment_one_world_motiven.yaml"/>
+	<arg name="iterations" default="3000"/>
+	<arg name="log_level" default="DEBUG"/>
+	<arg name="plot" default="False"/>
+	<arg name="debug" default="False"/>
+	<arg name="plot_arg" value="" unless="$(arg plot)"/>
+	<arg name="plot_arg" value="--plot" if="$(arg plot)"/>
+	<rosparam file="$(find mdb_ltm)/config/parameters.yaml"/>
+	<group ns="mdb" unless="$(arg debug)">
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg seed) -i $(arg iterations) -l $(arg log_level) $(arg plot_arg)">
+		</node>
+	</group>
+	<group ns="mdb" if="$(arg debug)">
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg seed) -i $(arg iterations) -l $(arg log_level) $(arg plot_arg)" launch-prefix="xterm -e python -m pdb">
+		</node>
+	</group>
+</launch>

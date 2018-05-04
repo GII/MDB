@@ -1,0 +1,48 @@
+# Topic to communicate with the simulator
+/mdb/control_topic: /mdb/baxter/control
+/mdb/control_msg: mdb_simulator.msg.ControlMsg
+# Topic for publishing P-node creation
+/mdb/p_node_topic: /mdb/ltm/p_node
+/mdb/p_node_msg: mdb_ltm.msg.PNodeMsg
+# Topic for publishing C-node creation
+/mdb/c_node_topic: /mdb/ltm/c_node
+/mdb/c_node_msg: mdb_ltm.msg.CNodeMsg
+# Topic for publishing Goal creation
+/mdb/goal_topic: /mdb/motiven/goal
+/mdb/goal_msg: mdb_ltm.msg.GoalMsg
+# Topic for publishing goal activations
+/mdb/goal_activation_topic: /mdb/motiven/goal_activation
+/mdb/goal_activation_msg: mdb_ltm.msg.GoalActivationMsg
+# Topic for publishing goal accomplishment
+/mdb/goal_ok_topic: /mdb/motiven/goal_ok
+/mdb/goal_ok_msg: mdb_ltm.msg.GoalOkMsg
+# Topic for publishing Forward Model creation
+/mdb/forward_model_topic: /mdb/stm/forward_model
+/mdb/forward_model_msg: mdb_ltm.msg.ForwardModelMsg
+# Topic for publishing Policy creation
+/mdb/policy_topic: /mdb/stm/policy
+/mdb/policy_msg: mdb_ltm.msg.PolicyMsg
+# Topic for publishing the executed policy's id
+/mdb/executed_policy_topic: /mdb/ltm/executed_policy
+/mdb/executed_policy_msg: std_msgs.msg.String
+# Topics for Baxter's sensors
+/mdb/baxter/sensor/ball_dist_topic: /mdb/baxter/sensor/ball_dist
+/mdb/baxter/sensor/ball_dist_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/ball_ang_topic: /mdb/baxter/sensor/ball_ang
+/mdb/baxter/sensor/ball_ang_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/ball_size_topic: /mdb/baxter/sensor/ball_size
+/mdb/baxter/sensor/ball_size_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/box_dist_topic: /mdb/baxter/sensor/box_dist
+/mdb/baxter/sensor/box_dist_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/box_ang_topic: /mdb/baxter/sensor/box_ang
+/mdb/baxter/sensor/box_ang_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/box_size_topic: /mdb/baxter/sensor/box_size
+/mdb/baxter/sensor/box_size_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/ball_in_left_hand_topic: /mdb/baxter/sensor/ball_in_left_hand
+/mdb/baxter/sensor/ball_in_left_hand_msg: std_msgs.msg.Bool
+/mdb/baxter/sensor/ball_in_right_hand_topic: /mdb/baxter/sensor/ball_in_right_hand
+/mdb/baxter/sensor/ball_in_right_hand_msg: std_msgs.msg.Bool
+/mdb/baxter/sensor/ball_in_box_topic: /mdb/baxter/sensor/ball_in_box
+/mdb/baxter/sensor/ball_in_box_msg: std_msgs.msg.Bool
+/mdb/baxter/sensor/ball_with_robot_topic: /mdb/baxter/sensor/ball_with_robot
+/mdb/baxter/sensor/ball_with_robot_msg: std_msgs.msg.Bool

@@ -1,0 +1,6 @@
+std_msgs/Bool request
+---
+mdb_baxter_detection/SensData obj_sens
+mdb_baxter_detection/SensData box_sens
+std_msgs/Float64 left_grip
+std_msgs/Float64 right_grip

@@ -1,0 +1,212 @@
+<html>
+<head>
+<title>Correlations.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: #606366; font-weight: normal; font-style: normal; }
+.s0 { color: rgb(204,120,50); font-weight: bold; }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(98,151,85); font-style: italic; }
+.s3 { color: rgb(104,151,187); }
+.s4 { color: rgb(128,128,128); }
+.s5 { color: rgb(165,194,97); }
+.s6 { color: rgb(204,120,50); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+Correlations.py</FONT>
+</center></TD></TR></TABLE>
+<pre>
+<a name="l1"><span class="ln">1    </span></a><span class="s0">from </span><span class="s1">DistancesCertainty </span><span class="s0">import </span><span class="s1">* 
+<a name="l2"><span class="ln">2    </span></a> 
+<a name="l3"><span class="ln">3    </span></a> 
+<a name="l4"><span class="ln">4    </span></a></span><span class="s0">class </span><span class="s1">Correlations(object): 
+<a name="l5"><span class="ln">5    </span></a>    </span><span class="s2">&quot;&quot;&quot;Class that represents the Correlations module. 
+<a name="l6"><span class="ln">6    </span></a>    This module identifies new correlations and contains the set of existing correlations. 
+<a name="l7"><span class="ln">7    </span></a>     
+<a name="l8"><span class="ln">8    </span></a>    It contains the Correlation Evaluator that is an algorithm that has to be executed each time a trace is added 
+<a name="l9"><span class="ln">9    </span></a>    to the Traces Memory and searches for possible correlations to be stored in the Traces Correlation Memory. 
+<a name="l10"><span class="ln">10   </span></a>     
+<a name="l11"><span class="ln">11   </span></a>    It also has the Distances Certainty module that makes possible the creation of certainty maps using the traces  
+<a name="l12"><span class="ln">12   </span></a>    stored as positive-traces, negative-traces and weak-traces, which aim is to obtain the certainty value for a 
+<a name="l13"><span class="ln">13   </span></a>    point p given 
+<a name="l14"><span class="ln">14   </span></a>    &quot;&quot;&quot;</span><span class="s1"> 
+<a name="l15"><span class="ln">15   </span></a> 
+<a name="l16"><span class="ln">16   </span></a>    </span><span class="s0">def </span><span class="s1">__init__(self): 
+<a name="l17"><span class="ln">17   </span></a>        self.n_sensor = </span><span class="s3">2  </span><span class="s4"># Number of sensors. Useful to know how many possible correlations there are</span><span class="s1"> 
+<a name="l18"><span class="ln">18   </span></a>        self.min_ep = </span><span class="s3">5  </span><span class="s4"># Minimum number of episodes to consider the correlation possible</span><span class="s1"> 
+<a name="l19"><span class="ln">19   </span></a>        self.same_values_accepted = </span><span class="s3">1  </span><span class="s4"># Number of sensor admitted to be equal</span><span class="s1"> 
+<a name="l20"><span class="ln">20   </span></a> 
+<a name="l21"><span class="ln">21   </span></a>        </span><span class="s4"># Correlations Traces Memories and certainty evaluators</span><span class="s1"> 
+<a name="l22"><span class="ln">22   </span></a>        self.S1_pos = DistancesCertainty() 
+<a name="l23"><span class="ln">23   </span></a>        self.S1_neg = DistancesCertainty() 
+<a name="l24"><span class="ln">24   </span></a>        self.S2_neg = DistancesCertainty() 
+<a name="l25"><span class="ln">25   </span></a>        self.S2_pos = DistancesCertainty() 
+<a name="l26"><span class="ln">26   </span></a> 
+<a name="l27"><span class="ln">27   </span></a>        self.corr_active = </span><span class="s3">0  </span><span class="s4"># 1 - Sensor 1, 2 - Sensor 2, ... n- sensor n, 0 - no hay correlacion</span><span class="s1"> 
+<a name="l28"><span class="ln">28   </span></a>        self.corr_type = </span><span class="s5">''  </span><span class="s4"># 'pos' - Correlacion positiva, 'neg' - Correlacion negativa, '' - no hay correlacion</span><span class="s1"> 
+<a name="l29"><span class="ln">29   </span></a>        self.corr_threshold = </span><span class="s3">0.1  </span><span class="s4"># Threshold to know when to consider Extrinsic Motivation and when Intrinsic</span><span class="s1"> 
+<a name="l30"><span class="ln">30   </span></a> 
+<a name="l31"><span class="ln">31   </span></a>        self.established = </span><span class="s3">0</span><span class="s1"> 
+<a name="l32"><span class="ln">32   </span></a> 
+<a name="l33"><span class="ln">33   </span></a>    </span><span class="s0">def </span><span class="s1">correlationEvaluator(self</span><span class="s6">, </span><span class="s1">Trace): 
+<a name="l34"><span class="ln">34   </span></a>        </span><span class="s2">&quot;&quot;&quot;This method evaluates the possible correlations existing in a trace T and save them in the proper Correlation  
+<a name="l35"><span class="ln">35   </span></a>        Traces Memory Buffer 
+<a name="l36"><span class="ln">36   </span></a>         
+<a name="l37"><span class="ln">37   </span></a>        Keyword arguments: 
+<a name="l38"><span class="ln">38   </span></a>        Trace -- List of tuples, it is a List of episodes-sensorization(tuples) 
+<a name="l39"><span class="ln">39   </span></a>        &quot;&quot;&quot;</span><span class="s1"> 
+<a name="l40"><span class="ln">40   </span></a>        </span><span class="s0">if </span><span class="s1">len(Trace) &gt;= self.min_ep: 
+<a name="l41"><span class="ln">41   </span></a>            </span><span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">range(self.n_sensor): 
+<a name="l42"><span class="ln">42   </span></a>                p_corr = </span><span class="s3">1  </span><span class="s4"># Positive correlation</span><span class="s1"> 
+<a name="l43"><span class="ln">43   </span></a>                n_corr = </span><span class="s3">1  </span><span class="s4"># Negative correlation</span><span class="s1"> 
+<a name="l44"><span class="ln">44   </span></a>                same_value = </span><span class="s3">0  </span><span class="s4"># Number of times a sensor has the same value in two consecutive episodes</span><span class="s1"> 
+<a name="l45"><span class="ln">45   </span></a>                </span><span class="s0">for </span><span class="s1">j </span><span class="s0">in </span><span class="s1">reversed(range(len(Trace) - self.min_ep</span><span class="s6">, </span><span class="s1">len(Trace))): 
+<a name="l46"><span class="ln">46   </span></a>                    </span><span class="s4"># No es necesario llegar al 0 porque estoy contemplandolo ya en el [j-1]</span><span class="s1"> 
+<a name="l47"><span class="ln">47   </span></a>                    </span><span class="s0">if </span><span class="s1">p_corr:  </span><span class="s4"># The case when positive correlation is active</span><span class="s1"> 
+<a name="l48"><span class="ln">48   </span></a>                        </span><span class="s0">if </span><span class="s1">Trace[j][i] &gt; Trace[j - </span><span class="s3">1</span><span class="s1">][i]: 
+<a name="l49"><span class="ln">49   </span></a>                            n_corr = </span><span class="s3">0  </span><span class="s4"># Negative correlation is no longer possible for this sensor</span><span class="s1"> 
+<a name="l50"><span class="ln">50   </span></a>                        </span><span class="s0">elif </span><span class="s1">Trace[j][i] &lt; Trace[j - </span><span class="s3">1</span><span class="s1">][i]: 
+<a name="l51"><span class="ln">51   </span></a>                            p_corr = </span><span class="s3">0  </span><span class="s4"># Positive correlation is no longer possible for this sensor</span><span class="s1"> 
+<a name="l52"><span class="ln">52   </span></a>                        </span><span class="s0">else</span><span class="s1">:  </span><span class="s4"># Trace[j][i]=Trace[j-1][i]</span><span class="s1"> 
+<a name="l53"><span class="ln">53   </span></a>                            same_value += </span><span class="s3">1</span><span class="s1"> 
+<a name="l54"><span class="ln">54   </span></a>                            </span><span class="s0">if </span><span class="s1">same_value &gt; self.same_values_accepted: 
+<a name="l55"><span class="ln">55   </span></a>                                n_corr = </span><span class="s3">0</span><span class="s1"> 
+<a name="l56"><span class="ln">56   </span></a>                                p_corr = </span><span class="s3">0</span><span class="s1"> 
+<a name="l57"><span class="ln">57   </span></a>                    </span><span class="s0">elif </span><span class="s1">n_corr:  </span><span class="s4"># The case when negative correlation is active</span><span class="s1"> 
+<a name="l58"><span class="ln">58   </span></a>                        </span><span class="s0">if </span><span class="s1">Trace[j][i] &gt; Trace[j - </span><span class="s3">1</span><span class="s1">][i]: 
+<a name="l59"><span class="ln">59   </span></a>                            n_corr = </span><span class="s3">0  </span><span class="s4"># Negative correlation is no longer possible for this sensor</span><span class="s1"> 
+<a name="l60"><span class="ln">60   </span></a>                        </span><span class="s0">elif </span><span class="s1">Trace[j][i] &lt; Trace[j - </span><span class="s3">1</span><span class="s1">][i]: 
+<a name="l61"><span class="ln">61   </span></a>                            p_corr = </span><span class="s3">0  </span><span class="s4"># Positive correlation is no longer possible for this sensor</span><span class="s1"> 
+<a name="l62"><span class="ln">62   </span></a>                        </span><span class="s0">else</span><span class="s1">:  </span><span class="s4"># Trace[j][i]=Trace[j-1][i]</span><span class="s1"> 
+<a name="l63"><span class="ln">63   </span></a>                            same_value += </span><span class="s3">1</span><span class="s1"> 
+<a name="l64"><span class="ln">64   </span></a>                            </span><span class="s0">if </span><span class="s1">same_value &gt; self.same_values_accepted: 
+<a name="l65"><span class="ln">65   </span></a>                                n_corr = </span><span class="s3">0</span><span class="s1"> 
+<a name="l66"><span class="ln">66   </span></a>                                p_corr = </span><span class="s3">0</span><span class="s1"> 
+<a name="l67"><span class="ln">67   </span></a> 
+<a name="l68"><span class="ln">68   </span></a>                </span><span class="s4"># If there is a correlation, save it in the pertinent correlation trace memory</span><span class="s1"> 
+<a name="l69"><span class="ln">69   </span></a>                </span><span class="s0">if </span><span class="s1">p_corr: 
+<a name="l70"><span class="ln">70   </span></a>                    </span><span class="s0">if </span><span class="s1">i == </span><span class="s3">0</span><span class="s1">: 
+<a name="l71"><span class="ln">71   </span></a>                        self.addWeakTrace(Trace</span><span class="s6">, </span><span class="s1">i + </span><span class="s3">1</span><span class="s6">, </span><span class="s5">'pos'</span><span class="s1">) 
+<a name="l72"><span class="ln">72   </span></a>                    </span><span class="s0">elif </span><span class="s1">i == </span><span class="s3">1</span><span class="s1">: 
+<a name="l73"><span class="ln">73   </span></a>                        self.addWeakTrace(Trace</span><span class="s6">, </span><span class="s1">i + </span><span class="s3">1</span><span class="s6">, </span><span class="s5">'pos'</span><span class="s1">) 
+<a name="l74"><span class="ln">74   </span></a>                </span><span class="s0">elif </span><span class="s1">n_corr: 
+<a name="l75"><span class="ln">75   </span></a>                    </span><span class="s0">if </span><span class="s1">i == </span><span class="s3">0</span><span class="s1">: 
+<a name="l76"><span class="ln">76   </span></a>                        self.addWeakTrace(Trace</span><span class="s6">, </span><span class="s1">i + </span><span class="s3">1</span><span class="s6">, </span><span class="s5">'neg'</span><span class="s1">) 
+<a name="l77"><span class="ln">77   </span></a>                    </span><span class="s0">elif </span><span class="s1">i == </span><span class="s3">1</span><span class="s1">: 
+<a name="l78"><span class="ln">78   </span></a>                        self.addWeakTrace(Trace</span><span class="s6">, </span><span class="s1">i + </span><span class="s3">1</span><span class="s6">, </span><span class="s5">'neg'</span><span class="s1">) 
+<a name="l79"><span class="ln">79   </span></a> 
+<a name="l80"><span class="ln">80   </span></a>    </span><span class="s0">def </span><span class="s1">getActiveCorrelation(self</span><span class="s6">, </span><span class="s1">p): 
+<a name="l81"><span class="ln">81   </span></a>        </span><span class="s2">&quot;&quot;&quot; 
+<a name="l82"><span class="ln">82   </span></a>        # Este metodo despues ira dentro del motivation manager, y lo de correlaciones importado alli tambien (dentro de un modulo que sea modelos de utilidad) 
+<a name="l83"><span class="ln">83   </span></a> 
+<a name="l84"><span class="ln">84   </span></a>        # Evaluo la certeza del nuevo punto en todas las correlaciones para ver si pertenece a alguna 
+<a name="l85"><span class="ln">85   </span></a>        # Si es mayor que un umbral para alguna de ellas, considero la mayor y si hay empate, una al azar 
+<a name="l86"><span class="ln">86   </span></a>        # Si es menor que el umbral, consireo la motivacion intrinseca         
+<a name="l87"><span class="ln">87   </span></a>        :param p:  
+<a name="l88"><span class="ln">88   </span></a>        :return:  
+<a name="l89"><span class="ln">89   </span></a>        &quot;&quot;&quot;</span><span class="s1"> 
+<a name="l90"><span class="ln">90   </span></a> 
+<a name="l91"><span class="ln">91   </span></a>        c1_pos = self.S1_pos.getCertaintyValue(p) 
+<a name="l92"><span class="ln">92   </span></a>        c1_neg = self.S1_neg.getCertaintyValue(p) 
+<a name="l93"><span class="ln">93   </span></a>        c2_pos = self.S2_pos.getCertaintyValue(p) 
+<a name="l94"><span class="ln">94   </span></a>        c2_neg = self.S2_neg.getCertaintyValue(p) 
+<a name="l95"><span class="ln">95   </span></a> 
+<a name="l96"><span class="ln">96   </span></a>        </span><span class="s0">if </span><span class="s1">self.corr_threshold &gt; max(c1_pos</span><span class="s6">, </span><span class="s1">c1_neg</span><span class="s6">, </span><span class="s1">c2_pos</span><span class="s6">, </span><span class="s1">c2_neg): 
+<a name="l97"><span class="ln">97   </span></a>            self.corr_active = </span><span class="s3">0  </span><span class="s4"># Al no haber correlacion activa doy por hecho que se usa la motivInt</span><span class="s1"> 
+<a name="l98"><span class="ln">98   </span></a>            self.corr_type = </span><span class="s5">''</span><span class="s1"> 
+<a name="l99"><span class="ln">99   </span></a>        </span><span class="s0">else</span><span class="s1">: 
+<a name="l100"><span class="ln">100  </span></a>            </span><span class="s4"># Guardo posicion valor maximo</span><span class="s1"> 
+<a name="l101"><span class="ln">101  </span></a>            i = (c1_pos</span><span class="s6">, </span><span class="s1">c1_neg</span><span class="s6">, </span><span class="s1">c2_pos</span><span class="s6">, </span><span class="s1">c2_neg).index(max(c1_pos</span><span class="s6">, </span><span class="s1">c1_neg</span><span class="s6">, </span><span class="s1">c2_pos</span><span class="s6">, </span><span class="s1">c2_neg)) 
+<a name="l102"><span class="ln">102  </span></a>            </span><span class="s0">if </span><span class="s1">i &lt; </span><span class="s3">2</span><span class="s1">: 
+<a name="l103"><span class="ln">103  </span></a>                self.corr_active = </span><span class="s3">1  </span><span class="s4"># Sensor 1</span><span class="s1"> 
+<a name="l104"><span class="ln">104  </span></a>            </span><span class="s0">else</span><span class="s1">: 
+<a name="l105"><span class="ln">105  </span></a>                self.corr_active = </span><span class="s3">2  </span><span class="s4"># Sensor 2</span><span class="s1"> 
+<a name="l106"><span class="ln">106  </span></a>            </span><span class="s0">if </span><span class="s1">i % </span><span class="s3">2 </span><span class="s1">== </span><span class="s3">0</span><span class="s1">:  </span><span class="s4"># Posicion par</span><span class="s1"> 
+<a name="l107"><span class="ln">107  </span></a>                self.corr_type = </span><span class="s5">'pos'</span><span class="s1"> 
+<a name="l108"><span class="ln">108  </span></a>            </span><span class="s0">else</span><span class="s1">: 
+<a name="l109"><span class="ln">109  </span></a>                self.corr_type = </span><span class="s5">'neg'</span><span class="s1"> 
+<a name="l110"><span class="ln">110  </span></a> 
+<a name="l111"><span class="ln">111  </span></a>        </span><span class="s0">return </span><span class="s1">self.corr_active</span><span class="s6">, </span><span class="s1">self.corr_type 
+<a name="l112"><span class="ln">112  </span></a> 
+<a name="l113"><span class="ln">113  </span></a>    </span><span class="s0">def </span><span class="s1">addTrace(self</span><span class="s6">, </span><span class="s1">Trace</span><span class="s6">, </span><span class="s1">sensor</span><span class="s6">, </span><span class="s1">corr_type): 
+<a name="l114"><span class="ln">114  </span></a> 
+<a name="l115"><span class="ln">115  </span></a>        </span><span class="s0">if not </span><span class="s1">self.established: 
+<a name="l116"><span class="ln">116  </span></a>            </span><span class="s4"># Guardo solo hasta donde se cumple la correlacion</span><span class="s1"> 
+<a name="l117"><span class="ln">117  </span></a>            </span><span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">reversed(range(len(Trace))): 
+<a name="l118"><span class="ln">118  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l119"><span class="ln">119  </span></a>                    </span><span class="s0">if </span><span class="s1">Trace[i][sensor - </span><span class="s3">1</span><span class="s1">] &gt;= Trace[i - </span><span class="s3">1</span><span class="s1">][sensor - </span><span class="s3">1</span><span class="s1">]: 
+<a name="l120"><span class="ln">120  </span></a>                        </span><span class="s0">break</span><span class="s1"> 
+<a name="l121"><span class="ln">121  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l122"><span class="ln">122  </span></a>                    </span><span class="s0">if </span><span class="s1">Trace[i][sensor - </span><span class="s3">1</span><span class="s1">] &lt;= Trace[i - </span><span class="s3">1</span><span class="s1">][sensor - </span><span class="s3">1</span><span class="s1">]: 
+<a name="l123"><span class="ln">123  </span></a>                        </span><span class="s0">break</span><span class="s1"> 
+<a name="l124"><span class="ln">124  </span></a> 
+<a name="l125"><span class="ln">125  </span></a>            </span><span class="s0">if </span><span class="s1">sensor == </span><span class="s3">1</span><span class="s1">: 
+<a name="l126"><span class="ln">126  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l127"><span class="ln">127  </span></a>                    self.S1_pos.addTraces(Trace[i:]) 
+<a name="l128"><span class="ln">128  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l129"><span class="ln">129  </span></a>                    self.S1_neg.addTraces(Trace[i:]) 
+<a name="l130"><span class="ln">130  </span></a>            </span><span class="s0">elif </span><span class="s1">sensor == </span><span class="s3">2</span><span class="s1">: 
+<a name="l131"><span class="ln">131  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l132"><span class="ln">132  </span></a>                    self.S2_pos.addTraces(Trace[i:]) 
+<a name="l133"><span class="ln">133  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l134"><span class="ln">134  </span></a>                    self.S2_neg.addTraces(Trace[i:]) 
+<a name="l135"><span class="ln">135  </span></a> 
+<a name="l136"><span class="ln">136  </span></a>        </span><span class="s4"># Check if the correlation is established (it could only happen after adding a trace)</span><span class="s1"> 
+<a name="l137"><span class="ln">137  </span></a>        self.isCorrelationEstablished() 
+<a name="l138"><span class="ln">138  </span></a> 
+<a name="l139"><span class="ln">139  </span></a>    </span><span class="s0">def </span><span class="s1">addAntiTrace(self</span><span class="s6">, </span><span class="s1">Trace</span><span class="s6">, </span><span class="s1">sensor</span><span class="s6">, </span><span class="s1">corr_type): 
+<a name="l140"><span class="ln">140  </span></a>        </span><span class="s4"># Filtro aqui para guardar los valores obtenidos con motivacion extrinseca</span><span class="s1"> 
+<a name="l141"><span class="ln">141  </span></a>        </span><span class="s0">if not </span><span class="s1">self.established: 
+<a name="l142"><span class="ln">142  </span></a>            </span><span class="s0">if </span><span class="s1">sensor == </span><span class="s3">1</span><span class="s1">: 
+<a name="l143"><span class="ln">143  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l144"><span class="ln">144  </span></a>                    self.S1_pos.addAntiTraces(Trace) 
+<a name="l145"><span class="ln">145  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l146"><span class="ln">146  </span></a>                    self.S1_neg.addAntiTraces(Trace) 
+<a name="l147"><span class="ln">147  </span></a>            </span><span class="s0">elif </span><span class="s1">sensor == </span><span class="s3">2</span><span class="s1">: 
+<a name="l148"><span class="ln">148  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l149"><span class="ln">149  </span></a>                    self.S2_pos.addAntiTraces(Trace) 
+<a name="l150"><span class="ln">150  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l151"><span class="ln">151  </span></a>                    self.S2_neg.addAntiTraces(Trace) 
+<a name="l152"><span class="ln">152  </span></a> 
+<a name="l153"><span class="ln">153  </span></a>    </span><span class="s0">def </span><span class="s1">addWeakTrace(self</span><span class="s6">, </span><span class="s1">Trace</span><span class="s6">, </span><span class="s1">sensor</span><span class="s6">, </span><span class="s1">corr_type): 
+<a name="l154"><span class="ln">154  </span></a>        </span><span class="s0">if not </span><span class="s1">self.established: 
+<a name="l155"><span class="ln">155  </span></a>            </span><span class="s4"># Guardo solo hasta donde se cumple la correlacion</span><span class="s1"> 
+<a name="l156"><span class="ln">156  </span></a>            </span><span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">reversed(range(len(Trace))): 
+<a name="l157"><span class="ln">157  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l158"><span class="ln">158  </span></a>                    </span><span class="s0">if </span><span class="s1">Trace[i][sensor - </span><span class="s3">1</span><span class="s1">] &gt;= Trace[i - </span><span class="s3">1</span><span class="s1">][sensor - </span><span class="s3">1</span><span class="s1">]: 
+<a name="l159"><span class="ln">159  </span></a>                        </span><span class="s0">break</span><span class="s1"> 
+<a name="l160"><span class="ln">160  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l161"><span class="ln">161  </span></a>                    </span><span class="s0">if </span><span class="s1">Trace[i][sensor - </span><span class="s3">1</span><span class="s1">] &lt;= Trace[i - </span><span class="s3">1</span><span class="s1">][sensor - </span><span class="s3">1</span><span class="s1">]: 
+<a name="l162"><span class="ln">162  </span></a>                        </span><span class="s0">break</span><span class="s1"> 
+<a name="l163"><span class="ln">163  </span></a> 
+<a name="l164"><span class="ln">164  </span></a>            </span><span class="s0">if </span><span class="s1">sensor == </span><span class="s3">1</span><span class="s1">: 
+<a name="l165"><span class="ln">165  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l166"><span class="ln">166  </span></a>                    self.S1_pos.addWeakTraces(Trace[i:]) 
+<a name="l167"><span class="ln">167  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l168"><span class="ln">168  </span></a>                    self.S1_neg.addWeakTraces(Trace[i:]) 
+<a name="l169"><span class="ln">169  </span></a>            </span><span class="s0">elif </span><span class="s1">sensor == </span><span class="s3">2</span><span class="s1">: 
+<a name="l170"><span class="ln">170  </span></a>                </span><span class="s0">if </span><span class="s1">corr_type == </span><span class="s5">'pos'</span><span class="s1">: 
+<a name="l171"><span class="ln">171  </span></a>                    self.S2_pos.addWeakTraces(Trace[i:]) 
+<a name="l172"><span class="ln">172  </span></a>                </span><span class="s0">elif </span><span class="s1">corr_type == </span><span class="s5">'neg'</span><span class="s1">: 
+<a name="l173"><span class="ln">173  </span></a>                    self.S2_neg.addWeakTraces(Trace[i:]) 
+<a name="l174"><span class="ln">174  </span></a> 
+<a name="l175"><span class="ln">175  </span></a>    </span><span class="s0">def </span><span class="s1">isCorrelationEstablished(self): 
+<a name="l176"><span class="ln">176  </span></a> 
+<a name="l177"><span class="ln">177  </span></a>        n_traces = </span><span class="s3">5  </span><span class="s4"># Number of goals without antitraces needed to consider the correlation established</span><span class="s1"> 
+<a name="l178"><span class="ln">178  </span></a> 
+<a name="l179"><span class="ln">179  </span></a>        corr1_pos = self.S1_pos.getNumberOfGoaslWithoutAntiTraces() 
+<a name="l180"><span class="ln">180  </span></a>        corr1_neg = self.S1_neg.getNumberOfGoaslWithoutAntiTraces() 
+<a name="l181"><span class="ln">181  </span></a>        corr2_pos = self.S2_pos.getNumberOfGoaslWithoutAntiTraces() 
+<a name="l182"><span class="ln">182  </span></a>        corr2_neg = self.S2_neg.getNumberOfGoaslWithoutAntiTraces() 
+<a name="l183"><span class="ln">183  </span></a> 
+<a name="l184"><span class="ln">184  </span></a>        </span><span class="s0">if </span><span class="s1">(corr1_pos </span><span class="s0">or </span><span class="s1">corr1_neg </span><span class="s0">or </span><span class="s1">corr2_pos </span><span class="s0">or </span><span class="s1">corr2_neg) == n_traces: 
+<a name="l185"><span class="ln">185  </span></a>            self.established = </span><span class="s3">1</span><span class="s1"> 
+<a name="l186"><span class="ln">186  </span></a>        </span><span class="s0">else</span><span class="s1">: 
+<a name="l187"><span class="ln">187  </span></a>            self.established = </span><span class="s3">0</span><span class="s1"> 
+<a name="l188"><span class="ln">188  </span></a></span></pre>
+</body>
+</html>

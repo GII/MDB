@@ -1,0 +1,7 @@
+mdb_baxter_policies/CMReq sensorization
+std_msgs/Float64 scale
+std_msgs/Float64 grip
+std_msgs/String arm
+std_msgs/Bool hackademia17success
+---
+std_msgs/Bool result 

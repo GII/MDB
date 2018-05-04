@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<launch> 
+   <arg name="decimation" default="1"/> <!-- 1 -->
+   <!--arg name="obj_type" default="ball"/-->
+   <arg name="rate" default="5"/>
+   <arg name="table_per" default="0.01"/>
+   <arg name="stype" default="single"/>
+   <arg name="use_beacons" default="false"/>
+
+   <arg name="detect_box" default="true"/>
+   <arg name="detect_obj" default="true"/>
+
+   <arg name="camera_frame" default="camera_rgb_optical_frame"/>
+   <!--arg name="camera_frame" default="headcamera_rgb_optical_frame"/-->
+   <arg name="image_topic" default="/camera/rgb/image_rect_color_drop"/>
+   <!--arg name="image_topic" default="/pano_camera/image_color"/-->
+   <arg name="cloud_topic" default="/camera/depth_registered/points"/>
+   <!--arg name="cloud_topic" default="/example/pointcloud"/-->
+   <arg name="ref_frame" default="/base" />
+
+   <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.866 0.102 2.026 -0.007 0.708 0.003 0.706 base camera_link 100" required="true"/-->
+   <!-- 10 to 17 + 2 cameras --> <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.074 0.116 0.047 -0.266 -0.272 -0.628 0.649 head_camera camera_link 100" required="true"/-->
+   <!-- 10 to 25 + 2 cameras --> <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.073 0.116 0.047 -0.266 -0.271 -0.658 0.650 head_camera camera_link 100" required="true"/-->
+   <!-- 10 to 25 + 1 camera -->  <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.070 0.064 0.024 -0.279 -0.293 -0.650 0.643 head_camera camera_link 100" required="true"/-->
+
+   <node name="drop_node" pkg="topic_tools" type="drop" args="/camera/rgb/image_rect_color 3 4 /camera/rgb/image_rect_color_drop"/>
+
+   <node name="ball_track" pkg="mdb_baxter_detection" type="ball_track" required="true" output="screen" if="$(arg detect_obj)" > <!-- launch-prefix="valgrind"-->
+       <remap from="/image_color" to="$(arg image_topic)" />
+
+       <param name="table_per" type="double" value="$(arg table_per)"/>
+   </node>
+
+   <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos.py" required="true" output="screen" if="$(arg detect_obj)" >
+       <remap from="/camera/pointcloud" to="$(arg cloud_topic)" />
+
+       <param name="obj_type" type="str" value="ball"/>
+	   <param name="decimation" type="int" value="$(arg decimation)"/>
+	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
+   </node>
+
+   <node name="ball_sensor" pkg="mdb_baxter_detection" type="obj_sensor.py" required="true" output="screen" if="$(arg detect_obj)">
+       <param name="obj_type" type="str" value="ball"/>
+       <param name="ref_frame" type="str" value="$(arg ref_frame)"/>
+       <param name="rate" type="int" value="$(arg rate)"/>
+       <param name="stype" type="str" value="$(arg stype)"/>
+       <param name="use_beacons" type="bool" value="$(arg use_beacons)"/>
+   </node>
+
+   
+   <node name="box_track" pkg="mdb_baxter_detection" type="box_track" required="true" output="screen" if="$(arg detect_box)">
+       <remap from="/image_color" to="$(arg image_topic)" />
+
+       <param name="table_per" type="double" value="$(arg table_per)"/>
+   </node>
+
+   <node name="box_pos" pkg="mdb_baxter_detection" type="obj_pos.py" required="true" output="screen" if="$(arg detect_box)">
+       <remap from="/camera/pointcloud" to="$(arg cloud_topic)" />
+
+       <param name="obj_type" type="str" value="box"/>
+	   <param name="decimation" type="int" value="$(arg decimation)" />
+	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
+   </node>
+
+   <node name="box_sensor" pkg="mdb_baxter_detection" type="obj_sensor.py" required="true" output="screen" if="$(arg detect_box)">
+       <param name="obj_type" type="str" value="box"/>
+       <param name="ref_frame" type="str" value="$(arg ref_frame)"/>
+       <param name="rate" type="int" value="$(arg rate)"/>
+       <param name="stype" type="str" value="$(arg stype)"/>
+       <param name="use_beacons" type="bool" value="$(arg use_beacons)"/>
+   </node>
+
+</launch>
+
+

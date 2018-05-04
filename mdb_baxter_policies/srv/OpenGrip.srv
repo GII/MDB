@@ -1,0 +1,3 @@
+mdb_baxter_policies/OpenGripReq request
+---
+std_msgs/Bool result

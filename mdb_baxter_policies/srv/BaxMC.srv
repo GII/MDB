@@ -1,0 +1,7 @@
+mdb_baxter_policies/CMReq dest
+std_msgs/String orientation
+std_msgs/String arm
+std_msgs/Float64 scale
+std_msgs/Bool valid
+---
+std_msgs/Bool result 

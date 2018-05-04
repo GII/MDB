@@ -1,0 +1,5 @@
+std_msgs/Bool request
+std_msgs/Float64 box_rad
+std_msgs/Float64 obj_rad
+---
+std_msgs/Bool result 
