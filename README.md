@@ -87,6 +87,7 @@ When you see this in the terminal:
 [ INFO] [1501860210.697581892, 34.007000000]: Simulator is loaded and started successfully
 [ INFO] [1501860210.706354180, 34.015000000]: Robot is disabled
 [ INFO] [1501860210.706493901, 34.015000000]: Gravity compensation was turned off
+```
 
 You can try on another terminal that has the baxter script already launched: `rosrun baxter_tools tuck_arms.py -u`. The robot will adquire the operation pose.
 
