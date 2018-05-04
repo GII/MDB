@@ -69,51 +69,51 @@ Tools for Baxter experiments
 ### Instalation:
 
 - Create a workspace.
-- Install baxter sdk dependencies: git-core python-argparse python-wstool python-vcstools python-rosdep ros-indigo-control-msgs ros-indigo-joystick-drivers
-- Copy all the baxter related packages into the ws src folder and do catkin_make.
-- Copy all the moveit related packages into the ws src folder and do cantin_make.
-- Create simbolic links to the packages in the ws and do catkin_make.
-- In the ws, do catkin_make install.
+- Install baxter sdk dependencies: `apt install git-core python-argparse python-wstool python-vcstools python-rosdep ros-indigo-control-msgs ros-indigo-joystick-drivers`
+- Copy all the baxter related packages into the ws src folder and do `catkin_make`.
+- Copy all the moveit related packages into the ws src folder and do `catkin_make`.
+- Create simbolic links to the packages in the ws and do `catkin_make`.
+- In the ws, do `catkin_make install`.
 
 To check that the installation is good:
-- Download this: wget https://github.com/RethinkRobotics/baxter/raw/master/baxter.sh
-- Permissions: chmod u+x baxter.sh
+- Download this: `wget https://github.com/RethinkRobotics/baxter/raw/master/baxter.sh`
+- Permissions: `chmod u+x baxter.sh`
 - Edit the machine ip or the hostname in the file (one of another, not both).
-- Open a terminal and execute the script baxter.sh: ./baxter.sh sim. This is needed in every terminal before launching any part of the code.
-- In the same terminal after the script is launched: roslaunch baxter_gazebo baxter_world.launch. This will launch the simulated baxter.
+- Open a terminal and execute the script baxter.sh: `./baxter.sh sim`. This is needed in every terminal before launching any part of the code.
+- In the same terminal after the script is launched: `roslaunch baxter_gazebo baxter_world.launch`. This will launch the simulated baxter.
 
 When you see this in the terminal:
 [ INFO] [1501860210.697581892, 34.007000000]: Simulator is loaded and started successfully
 [ INFO] [1501860210.706354180, 34.015000000]: Robot is disabled
 [ INFO] [1501860210.706493901, 34.015000000]: Gravity compensation was turned off
 
-You can try on another terminal that has the baxter script already launched: rosrun baxter_tools tuck_arms.py -u. The robot will adquire the operation pose.
+You can try on another terminal that has the baxter script already launched: `rosrun baxter_tools tuck_arms.py -u`. The robot will adquire the operation pose.
 
 Now, to test moveit:
-- On another enabled terminal: rosrun baxter_interface joint_trajectory_action_server.py.
-- On another enabled terminal: roslaunch baxter_moveit_config baxter_grippers.launch. Rviz should open with the planner.
+- On another enabled terminal: `rosrun baxter_interface joint_trajectory_action_server.py`
+- On another enabled terminal: `roslaunch baxter_moveit_config baxter_grippers.launch`. Rviz should open with the planner.
 
 ### Launch:
 
 To launch the tools for the real untucked robot run:
 
-1. Xtion camera: roslaunch openni2_launch openni2.launch rgb_frame_id:=camera_rgb_optical_frame depth_frame_id:=camera_depth_optical_frame depth_registration:=true auto_exposure:=false auto_white_balance:=false
-1. Dinamic tf between the camera and the robot: roslaunch gii_baxter_detection camera_tf_link.launch 
-1. Robot sensors: roslaunch gii_baxter_detection robot_sense.launch decimation:=1
-1. Trajectory server: rosrun baxter_interface joint_trajectory_action_server.py
-1. Moveit: roslaunch baxter_moveit_config baxter_grippers.launch
-1. Getter auxiliary nodes: roslaunch gii_baxter_moveit getters.launch
-1. Policies: roslaunch gii_baxter_moveit baxter_policies.launch mode:=real
-1. Experiment manager: roslaunch gii_baxter_exp exp_ltm_paris17.launch mode:=real
+1. Xtion camera: `roslaunch openni2_launch openni2.launch rgb_frame_id:=camera_rgb_optical_frame depth_frame_id:=camera_depth_optical_frame depth_registration:=true auto_exposure:=false auto_white_balance:=false`
+1. Dinamic tf between the camera and the robot: `roslaunch gii_baxter_detection camera_tf_link.launch`
+1. Robot sensors: `roslaunch gii_baxter_detection robot_sense.launch decimation:=1`
+1. Trajectory server: `rosrun baxter_interface joint_trajectory_action_server.py`
+1. Moveit: `roslaunch baxter_moveit_config baxter_grippers.launch`
+1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
+1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch mode:=real`
+1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch mode:=real`
 
 To launch the tools for the simulated robot run:
 
-1. Simulated baxter: roslaunch baxter_gazebo baxter_world.launch
-1. Operation pose: rosrun baxter_tools tuck_arms.py -u
-1. Trajectory server: rosrun baxter_interface joint_trajectory_action_server.py
-1. Moveit: roslaunch baxter_moveit_config baxter_grippers.launch
-1. Getter auxiliary nodes: roslaunch gii_baxter_moveit getters.launch
-1. Policies: roslaunch gii_baxter_moveit baxter_policies.launch
-1. Virtual sensors: roslaunch gii_baxter_detection simulator_sense.launch
-1. Simulation manager: roslaunch gii_baxter_exp exp_sim_manager.launch
-1. Experiment manager: roslaunch gii_baxter_exp exp_ltm_paris17.launch
+1. Simulated baxter: `roslaunch baxter_gazebo baxter_world.launch`
+1. Operation pose: `rosrun baxter_tools tuck_arms.py -u`
+1. Trajectory server: `rosrun baxter_interface joint_trajectory_action_server.py`
+1. Moveit: `roslaunch baxter_moveit_config baxter_grippers.launch`
+1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
+1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch`
+1. Virtual sensors: `roslaunch gii_baxter_detection simulator_sense.launch`
+1. Simulation manager: `roslaunch gii_baxter_exp exp_sim_manager.launch`
+1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch`
