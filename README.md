@@ -83,6 +83,7 @@ To check that the installation is good:
 - In the same terminal after the script is launched: `roslaunch baxter_gazebo baxter_world.launch`. This will launch the simulated baxter.
 
 When you see this in the terminal:
+```
 [ INFO] [1501860210.697581892, 34.007000000]: Simulator is loaded and started successfully
 [ INFO] [1501860210.706354180, 34.015000000]: Robot is disabled
 [ INFO] [1501860210.706493901, 34.015000000]: Gravity compensation was turned off
