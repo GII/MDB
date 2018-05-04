@@ -38,25 +38,25 @@ Command and id cann't be null. At least one of the fields related to execution /
 Right now, every field is a string to make easier the debugging of messages.
 
 This are the ROS topic names (and associated ROS messages) that we are using to publish those announcement messages. We are using ROS parameteres and dynamic class loading so, actually, their names are irrelevant:
-- /mdb3/p_node (mdb3_ltm.msg.PNodeMsg)
-- /mdb3/goal (mdb3_ltm.msg.GoalMsg)
-- /mdb3/value_function (mdb3_ltm.msg.ValueFunctionMsg)
-- /mdb3/forward_model (mdb3_ltm.msg.ForwardModelMsg)
-- /mdb3/policy (mdb3_ltm.msg.PolicyMsg)
-- /mdb3/c_node (mdb3_ltm.msg.CNodeMsg)
+- /mdb/p_node (mdb_ltm.msg.PNodeMsg)
+- /mdb/goal (mdb_ltm.msg.GoalMsg)
+- /mdb/value_function (mdb_ltm.msg.ValueFunctionMsg)
+- /mdb/forward_model (mdb_ltm.msg.ForwardModelMsg)
+- /mdb/policy (mdb_ltm.msg.PolicyMsg)
+- /mdb/c_node (mdb_ltm.msg.CNodeMsg)
 
 These are MDB tentative ROS service names for execution / getting fields:
-- /mdb3_stm/execute_policy
-- /mdb3_stm/get_policy
-- /mdb3_stm/execute_forward_model
-- /mdb3_stm/get_forward_model
-- /mdb3_stm/forward_models_server
-- /mdb3_motiven/execute_goal
-- /mdb3_motiven/get_goal
-- /mdb3_motiven/execute_value_function
-- /mdb3_motiven/get_value_function
-- /mdb3_motiven/execute_perceptual_class
-- /mdb3_motiven/get_perceptual_class
+- /mdb_stm/execute_policy
+- /mdb_stm/get_policy
+- /mdb_stm/execute_forward_model
+- /mdb_stm/get_forward_model
+- /mdb_stm/forward_models_server
+- /mdb_motiven/execute_goal
+- /mdb_motiven/get_goal
+- /mdb_motiven/execute_value_function
+- /mdb_motiven/get_value_function
+- /mdb_motiven/execute_perceptual_class
+- /mdb_motiven/get_perceptual_class
 
 ### References
 
