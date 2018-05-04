@@ -3,7 +3,7 @@
 import rospy, sys
 import numpy as np
 from std_msgs.msg import Bool
-from mdb_baxter_detection.msg import SensData
+from mdb_common.msg import SensData
 from gazebo_msgs.srv import GetModelState
 from gazebo_msgs.msg import ModelStates
 

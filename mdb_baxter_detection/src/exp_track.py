@@ -5,7 +5,7 @@ import numpy as np
 from skimage import data, io, draw, morphology, color, measure, img_as_float, img_as_ubyte, util
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64, Bool
-from mdb_baxter_detection.msg import ObjDet
+from mdb_common.msg import ObjDet
 from cv_bridge import CvBridge, CvBridgeError
 
 import matplotlib.pyplot as plt

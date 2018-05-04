@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>mdb_msgs</name>
+  <name>mdb_common</name>
   <version>0.0.0</version>
-  <description>The mdb_msgs package</description>
+  <description>The mdb_common package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->

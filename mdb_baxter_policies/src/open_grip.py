@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from mdb_baxter_policies.srv import OpenGrip
-from mdb_baxter_policies.msg import OpenGripReq
+from mdb_common.msg import OpenGripReq
 from sensor_msgs.msg import JointState
 from baxter_interface.gripper import Gripper
 from baxter_core_msgs.msg import EndEffectorCommand

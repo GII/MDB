@@ -7,9 +7,9 @@ from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, Bax
 from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxChangeRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest
 from std_msgs.msg import Bool, Float64, String
 
-from mdb_msgs.srv import ExecPolicy, NewExperiment, RefreshWorld
+from mdb_common.srv import ExecPolicy, NewExperiment, RefreshWorld
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
-from mdb_baxter_detection.msg import SensData
+from mdb_common.msg import SensData
 from mdb_baxter_experiments.srv import PlanMng, PlanMngRequest
 
 

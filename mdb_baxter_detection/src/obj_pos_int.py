@@ -8,8 +8,8 @@ from sensor_msgs.msg import Image, PointCloud2
 from std_msgs.msg import Bool, String
 import sensor_msgs.point_cloud2 as pc2
 import tf
-from mdb_baxter_detection.msg import ObjDet, MObjDet
-from mdb_baxter_detection.msg import SensData
+from mdb_common.msg import ObjDet, MObjDet
+from mdb_common.msg import SensData
 
 
 class obj_pos_int:

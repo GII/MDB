@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-  mdb_msgs
+  mdb_common
   mdb_baxter_detection
   message_generation
 )

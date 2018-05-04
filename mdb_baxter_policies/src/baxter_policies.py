@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 from baxter_arm import *
-from mdb_baxter_policies.msg import OpenGripReq, Candidates
+from mdb_common.msg import OpenGripReq, Candidates
 from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandAct, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib
 from dynamic_reconfigure import client
 from dynamic_reconfigure.srv import Reconfigure
@@ -33,7 +33,7 @@ from baxter_core_msgs.msg import HeadPanCommand, HeadState
 
 from geometry_msgs.msg import PointStamped
 
-from mdb_baxter_detection.msg import ObjDet
+from mdb_common.msg import ObjDet
 
 class baxter_policies():
 	def __init__(self):

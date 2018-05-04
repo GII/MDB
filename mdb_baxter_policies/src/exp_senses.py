@@ -2,7 +2,7 @@
 import rospy, math
 import numpy as np
 from std_msgs.msg import Float64, Bool, String
-from mdb_baxter_detection.msg import SensData
+from mdb_common.msg import SensData
 from mdb_baxter_policies.srv import GetSense, GetES, GetSenseMotiv, GetSenseFM
 
 class exp_senses():
