@@ -8,7 +8,7 @@ project(mdb_simulator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy std_msgs message_generation
+  rospy std_msgs message_generation mdb_common
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,11 +49,10 @@ catkin_python_setup()
 #   DIRECTORY msg
 #   FILES
 # )
-add_message_files(
-  DIRECTORY msg
-  FILES
-  ControlMsg.msg
-)
+# add_message_files(
+#   DIRECTORY msg
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -74,10 +73,10 @@ add_message_files(
 #   DEPENDENCIES
 #   std_msgs  # Or other packages containing msgs
 # )
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -111,7 +110,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_simulator
-  CATKIN_DEPENDS rospy message_runtime std_msgs
+  CATKIN_DEPENDS rospy message_runtime std_msgs mdb_common
 #  DEPENDS system_lib
 )
 
@@ -194,12 +193,7 @@ catkin_install_python(PROGRAMS
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-install(DIRECTORY config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-)
+
 
 #############
 ## Testing ##

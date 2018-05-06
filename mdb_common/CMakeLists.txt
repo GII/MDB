@@ -40,14 +40,20 @@ find_package(catkin REQUIRED std_msgs message_generation)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#   FILES
-#)
+add_message_files(
+  DIRECTORY msg
+  FILES
+  PNodeMsg.msg
+  GoalMsg.msg
+  ForwardModelMsg.msg
+  PolicyMsg.msg
+  CNodeMsg.msg
+  ControlMsg.msg
+)
 
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
-   NewExperiment.srv
    RefreshWorld.srv
    ExecPolicy.srv
    GetSURCertainty.srv
@@ -166,6 +172,13 @@ catkin_package(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
+
 
 #############
 ## Testing ##

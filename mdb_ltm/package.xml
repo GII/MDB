@@ -53,6 +53,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>rospy</depend>
   <depend>std_msgs</depend>
+  <depend>mdb_common</depend>
   <exec_depend>python-numpy</exec_depend>
   <exec_depend>python-yaml</exec_depend>
   <exec_depend>python-argparse</exec_depend>

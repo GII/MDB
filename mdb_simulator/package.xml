@@ -20,7 +20,7 @@
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
   <!-- <url type="website">http://wiki.ros.org/mdb_simulator</url> -->
-  <url type="website">https://github.com/robotsthatdream/mdb_ltm</url>
+  <url type="website">https://github.com/robotsthatdream/MDB</url>
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -53,6 +53,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>rospy</depend>
   <depend>std_msgs</depend>
+  <depend>mdb_common</depend>
   <exec_depend>python-numpy</exec_depend>
   <exec_depend>python-yaml</exec_depend>  
   <exec_depend>python-argparse</exec_depend>  
