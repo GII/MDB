@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_moveit.srv import GetHS
+from mdb_baxter_policies.srv import GetHS
 from baxter_core_msgs.msg import HeadState
 from sensor_msgs.msg import JointState
 

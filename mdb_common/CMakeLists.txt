@@ -70,6 +70,7 @@ add_service_files(
    RefreshWorld.srv
    ExecPolicy.srv
    GetSURCertainty.srv
+   NewExperiment.srv
    TabSeg.srv
 )
 

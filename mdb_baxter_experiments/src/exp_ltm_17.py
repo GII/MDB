@@ -7,7 +7,7 @@ from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, Bax
 from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxChangeRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest
 from std_msgs.msg import Bool, Float64, String
 #from exp_scene import *
-from mdb_common.srv import ExecPolicy, NewExperiment, RefreshWorld
+from mdb_common.srv import ExecPolicy, RefreshWorld, NewExperiment
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
 from mdb_common.msg import SensData
 from mdb_baxter_experiments.srv import PlanMng, PlanMngRequest
@@ -54,7 +54,7 @@ class exp_ltm_17():
 		self.bs_clnt = rospy.ServiceProxy('/baxter_sense', GetSense)
 		self.bes_clnt = rospy.ServiceProxy('/baxter_bes', BaxSense)
 		#scene#
-		self.scene_clnt = rospy.ServiceProxy('/mdb/baxter/modify_planning_scene', PlanMng)
+		self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', PlanMng)
 
 		##SIM##
 		#policy#

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_moveit.srv import GetHImg
+from mdb_baxter_policies.srv import GetHImg
 from sensor_msgs.msg import Image
 
 class get_hand_image():
