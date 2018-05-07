@@ -21,8 +21,6 @@ from mdb_baxter_policies.srv import BaxMC, GetSenseMotiv, BaxMCRequest, GetSense
 from mdb_common.srv import ExecPolicy, RefreshWorld
 from std_msgs.msg import Bool, String, Float64
 
-from mdb_motiven.msg import GoalMsg, GoalActivationMsg, GoalOkMsg
-
 
 class MDBCore(object):
     def __init__(self):

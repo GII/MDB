@@ -8,7 +8,7 @@ project(mdb_simulator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy std_msgs message_generation mdb_common
+  rospy std_msgs mdb_common
 )
 
 ## System dependencies are found with CMake's conventions
@@ -46,11 +46,6 @@ catkin_python_setup()
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
-#   DIRECTORY msg
-#   FILES
-# )
-# add_message_files(
-#   DIRECTORY msg
 #   FILES
 # )
 

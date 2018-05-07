@@ -4,7 +4,7 @@ import numpy as np
 from ActionChooser import *
 
 # ROS services
-from mdb_baxter_policies.srv import CandAct
+from mdb_common.srv import CandAct
 import rospy
 from std_msgs.msg import Bool, Int32, String
 

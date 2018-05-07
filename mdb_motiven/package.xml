@@ -56,19 +56,9 @@
   <depend>std_msgs</depend>
   <depend>mdb_common</depend>
   <exec_depend>python-numpy</exec_depend>
-  <exec_depend>python-yaml</exec_depend>
-  <exec_depend>python-argparse</exec_depend>
-  <exec_depend>python-networkx</exec_depend>  
   <exec_depend>python-matplotlib</exec_depend>
-  <build_depend>message_generation</build_depend>
   <build_export_depend>message_runtime</build_export_depend>
   <exec_depend>message_runtime</exec_depend>
-
-  <depend>sensor_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>mdb_baxter_detection</depend>
-  <depend>baxter_core_msgs</depend> 
-
 
 
   <!-- The export tag contains other, unspecified, tags -->

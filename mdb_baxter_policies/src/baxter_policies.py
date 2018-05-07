@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 from baxter_arm import *
-from mdb_common.msg import OpenGripReq, Candidates
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandAct, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
+from mdb_common.msg import OpenGripReq, Candidates, CandAct
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
 from dynamic_reconfigure import client
 from dynamic_reconfigure.srv import Reconfigure
 from std_msgs.msg import Bool, Float64, Int32
