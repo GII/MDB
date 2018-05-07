@@ -4,7 +4,7 @@ from std_msgs.msg import Header, Bool
 from moveit_msgs.msg import PlanningScene, AttachedCollisionObject
 from geometry_msgs.msg import Pose
 from shape_msgs.msg import SolidPrimitive
-from mdb_baxter_experiments.srv import PlanMng
+from mdb_baxter_policies.srv import PlanMng
 
 class exp_scene():
 	def __init__(self):

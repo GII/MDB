@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_moveit.srv import GetGS
+from mdb_baxter_policies.srv import GetGS
 from baxter_core_msgs.msg import EndEffectorState
 
 class get_gripper_state():

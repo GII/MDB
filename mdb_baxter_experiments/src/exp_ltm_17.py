@@ -3,15 +3,13 @@ import rospy, cv2, re, math, vlc, rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from sensor_msgs.msg import Image
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, GetSense, BCheckR, BCheckRRequest, BaxSense
-from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxChangeRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, GetSense, BCheckR, BCheckRRequest, BaxSense, PlanMng
+from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxChangeRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest, PlanMngRequest
 from std_msgs.msg import Bool, Float64, String
 #from exp_scene import *
-from mdb_common.srv import ExecPolicy, NewExperiment, RefreshWorld
+from mdb_common.srv import ExecPolicy, RefreshWorld, NewExperiment
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
-from mdb_common.msg import SensData
-from mdb_baxter_experiments.srv import PlanMng, PlanMngRequest
-
+from mdb_common.msg import SensData, ControlMsg
 
 class exp_ltm_17():
 	def __init__(self):
@@ -22,9 +20,6 @@ class exp_ltm_17():
 
 		self.exp_iteration=1
 		self.world = None
-
-		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
-		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
 
 		self.ball_pos = None
 		self.box_pos = None
@@ -37,7 +32,7 @@ class exp_ltm_17():
 
 		self.velocity = self.select_velocity()
 
-		### ROS Service Clients
+		### ROS Service Clients ###
 		#policies#
 		self.bt_clnt = rospy.ServiceProxy('/baxter_throw', BaxThrow)  
 		self.bp_clnt = rospy.ServiceProxy('/baxter_push', BaxP) 
@@ -54,8 +49,7 @@ class exp_ltm_17():
 		self.bs_clnt = rospy.ServiceProxy('/baxter_sense', GetSense)
 		self.bes_clnt = rospy.ServiceProxy('/baxter_bes', BaxSense)
 		#scene#
-		self.scene_clnt = rospy.ServiceProxy('/mdb/baxter/modify_planning_scene', PlanMng)
-
+		self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', PlanMng)
 		##SIM##
 		#policy#
 		self.bsrg_clnt = rospy.ServiceProxy('/baxter_reset_gippers', BaxChange)
@@ -67,7 +61,7 @@ class exp_ltm_17():
 		self.bcrc_clnt = rospy.ServiceProxy('/baxter_check_close_reach', BCheckR)
 		self.bfrc_clnt = rospy.ServiceProxy('/baxter_check_far_reach', BCheckR)
 
-		### ROS Service Servers
+		### ROS Service Servers ###
 		if self.mode == 'real':
 			self.new_exp_srver = rospy.Service("/mdb/baxter/new_experiment", NewExperiment, self.handle_new_exp_real)
 			self.ref_world_srver = rospy.Service("/mdb/baxter/refresh_world", RefreshWorld, self.handle_ref_world_real)
@@ -80,6 +74,34 @@ class exp_ltm_17():
 
 		self.scene_clnt(String('head_collision'),String('add'),Float64(0.0), Float64(0.0), Float64(0.0))
 		self.scene_clnt(String('table'),String('remove'),Float64(0.0), Float64(0.0), Float64(0.0))
+
+		### ROS Publishers ###
+		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
+
+		### ROS Subscribers ###
+		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
+		self.control_sub = rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.control_cb)
+		self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
+	
+	def control_cb (self, control_msg):
+		self.world = control_msg.world
+		self.pan_to('front', 0.1)
+		if control_msgs.reward == True:
+			self.reward_sound()
+		else:
+			self.afile_r.play()
+			rospy.sleep(3)
+			self.afile_r.stop()
+			self.brap_clnt(String('both'))
+			self.bsrg_clnt(Bool(True), Bool(True))
+		self.refresh_real()
+		try:
+			self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
+		except rospy.ServiceException, e:
+			rospy.loginfo("Sense service call failed: {0}".format(e))
+
+	def executed_policy_cb (self, policy):
+		resp = self.execute_policy(policy.data)		
 
 	def select_velocity(self):
 		if self.mode == "sim":
@@ -657,7 +679,6 @@ class exp_ltm_17():
 				resp = False
 				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			
-
 		if policy_code == 'ask_nicely': 
 			#Look to the front
 			self.pan_to('front', 0.1) 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_moveit.srv import GetES
+from mdb_baxter_policies.srv import GetES
 from baxter_core_msgs.msg import EndpointState
 
 class get_end_state():

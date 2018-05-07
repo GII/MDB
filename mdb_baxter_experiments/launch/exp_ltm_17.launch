@@ -5,8 +5,6 @@
    <arg name="config_time" default="20" />
    <arg name="fixed_height" default="-0.04" />
 
-  <node name="exp_scene_server" pkg="mdb_baxter_experiments" type="exp_scene.py" required="true" output="screen"/>
-
   <node name="exp_ltm_17" pkg="mdb_baxter_experiments" type="exp_ltm_17.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
 	<param name="exp_type" type="str" value="$(arg exp_type)" />

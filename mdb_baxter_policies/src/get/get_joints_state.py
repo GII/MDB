@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_moveit.srv import GetJS
+from mdb_baxter_policies.srv import GetJS
 from sensor_msgs.msg import JointState
 
 class get_joints_state():

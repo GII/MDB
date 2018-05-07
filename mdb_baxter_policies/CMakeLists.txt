@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   baxter_core_msgs
-  mdb_baxter_detection
+  mdb_common
   message_generation
 )
 
@@ -89,6 +89,7 @@ find_package(catkin REQUIRED COMPONENTS
    GetSenseFM.srv
    BaxFMCM.srv
    GridCalib.srv
+   PlanMng.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -99,13 +100,13 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-## generate_messages(
-##   DEPENDENCIES
-##   std_msgs
-##   sensor_msgs
-##   baxter_core_msgs
-##  mdb_baxter_detection
-## )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+   sensor_msgs
+   baxter_core_msgs
+   mdb_common
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
