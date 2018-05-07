@@ -193,15 +193,15 @@ class exp_senses():
 	def publish_current_senses (self, box_rad, obj_rad):
 		#print "\nSENSE: \nobj > ", self.obj_sense,"\nbox > ", self.box_sense, " \ngrippers > ", self.lgrip_sense, self.rgrip_sense 	
 
-		self.obj_dist_pb.publish(Float64(self.obj_sense.dist.data*100.0))
+		self.obj_dist_pb.publish(Float64(self.obj_sense.dist.data))
 		self.obj_ang_pb.publish(Float64(self.angle_conversion(self.obj_sense.angle.data)))
 		#self.obj_size_pb.publish(Float64(self.obj_sense.radius.data*100.0))
-		self.obj_size_pb.publish(Float64(obj_rad*100.0))
+		self.obj_size_pb.publish(Float64(obj_rad))
 
-		self.box_dist_pb.publish(Float64(self.box_sense.dist.data*100.0))
+		self.box_dist_pb.publish(Float64(self.box_sense.dist.data))
 		self.box_ang_pb.publish(Float64(self.angle_conversion(self.box_sense.angle.data)))
 		#self.box_size_pb.publish(Float64(self.box_sense.radius.data*100.0))
-		self.box_size_pb.publish(Float64(box_rad*100.0))
+		self.box_size_pb.publish(Float64(box_rad))
 
 		self.lgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.lgrip_sense.data)))
 		self.rgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.rgrip_sense.data)))

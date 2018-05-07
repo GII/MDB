@@ -89,6 +89,7 @@ find_package(catkin REQUIRED COMPONENTS
    GetSenseFM.srv
    BaxFMCM.srv
    GridCalib.srv
+   PlanMng.srv
  )
 
 ## Generate actions in the 'action' folder
