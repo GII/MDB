@@ -83,7 +83,6 @@ find_package(catkin REQUIRED COMPONENTS
    BaxSense.srv
    GetSenseMotiv.srv
    BaxMC.srv
-   CandAct.srv
    CheckAct.srv
    Calib.srv
    GetSenseFM.srv

@@ -67,10 +67,11 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
-   RefreshWorld.srv
+   CandAct.srv
    ExecPolicy.srv
    GetSURCertainty.srv
    NewExperiment.srv
+   RefreshWorld.srv
    TabSeg.srv
 )
 
