@@ -101,11 +101,11 @@ class GoalBallInBox(Goal):
                 if perceptions['ball_in_left_hand'].raw and perceptions['ball_in_right_hand'].raw:
                     reward = 0.6
                 elif (
-                        (perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw <= 0) or
-                        (perceptions['ball_in_right_hand'].raw and perceptions['box_ang'].raw > 0)
+                        (perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw > 0) or
+                        (perceptions['ball_in_right_hand'].raw and perceptions['box_ang'].raw <= 0)
                     ): # yapf: disable
                     reward = 0.6
-                elif perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw > 0:
+                elif perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw <= 0:
                     if (
                             (not perceptions['ball_in_left_hand'].old_raw) and
                             (perceptions['ball_in_right_hand'].old_raw)
@@ -113,7 +113,7 @@ class GoalBallInBox(Goal):
                         reward = 0.0
                     else:
                         reward = 0.3
-                elif perceptions['ball_in_right_hand'].raw and perceptions['box_ang'].raw <= 0:
+                elif perceptions['ball_in_right_hand'].raw and perceptions['box_ang'].raw > 0:
                     if (
                             (perceptions['ball_in_left_hand'].old_raw) and
                             (not perceptions['ball_in_right_hand'].old_raw)

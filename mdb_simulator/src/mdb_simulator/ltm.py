@@ -15,10 +15,8 @@ import rospy
 class LTMSim(object):
     """A very simple events-based simulator for LTM experiments."""
 
-    inner_left = numpy.poly1d(numpy.polyfit([-1.57, -1.1775, -0.785, -0.3925, 0.0], [0.9, 0.65, 0.525, 0.47, 0.45], 3))
-    inner_right = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3))
-    outer_left = numpy.poly1d(numpy.polyfit([-1.57, -1.1775, -0.785, -0.3925, 0.0], [1.375, 1.375, 1.325, 1.25, 1.15], 3))
-    outer_right = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3))
+    inner = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3))
+    outer = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3))
 
     def __init__(self):
         """Constructor."""
@@ -38,20 +36,12 @@ class LTMSim(object):
     @classmethod
     def __object_too_close(cls, dist, ang):
         """Return True if the object is too close to the robot to be caught."""
-        if ang <= 0.0:
-            min_dist = cls.inner_left(ang)
-        else:
-            min_dist = cls.inner_right(ang)
-        return dist < min_dist
+        return dist < cls.inner(abs(ang))
 
     @classmethod
     def object_too_far(cls, dist, ang):
         """Return True if the object is out of range of the robot."""
-        if ang <= 0.0:
-            max_dist = cls.outer_left(ang)
-        else:
-            max_dist = cls.outer_right(ang)
-        return dist > max_dist
+        return dist > cls.outer(abs(ang))
 
     @classmethod
     def object_outside_table(cls, dist, ang):
@@ -79,45 +69,39 @@ class LTMSim(object):
             y_coord = 0.47
         elif y_coord > 0.75:
             y_coord = 0.75
-        new_dist = numpy.linalg.norm([x_coord, y_coord])
+        new_dist = numpy.linalg.norm([y_coord, x_coord])
         return new_dist, 0
 
     @classmethod
     def __send_object_outofreach(cls, ang):
-        """Calculate the coordinates of the object when moving it out of reach. Beware, axis are exchanged."""
-        if ang <= 0:
-            dist = cls.outer_left(ang)
-        else:
-            dist = cls.outer_right(ang)
-        y_coord = dist * math.cos(ang)
-        x_coord = dist * math.sin(ang)
-        if x_coord < -1.07:
-            x_coord = -1.07
-            y_coord = 0.84
-        elif x_coord > 1.07:
-            x_coord = 1.07
-            y_coord = 0.84
-        new_dist = 0.01 + numpy.linalg.norm([x_coord, y_coord])
-        new_ang = numpy.arctan2(x_coord, y_coord)
+        """Calculate the coordinates of the object when moving it out of reach."""
+        dist = cls.outer(abs(ang))
+        y_coord = dist * math.sin(ang)
+        x_coord = dist * math.cos(ang)
+        if y_coord < -1.07:
+            y_coord = -1.07
+            x_coord = 0.84
+        elif y_coord > 1.07:
+            y_coord = 1.07
+            x_coord = 0.84
+        new_dist = 0.01 + numpy.linalg.norm([y_coord, x_coord])
+        new_ang = numpy.arctan2(y_coord, x_coord)
         return new_dist, new_ang
 
     @classmethod
     def calculate_closest_position(cls, ang):
         """Calculate the closest feasible position for an object taking into account the angle."""
-        if ang <= 0:
-            dist = cls.inner_left(ang)
-        else:
-            dist = cls.inner_right(ang)
-        y_coord = dist * math.cos(ang)
-        x_coord = dist * math.sin(ang)
-        if x_coord < -0.38:
-            x_coord = -0.38
-            y_coord = 0.35
-        elif x_coord > 0.38:
-            x_coord = 0.38
-            y_coord = 0.35
-        new_dist = 0.01 + numpy.linalg.norm([x_coord, y_coord])
-        new_ang = numpy.arctan2(x_coord, y_coord)
+        dist = cls.inner(abs(ang))
+        y_coord = dist * math.sin(ang)
+        x_coord = dist * math.cos(ang)
+        if y_coord < -0.38:
+            y_coord = -0.38
+            x_coord = 0.35
+        elif y_coord > 0.38:
+            y_coord = 0.38
+            x_coord = 0.35
+        new_dist = 0.01 + numpy.linalg.norm([y_coord, x_coord])
+        new_ang = numpy.arctan2(y_coord, x_coord)
         return new_dist, new_ang
 
     def __random_perceptions(self):
@@ -132,18 +116,18 @@ class LTMSim(object):
         # Ball position
         valid = False
         while not valid:
-            ball_x = numpy.random.uniform(low=-1.07, high=1.07)
-            ball_y = numpy.random.uniform(low=0.37, high=1.29)
-            self.perceptions['ball_dist'] = numpy.linalg.norm([ball_x, ball_y])
-            self.perceptions['ball_ang'] = numpy.arctan2(ball_x, ball_y)
+            ball_y = numpy.random.uniform(low=-1.07, high=1.07)
+            ball_x = numpy.random.uniform(low=0.37, high=1.29)
+            self.perceptions['ball_dist'] = numpy.linalg.norm([ball_y, ball_x])
+            self.perceptions['ball_ang'] = numpy.arctan2(ball_y, ball_x)
             valid = not self.__object_too_close(self.perceptions['ball_dist'], self.perceptions['ball_ang'])
         # Box position
         valid = False
         while not valid:
-            box_x = numpy.random.uniform(low=-1.07, high=1.07)
-            box_y = numpy.random.uniform(low=0.37, high=1.29)
-            self.perceptions['box_dist'] = numpy.linalg.norm([box_x, box_y])
-            self.perceptions['box_ang'] = numpy.arctan2(box_x, box_y)
+            box_y = numpy.random.uniform(low=-1.07, high=1.07)
+            box_x = numpy.random.uniform(low=0.37, high=1.29)
+            self.perceptions['box_dist'] = numpy.linalg.norm([box_y, box_x])
+            self.perceptions['box_ang'] = numpy.arctan2(box_y, box_x)
             valid = not self.__object_too_close(self.perceptions['box_dist'], self.perceptions['box_ang'])
         # Hands
         self.perceptions['ball_in_left_hand'] = False
@@ -161,7 +145,7 @@ class LTMSim(object):
                 (not self.perceptions['ball_in_left_hand']) and
                 (not self.perceptions['ball_in_right_hand'])
             ): # yapf: disable
-            if self.perceptions['ball_ang'] <= 0.0:
+            if self.perceptions['ball_ang'] > 0.0:
                 self.perceptions['ball_in_left_hand'] = True
             else:
                 self.perceptions['ball_in_right_hand'] = True
@@ -211,8 +195,8 @@ class LTMSim(object):
         if (
                 (not self.object_too_far(self.perceptions['box_dist'], self.perceptions['box_ang'])) and
                 (
-                    ((self.perceptions['box_ang'] <= 0.0) and self.perceptions['ball_in_left_hand']) or
-                    ((self.perceptions['box_ang'] > 0.0) and self.perceptions['ball_in_right_hand'])
+                    ((self.perceptions['box_ang'] > 0.0) and self.perceptions['ball_in_left_hand']) or
+                    ((self.perceptions['box_ang'] <= 0.0) and self.perceptions['ball_in_right_hand'])
                 )
             ): # yapf: disable
             self.perceptions['ball_dist'] = self.perceptions['box_dist']
@@ -235,8 +219,8 @@ class LTMSim(object):
             if (
                     self.object_too_far(self.perceptions['box_dist'], self.perceptions['box_ang']) and
                     (
-                        (self.perceptions['box_ang'] <= 0.0 and self.perceptions['ball_in_left_hand']) or
-                        (self.perceptions['box_ang'] > 0.0 and self.perceptions['ball_in_right_hand'])
+                        (self.perceptions['box_ang'] > 0.0 and self.perceptions['ball_in_left_hand']) or
+                        (self.perceptions['box_ang'] <= 0.0 and self.perceptions['ball_in_right_hand'])
                     )
                 ): # yapf: disable
                 self.perceptions['ball_dist'] = self.perceptions['box_dist']
