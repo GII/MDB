@@ -2,4 +2,4 @@ std_msgs/Int32 action_number
 std_msgs/Int32 limit
 std_msgs/String motivation
 ---
-mdb_baxter_policies/Candidates[] candidates
+mdb_common/Candidates[] candidates

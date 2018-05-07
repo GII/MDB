@@ -1,4 +1,4 @@
 std_msgs/String model_name
-mdb_baxter_detection/SensData sense
+mdb_common/SensData sense
 ---
 std_msgs/Bool resp

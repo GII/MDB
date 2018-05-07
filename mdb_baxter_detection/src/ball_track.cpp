@@ -42,7 +42,7 @@
 #include "opencv2/core/eigen.hpp"
 #include <random>
 
-#include "mdb_baxter_detection/ObjDet.h"
+#include "mdb_common/ObjDet.h"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 

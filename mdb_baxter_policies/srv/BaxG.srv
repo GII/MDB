@@ -1,4 +1,4 @@
-mdb_baxter_policies/CMReq object_position
+mdb_common/CMReq object_position
 std_msgs/String orientation
 std_msgs/String arm
 std_msgs/Float64 scale

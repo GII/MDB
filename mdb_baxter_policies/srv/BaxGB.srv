@@ -1,4 +1,4 @@
-mdb_baxter_policies/CMReq sensorization
+mdb_common/CMReq sensorization
 std_msgs/Float64 size
 std_msgs/Bool hackademia17success
 ---

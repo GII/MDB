@@ -43,12 +43,25 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 add_message_files(
   DIRECTORY msg
   FILES
-  PNodeMsg.msg
-  GoalMsg.msg
-  ForwardModelMsg.msg
-  PolicyMsg.msg
+  BeaconData.msg
+  BSensData.msg
+  Candidates.msg
+  Candidates_single.msg
+  CMReq.msg
   CNodeMsg.msg
   ControlMsg.msg
+  ForwardModelMsg.msg
+  GoalActivationMsg.msg
+  GoalMsg.msg
+  GoalOkMsg.msg
+  MObjDet.msg
+  ObjDet.msg
+  PNodeMsg.msg
+  OpenGripReq.msg
+  PickDist.msg
+  PNodeMsg.msg
+  PolicyMsg.msg
+  SensData.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -1,5 +1,5 @@
-mdb_baxter_policies/CMReq obj_sens
-mdb_baxter_policies/CMReq dest_sens
+mdb_common/CMReq obj_sens
+mdb_common/CMReq dest_sens
 std_msgs/Float64 radius
 std_msgs/String arm
 std_msgs/Float64 scale

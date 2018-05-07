@@ -77,7 +77,7 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    std_msgs
    geometry_msgs 
-   mdb_baxter_detection
+   mdb_common
  )
 
 ################################################

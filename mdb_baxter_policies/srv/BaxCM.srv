@@ -1,4 +1,4 @@
-mdb_baxter_policies/CMReq req
+mdb_common/CMReq req
 std_msgs/Bool grab
 std_msgs/String orientation
 std_msgs/String arm

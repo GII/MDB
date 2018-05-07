@@ -1,1 +1,1 @@
-mdb_baxter_detection/ObjDet[] objects_detection
+mdb_common/ObjDet[] objects_detection

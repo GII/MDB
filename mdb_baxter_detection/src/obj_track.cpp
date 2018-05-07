@@ -45,9 +45,9 @@
 #include <math.h> 
 #include <random>
 
-#include "mdb_baxter_detection/ObjDet.h"
-#include "mdb_baxter_detection/MObjDet.h"
-#include <mdb_baxter_detection/TabSeg.h>
+#include "mdb_common/ObjDet.h"
+#include "mdb_common/MObjDet.h"
+//#include <mdb_common/TabSeg.h>
 
 #include "std_msgs/Bool.h"
 
@@ -76,7 +76,7 @@ class obj_track{
 
 		void initPublishers(std::string obj){
 			track_pub = nh.advertise<sensor_msgs::Image>("/tracking/"+obj+"_img", 1);
-			coor_pub = nh.advertise<mdb_baxter_detection::ObjDet>("/tracking/"+obj, 1);
+			coor_pub = nh.advertise<mdb_common::ObjDet>("/tracking/"+obj, 1);
 			det_pub = nh.advertise<std_msgs::Bool>("/tracking/"+obj+"_flag", 1);
 		}
 
@@ -143,7 +143,7 @@ class obj_track{
 
 						track_pub.publish(cimg_ptr->toImageMsg());
 		
-						mdb_baxter_detection::ObjDet coor = mdb_baxter_detection::ObjDet();
+						mdb_common::ObjDet coor = mdb_common::ObjDet();
 						coor.u.data = uu;
 						coor.v.data = vv;
 						coor.radius.data = radius;

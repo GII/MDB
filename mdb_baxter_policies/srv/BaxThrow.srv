@@ -1,4 +1,4 @@
-mdb_baxter_policies/CMReq sensorization
+mdb_common/CMReq sensorization
 std_msgs/Float64 scale
 std_msgs/Float64 grip
 std_msgs/String arm

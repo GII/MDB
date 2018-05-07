@@ -48,13 +48,13 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
- add_message_files(
-  FILES
-  OpenGripReq.msg
-  CMReq.msg
-  PickDist.msg
-  Candidates.msg
-)
+## add_message_files(
+##  FILES
+##  OpenGripReq.msg
+##  CMReq.msg
+##  PickDist.msg
+##  Candidates.msg
+##)
 
 ## Generate services in the 'srv' folder
  add_service_files( 
@@ -99,13 +99,13 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   std_msgs
-   sensor_msgs
-   baxter_core_msgs
-   mdb_baxter_detection
- )
+## generate_messages(
+##   DEPENDENCIES
+##   std_msgs
+##   sensor_msgs
+##   baxter_core_msgs
+##  mdb_baxter_detection
+## )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
