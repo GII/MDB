@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   sensor_msgs
+  mdb_common
   image_geometry
   roslib
   message_generation
@@ -63,19 +64,15 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-   FILES 
-   ObjDet.msg
-   MObjDet.msg
-   SensData.msg
-   BSensData.msg
-)
+# add_message_files(
+#    FILES 
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-   FILES
-   TabSeg.srv
-)
+# add_service_files(
+#   FILES
+#   TabSeg.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -85,11 +82,11 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-   DEPENDENCIES
-   std_msgs  
-   sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#    std_msgs  
+#    sensor_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -123,7 +120,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES jni_test
-   CATKIN_DEPENDS roscpp std_msgs sensor_msgs roslib message_runtime tf2 tf2_ros cv_bridge tf
+   CATKIN_DEPENDS roscpp std_msgs mdb_common sensor_msgs roslib message_runtime tf2 tf2_ros cv_bridge tf
 #  DEPENDS system_lib jvm
 )
 
