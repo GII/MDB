@@ -10,6 +10,7 @@ import os.path
 from copy import copy
 from operator import attrgetter
 from enum import Enum
+import threading
 import yaml
 import numpy
 import networkx
@@ -69,6 +70,7 @@ class LTM(object):
         self.current_policy = None
         self.current_world = 0
         self.current_reward = 0
+        self.there_are_goals = threading.Event()
         self.graph = networkx.Graph()
         self.graph_node_label = {}
         self.graph_node_position = {}
@@ -217,6 +219,8 @@ class LTM(object):
                 ident=data.id,
                 execute_service=data.execute_service,
                 get_service=data.get_service)
+            if node_type == 'Goal':
+                self.there_are_goals.set()
 
     def __shutdown(self):
         """Save to disk everything is needed before shutting down."""
@@ -317,12 +321,10 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
-        goal = None
-        if self.goals is not None:
-            goal = max(self.goals, key=attrgetter('activation'))
-            rospy.loginfo('Selecting a goal => ' + goal.ident)
-        else:
-            rospy.loginfo('No goals at the moment!')
+        if not self.goals:
+            self.there_are_goals.wait()
+        goal = max(self.goals, key=attrgetter('activation'))
+        rospy.loginfo('Selecting a goal => ' + goal.ident)
         return goal
 
     def __add_antipoint(self, perception):
@@ -469,12 +471,11 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                if self.current_goal is not None:
-                    self.current_reward = self.current_goal.get_reward()
-                    if self.current_reward < self.current_goal.threshold:
-                        self.__add_antipoint(previous_sensing)
-                    else:
-                        self.__add_point(previous_sensing)
+                self.current_reward = self.current_goal.get_reward()
+                if self.current_reward < self.current_goal.threshold:
+                    self.__add_antipoint(previous_sensing)
+                else:
+                    self.__add_point(previous_sensing)
                 self.__update_policies_to_test()
                 if plot:
                     self.__show()
