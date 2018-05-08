@@ -17,8 +17,7 @@ from matplotlib import colors
 import rospy
 
 # ROS services
-from mdb_baxter_policies.srv import BaxMC, GetSenseMotiv, BaxMCRequest, GetSenseMotivRequest, BaxChange, BaxChangeRequest
-from mdb_common.srv import ExecPolicy, RefreshWorld
+from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 from std_msgs.msg import Bool, String, Float64
 
 

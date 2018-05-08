@@ -253,7 +253,7 @@ class LTM(object):
                 if self.iteration == 0:
                     for node_type in configuration['LTM']['Nodes']:
                         rospy.logdebug('Loading %s...', node_type)
-                        for element in configuration['Nodes'][node_type]:
+                        for element in configuration['LTM']['Nodes'][node_type]:
                             node_type = node_type
                             class_name = element['class']
                             ident = element['id']

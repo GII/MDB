@@ -69,7 +69,6 @@ find_package(catkin REQUIRED COMPONENTS
    BaxJM.srv
    BaxG.srv
    BaxP.srv
-   BaxChange.srv
    BaxGB.srv
    BaxDB.srv
    GetHImg.srv
@@ -81,8 +80,6 @@ find_package(catkin REQUIRED COMPONENTS
    GetGS.srv
    BCheckR.srv
    BaxSense.srv
-   GetSenseMotiv.srv
-   BaxMC.srv
    CheckAct.srv
    Calib.srv
    GetSenseFM.srv
@@ -139,7 +136,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_baxter
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs baxter_core_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs mdb_common sensor_msgs baxter_core_msgs message_runtime
 #  DEPENDS system_lib
 )
 

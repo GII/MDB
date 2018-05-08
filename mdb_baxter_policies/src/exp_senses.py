@@ -3,7 +3,8 @@ import rospy, math
 import numpy as np
 from std_msgs.msg import Float64, Bool, String
 from mdb_common.msg import SensData
-from mdb_baxter_policies.srv import GetSense, GetES, GetSenseMotiv, GetSenseFM
+from mdb_common.srv import GetSenseMotiv
+from mdb_baxter_policies.srv import GetES, GetSense, GetSenseFM
 
 class exp_senses():
 	def __init__(self):

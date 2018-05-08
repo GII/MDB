@@ -1,12 +1,11 @@
-<?xml version="1.0"?>
 <launch>
   	<arg name="debug" default="False"/>
-    <arg name="standalone" default="True">
+    <arg name="standalone" default="True"/>
   	<rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
     <group ns="mdb" unless="$(arg debug)">
-        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-s $(arg standalone)"></node>
+        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-s $(arg standalone)"/>
     </group>
     <group ns="mdb" if="$(arg debug)">
-        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-s $(arg standalone)" launch-prefix="xterm -e python -m pdb"></node>
+        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-s $(arg standalone)" launch-prefix="xterm -e python -m pdb"/>
     </group>
 </launch>
