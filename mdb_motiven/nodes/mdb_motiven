@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+"""
+The shiny, all new, MDB 3.
+
+Available from https://github.com/robotsthatdream/MDB
+Distributed under GPLv3.
+"""
+
+import argparse
+from mdb_motiven.MDBCore import MDBCore
+
+
+def start_motiven():
+    """Create a MOTIVEN object and run it."""
+    parser = argparse.ArgumentParser(description='This script starts the MOTIVEN component of the MDB 3.0')
+    parser.add_argument('-s', '--standalone', action='store_true', help='Run MOTIVEN without other MDB components')
+    args, _ = parser.parse_known_args()
+    kwargs = vars(args)
+    instance = MDBCore()
+    instance.run(**kwargs)
+
+
+if __name__ == '__main__':
+    start_motiven()

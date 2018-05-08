@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 	<arg name="backup" default="ltm.backup"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_one_world.yaml"/>

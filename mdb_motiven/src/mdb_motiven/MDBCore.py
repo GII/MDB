@@ -238,8 +238,9 @@ class MDBCore(object):
         if self.iterations > 0:
             self.active_goal = self.goals_list[1]
 
-    def run(self):
+    def run(self, standalone=True):
         # Load data
+        self.LTM = standalone
         if self.loadDataFile:
             self.loadData()
         self.main()
@@ -880,12 +881,3 @@ class MDBCore(object):
         #     3].corr_established, self.correlationsManager.correlations[3].corr_established_type
         # print "Corr est 5", self.correlationsManager.correlations[4].established, self.correlationsManager.correlations[
         #     4].corr_established, self.correlationsManager.correlations[4].corr_established_type
-
-
-def main():
-    instance = MDBCore()
-    instance.run()
-
-
-if __name__ == '__main__':
-    main()
