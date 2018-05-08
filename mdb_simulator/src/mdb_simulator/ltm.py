@@ -265,8 +265,8 @@ class LTMSim(object):
     def __configure_simulation(self, simulation):
         """Configure the ROS topic where listen for commands to be executed."""
         self.ident = simulation['id']
-        topic = rospy.get_param(simulation['control_prefix'] + '_topic')
-        message = self.__class_from_classname(rospy.get_param(simulation['control_prefix'] + '_msg'))
+        topic = rospy.get_param(simulation['ros_name_prefix'] + '_topic')
+        message = self.__class_from_classname(rospy.get_param(simulation['ros_name_prefix'] + '_msg'))
         rospy.logdebug('Subscribing to %s...', topic)
         rospy.Subscriber(topic, message, callback=self.__new_command_callback)
         topic = rospy.get_param(simulation['executed_policy_prefix'] + '_topic')
@@ -285,9 +285,9 @@ class LTMSim(object):
             else:
                 rospy.loginfo('Loading configuration from %s...', config_file)
                 config = yaml.load(open(config_file, 'r'), Loader=yaml.CLoader)
-                self.__configure_sensors(config['Sensors'])
+                self.__configure_sensors(config['Simulator']['Sensors'])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
-                self.__configure_simulation(config['Simulation'])
+                self.__configure_simulation(config['Control'])
 
     def run(self, log_level='INFO', config_file=None, **kwargs):
         """Start the LTM simulator."""

@@ -237,10 +237,10 @@ class LTM(object):
                 rospy.loginfo('Loading configuration from %s...', file_name)
                 configuration = yaml.load(open(file_name, 'r'), Loader=yaml.CLoader)
                 # Load log files
-                for file_item in configuration['Files']:
+                for file_item in configuration['LTM']['Files']:
                     self.__add_file(file_item)
                 # Load topics for adding nodes
-                for connector in configuration['Connectors']:
+                for connector in configuration['LTM']['Connectors']:
                     self.default_class[connector['data']] = connector.get('default_class')
                     self.default_ros_name_prefix[connector['data']] = connector['ros_name_prefix']
                     topic = rospy.get_param(connector['ros_name_prefix'] + '_topic')
@@ -251,7 +251,7 @@ class LTM(object):
                     rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
                 # Load initial nodes
                 if self.iteration == 0:
-                    for node_type in configuration['Nodes']:
+                    for node_type in configuration['LTM']['Nodes']:
                         rospy.logdebug('Loading %s...', node_type)
                         for element in configuration['Nodes'][node_type]:
                             node_type = node_type

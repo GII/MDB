@@ -1,0 +1,157 @@
+Experiment:
+    period: 3000
+    trials: 200
+    worlds: ['gripper_and_low_friction']
+Control:
+    id: ltm_simulator
+    ros_name_prefix: /mdb/control
+    executed_policy_prefix: /mdb/executed_policy
+LTM:
+    Files:
+        -
+            id: goodness
+            class: mdb_ltm.file.FileGoodness
+            file: goodness.txt
+        -
+            id: pnodes
+            class: mdb_ltm.file.FilePNodes
+            file: pnodes.txt
+            data: 3000
+        -
+            id: ltm_dump
+            class: mdb_ltm.file.FileLTMPeriodicDump
+            file: ltm_dump
+            data: 3000
+    Connectors:
+        -
+            data: PNode
+            ros_name_prefix: /mdb/p_node
+            callback: __add_node_callback
+            default_class: mdb_ltm.pnode.PNodeActCentroidAndNormal
+        -
+            data: CNode
+            ros_name_prefix: /mdb/c_node
+            callback: __add_node_callback
+        -
+            data: Goal
+            ros_name_prefix: /mdb/goal
+            callback: __add_node_callback
+            default_class: mdb_ltm.goal.GoalMotiven
+        -
+            data: ForwardModel
+            ros_name_prefix: /mdb/forward_model
+            callback: __add_node_callback
+        -
+            data: Policy
+            ros_name_prefix: /mdb/policy
+            callback: __add_node_callback
+    Nodes:
+        Perception:
+            -
+                id: ball_dist
+                class: mdb_ltm.perception.Perception
+                data: [0.2, 1.9]
+                ros_name_prefix: /mdb/baxter/sensor/ball_dist
+            -
+                id: ball_ang
+                class: mdb_ltm.perception.Perception
+                data: [-1.4, 1.4]
+                ros_name_prefix: /mdb/baxter/sensor/ball_ang
+            -
+                id: ball_size
+                class: mdb_ltm.perception.Perception
+                data: [0.0, 0.15]
+                ros_name_prefix: /mdb/baxter/sensor/ball_size
+            -
+                id: box_dist
+                class: mdb_ltm.perception.Perception
+                data: [0.2, 1.9]
+                ros_name_prefix: /mdb/baxter/sensor/box_dist
+            -
+                id: box_ang
+                class: mdb_ltm.perception.Perception
+                data: [-1.4, 1.4]
+                ros_name_prefix: /mdb/baxter/sensor/box_ang
+            -
+                id: box_size
+                class: mdb_ltm.perception.Perception
+                data: [0.0, 0.15]
+                ros_name_prefix: /mdb/baxter/sensor/box_size
+            -
+                id: ball_in_left_hand
+                class: mdb_ltm.perception.Perception
+                ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+            -
+                id: ball_in_right_hand
+                class: mdb_ltm.perception.Perception
+                ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+        Goal:
+        ForwardModel: 
+            -
+                id: gripper_and_low_friction
+                class: mdb_ltm.forward_model.ForwardModelGripper
+        Policy:
+            -
+                id: grasp_object
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: grasp_with_two_hands
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: change_hands
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: sweep_object
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: put_object_in_box
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: put_object_in_robot
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: throw
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+            -
+                id: ask_nicely
+                class: mdb_ltm.policy.Policy
+                ros_name_prefix: /mdb/executed_policy
+Simulator:
+    Sensors:
+        -
+            id: ball_dist
+            ros_name_prefix: /mdb/baxter/sensor/ball_dist
+        -
+            id: ball_ang
+            ros_name_prefix: /mdb/baxter/sensor/ball_ang
+        -
+            id: ball_size
+            ros_name_prefix: /mdb/baxter/sensor/ball_size
+        -
+            id: box_dist
+            ros_name_prefix: /mdb/baxter/sensor/box_dist
+        -
+            id: box_ang
+            ros_name_prefix: /mdb/baxter/sensor/box_ang
+        -
+            id: box_size
+            ros_name_prefix: /mdb/baxter/sensor/box_size
+        -
+            id: ball_in_left_hand
+            ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+        -
+            id: ball_in_right_hand
+            ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+        -
+            id: ball_in_box
+            ros_name_prefix: /mdb/baxter/sensor/ball_in_box
+        -
+            id: ball_with_robot
+            ros_name_prefix: /mdb/baxter/sensor/ball_with_robot
