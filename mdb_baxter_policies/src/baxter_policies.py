@@ -1,37 +1,21 @@
 #! /usr/bin/env python
+
+import tf, rospkg, yaml, math
 from baxter_arm import *
-from mdb_common.msg import OpenGripReq, Candidates, CandAct
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
-from dynamic_reconfigure import client
-from dynamic_reconfigure.srv import Reconfigure
-from std_msgs.msg import Bool, Float64, Int32
-import numpy as np
-import tf
-
 from baxter_display import *
-import rospkg
-import yaml
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-import cmath as cm
-import math
-
 from exp_senses import *
-
-from gazebo_msgs.srv import GetModelState
-
-from com_mytechia_robobo_ros_msgs.srv import Command
-from com_mytechia_robobo_ros_msgs.msg import KeyValue
-
-from moveit_msgs.msg import OrientationConstraint, Constraints
-
-from baxter_core_msgs.msg import HeadPanCommand, HeadState
-
+from robobo_policies import robobo_policies
+from dynamic_reconfigure import client
+import numpy as np
+from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
-
-from mdb_common.msg import ObjDet
+from baxter_core_msgs.msg import HeadPanCommand, HeadState
+from moveit_msgs.msg import OrientationConstraint, Constraints
+from mdb_common.msg import OpenGripReq, Candidates, ObjDet
+from mdb_common.srv import CandAct
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
+from dynamic_reconfigure.srv import Reconfigure
+from gazebo_msgs.srv import GetModelState
 
 class baxter_policies():
 	def __init__(self):
@@ -68,7 +52,7 @@ class baxter_policies():
 		self.mode = rospy.get_param("~mode")
 		self.exp_rec = rospy.get_param("~exp_rec")
 
-		# Baxter moveit library
+		# Baxter low_level movements
 		self.baxter_arm = baxter_arm()
 
 		# Baxter display
@@ -76,6 +60,9 @@ class baxter_policies():
 
 		# Experiment sensorization
 		self.exp_senses = exp_senses()
+
+		# Robobo control
+		if self.exp_rec!="ltm": self.robobo_policies = robobo_policies(self)
 
 		# Obtain the initial arms position and configuration
 		self.baxter_arm.update_init_data()
@@ -121,11 +108,6 @@ class baxter_policies():
 		self.baxter_intcalib_srver = rospy.Service('/baxter_int_calib', GridCalib, self.lineal_calibration)
 		self.baxter_overcalib_srver = rospy.Service('/baxter_over_calib', Calib, self.overhead_calibration)
 
-		self.robobo_mv_srver = rospy.Service('/robobo_mv', BaxMC, self.handle_rob_move)
-		self.robobo_pick_srver = rospy.Service('/robobo_pick', BaxChange, self.handle_rob_pick)
-		self.robobo_drop_srver = rospy.Service('/robobo_drop', BaxChange, self.handle_rob_drop)
-		self.robobo_mv_b_srver = rospy.Service('/robobo_move_backwards', BaxChange, self.handle_rob_move_backwards)
-
 		# ROS Simulation Service Servers
 		self.bsrg_srver = rospy.Service('/baxter_reset_gippers', BaxChange, self.handle_bsrg)
 		self.bcrc_srver = rospy.Service('/baxter_check_close_reach', BCheckR, self.handle_bcrc)
@@ -137,7 +119,6 @@ class baxter_policies():
 		# ROS Service Clients
 		try:
 			self.pickadj_clnt = rospy.ServiceProxy('/pickup_adjustment', PickAdj)
-			self.robobo_command = rospy.ServiceProxy('/command', Command)
 			self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', PlanMng)
 		except rospy.ServiceException, e:
 			print "Service exception", str(e)
@@ -150,6 +131,7 @@ class baxter_policies():
 
 		# Read throw configuration
 		self.readtcfile()
+
 		# Obtain throw polinomial model
 		self.t_poly = self.obtain_t_poly()
 
@@ -179,18 +161,6 @@ class baxter_policies():
 		self.right_distances = [0.6, 0.7, 0.8, 0.925, 1.1025, 1.075, 1.07]
 		self.right_poly = self.obtain_poly(self.right_angle_list, self.right_distances, 3)
 
-		#self.rob_angle = [0.0, 0.785, 1.57, 3.14, 4.71, 6.28]
-		#self.rob_time_10 = [0.0, 1.0, 1.75, 3.5, 5.25, 7.0]
-
-		self.rob_time_10 = [0.0, 0.25, 0.5, 1.0, 1.75, 3.5, 5.25, 7.0] #TODO: calibrate 7.0 seconds
-		self.rob_angle = [0.0, 0.165, 0.36, 0.81, 1.56, 3.17, 4.8, 6.28]
-		self.rob_poly = self.obtain_poly(self.rob_angle, self.rob_time_10, 2)
-
-		self.rob_dist = [0.0, 0.022, 0.05, 0.11, 0.25, 0.50]
-		self.rob_dist_time = [0.0, 0.25, 0.5, 1.0, 2.0, 4.0]
-		self.rob_dist_poly = self.obtain_poly(self.rob_dist, self.rob_dist_time, 2)
-
-		self.rob_limits = [0.43, 1.24, 0.22, -1.02] # xmin, xmax, ymin, ymax
 		self.bax_limits = [0.4, 0.78, 0.0, -0.66] # xmin, xmax, ymin, ymax
 
 		###################
@@ -335,7 +305,6 @@ class baxter_policies():
 					self.impact_l.append(self.obtain_dist(matrix[0], matrix[1]))
 
 	def obtain_t_poly (self):
-		#return np.poly1d(np.polyfit(self.grip_l[10:15], self.impact_l[10:15], 4))
 		return np.poly1d(np.polyfit(self.grip_l, self.impact_l, 4))
 
 	def pose_du (self, s0, sign, arm):
@@ -355,11 +324,8 @@ class baxter_policies():
 		grip_req.arm.data = arm
 		grip_req.angle = angles[5]-grip
 		self.grip_pub.publish(grip_req)
-		#print "wrist_1: ", angles[5]
-		#print angles[5]
 		angles[3] -= 1.57
 		angles[5] -= 1.57
-		#print angles[5]
 		self.baxter_arm.move_joints_directly(angles, 'moveit', arm, True, scale)
 
 	def obtain_angle(self, pos, x, y):
@@ -486,7 +452,6 @@ class baxter_policies():
 
 	def second_push(self, srv, o_dist, new_angle):
 		obx, oby = self.translate_pos(new_angle, o_dist)
-		#dx, dy = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, new_angle, o_dist)
 		dx, dy = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
 		d_angle, d_dist = self.polar_to_push(dy, dx)
 		far = self.g_highpoly(abs(new_angle))
@@ -669,7 +634,6 @@ class baxter_policies():
 			elif current_ang[6] > 3.059:
 				current_ang[6] = 3.05
 
-			#self.grab_total_inc += -angle_inc
 			self.baxter_arm.move_joints_directly(current_ang, 'moveit', arm, True, 2.5)
 			self.baxter_arm.update_data()
 			return True
@@ -696,10 +660,6 @@ class baxter_policies():
 			if self.adjust_w1(srv.arm.data, x, y):
 				if self.baxter_arm.move_xyz(x, y, srv.object_position.height.data + self.safe_operation_height, False, 'current', srv.arm.data, srv.scale.data, 1.0):
 					if self.baxter_arm.move_xyz(x, y, srv.object_position.height.data, True, 'current', srv.arm.data, srv.scale.data, 1.0):
-						#raw_input("wipe")
-						#if self.mode == "real" and not first and not self.baxter_arm.gripper_is_grip(srv.arm.data):
-							#return False
-						#self.baxter_arm.update_data()
 						if self.baxter_arm.move_xyz(x, y, srv.object_position.height.data + self.safe_operation_height, False, 'current', srv.arm.data, srv.scale.data, 1.0):
 							self.loop_tries = 5
 							self.grab_total_inc = 0.0
@@ -729,9 +689,6 @@ class baxter_policies():
 		result = False
 		if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data + self.safe_operation_height, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
 			if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data, True, srv.orientation.data, srv.arm.data, srv.scale.data, 0.5):
-				#raw_input("wipe")
-				#if self.mode=="real" and not first and not self.baxter_arm.gripper_is_grip(srv.arm.data):
-					#return result
 				if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data + self.safe_operation_height, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
 					result = True
 		return result
@@ -767,29 +724,6 @@ class baxter_policies():
 					pose.orientation.z = zo
 					pose.orientation.w = wo
 
-					'''### Constraints ###					
-					position_constraints = []
-					pcr = self.baxter_arm.position_constraint_region(SolidPrimitive.SPHERE, [0.10])
-					pc = self.baxter_arm.position_constraints([pcr],[pose], 1.0, srv.arm.data)
-					self.baxter_arm.add_position_constraints([pc], srv.arm.data)
-					self.baxter_arm.choose_arm_group(srv.arm.data).set_start_state_to_current_state()
-					###################'''
-
-					'''if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):	
-						self.baxter_arm.restore_arm_pose(srv.arm.data)
-						if self.baxter_arm.move_xyz(pose.position.x, pose.position.y, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):								
-						#self.baxter_arm.remove_all_constraints(srv.arm.data)
-							if self.far_reach_second_grab (xf, yf, srv, first, pose):
-								print "far->normal_grab"
-								result = True'''
-
-					#if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.10, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
-					'''if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):	
-						self.baxter_arm.restore_arm_pose(srv.arm.data)
-						#if self.baxter_arm.move_xyz(pose.position.x, pose.position.y, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):	
-						if self.far_reach_second_grab (xf, yf, srv, first, pose):
-							print "far->normal_grab"
-							result = True'''
 					if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
 
 						current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
@@ -806,7 +740,6 @@ class baxter_policies():
 
 						xf, yf = self.translate_pos(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
 						if self.normal_reach_grab (xf, yf, srv, first):
-						#if self.far_reach_second_grab(xf, yf, srv, first, pose):
 							print "far->normal_grab"
 							result = True
 			else:
@@ -1437,20 +1370,11 @@ class baxter_policies():
 		angle_correction = self.obtain_wrist_correction(arm)
 		current_angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 
-		#print "Angle_correction: ", -angle_correction, " w2 angle: ", current_angles[6]
-
 		current_angles[6]-= angle
 		current_angles[6] = self.limit_correction(current_angles[6])
 		print "Aim gripper towards the angle ", -(angle_correction - angle)
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', arm, True, 2.0)
 		self.baxter_arm.update_data()
-
-		'''#############################
-		angle_correction = self.obtain_wrist_correction("right")
-		current_angles = self.baxter_arm.choose_arm_group("right").get_current_joint_values()
-		current_angles[6] -= angle_correction	
-		###
-		'''
 
 	def update_gripper_orientation (self, arm='right'):
 		self.exp_senses.rgrip_ori = -self.obtain_wrist_correction(arm)
@@ -1493,8 +1417,6 @@ class baxter_policies():
 	def handle_sa(self, srv):
 		self.baxter_arm.update_data()
 		current_angles_prev = self.baxter_arm.choose_arm_group('right').get_current_joint_values()
-		#current_angles = self.baxter_arm.choose_arm_group('right').get_current_joint_values()
-		#current_angles[0] += np.sign(self.select_sign('right'))*0.35
 		orap = [-1.7000342081740099, -0.9986214929134043, 1.1876846250202815, 1.9378012302962488, -0.6680486331240977, 1.0339030510347689, 0.49777676566881673]
 		self.baxter_arm.move_joints_directly(orap, 'moveit', 'right', True, 1.0)
 		rospy.sleep(2)
@@ -1516,77 +1438,48 @@ class baxter_policies():
 	##################################
 	###		    CANDIDATES         ###
 	##################################
+
 	def translate_req (self, dist, ang):
 		cx = req.const_dist.data*np.cos(ang)
 		cy = req.const_dist.data*np.sin(ang)
 		cz = req.height.data
 		return cx, cy, cz
 
+	def baxter_candidates(self, srv, arm="right", distance=0.07):
+		baxter_l_angle = np.random.uniform(srv.limit.data, -srv.limit.data)
+		if self.check_baxter_validity(baxter_l_angle, arm, distance):
+			return Int32(baxter_l_angle), Bool(True)
+		else:
+			return Int32(baxter_l_angle), Bool(False)
+
+	def check_baxter_validity(self, baxter_angle, arm="right", distance=0.07):
+		angle_to_check = self.exp_senses.rgrip_ori
+		angle_to_check += math.radians(baxter_angle)
+		angle_to_check = self.angle_fix(angle_to_check)
+
+		pos = self.baxter_arm.choose_arm_state(arm).current_es.pose.position
+		x,y = self.translate_pos(angle_to_check, distance)
+		resp = self.baxter_arm.move_xyz_plan(pos.x+x, pos.y+y, pos.z, "current", arm, 1.0)
+
+		if ((pos.x+x > self.bax_limits[0]) and (pos.x+x<self.bax_limits[1]) and (pos.y+y<self.bax_limits[2]) and (pos.y+y>self.bax_limits[3])) and resp != False:
+			return True
+		else:
+			return False
+
 	def handle_cand_act (self, srv):
 		candidate_n = 0
-		response = CandActResponse()
-
-		'''if srv.motivation.data == "Ext":	
-			n_valid_actions = srv.action_number.data/2
-		else:
-			n_valid_actions = srv.action_number.data'''
-
 		current_action_number = 0
 		action_max_number = 10*srv.action_number.data
 		valid_action_number = 0
 
+		response = CandActResponse()
 		while candidate_n < srv.action_number.data:
-
 			candidate = Candidates()
-
-			### Baxter ###
-			angle_to_check = self.exp_senses.rgrip_ori
-
-			baxter_l_angle = np.random.uniform(srv.limit.data, -srv.limit.data)
-
-			angle_to_check += math.radians(baxter_l_angle)
-			angle_to_check = self.angle_fix(angle_to_check)
-
-			pos = self.baxter_arm.choose_arm_state("right").current_es.pose.position
-			x,y = self.translate_pos(angle_to_check, 0.07)
-
-			resp = self.baxter_arm.move_xyz_plan(pos.x+x, pos.y+y, pos.z, "current", "right", 1.0)
-
-			#if ((pos.x+x > 0.4) and (pos.x+x<0.78) and (pos.y+y<0.26) and (pos.y+y>-0.66)) and resp != False:
-			if ((pos.x+x > self.bax_limits[0]) and (pos.x+x<self.bax_limits[1]) and (pos.y+y<self.bax_limits[2]) and (pos.y+y>self.bax_limits[3])) and resp != False:
-			#if ((pos.x+x > 0.4) and (pos.x+x<0.78) and (pos.y+y<0.0) and (pos.y+y>-0.66)) and resp != False:
-				candidate.baxter_action = Int32(baxter_l_angle)
-				candidate.baxter_valid = Bool(True)
-			else:
-				candidate.baxter_action = Int32(baxter_l_angle)
-				candidate.baxter_valid = Bool(False)
-
-			### Robobo ###
-			robobo_l_angle = np.random.uniform(srv.limit.data, -srv.limit.data)
-			print "rob_ori: ", self.exp_senses.rob_ori.data
-			new_angle = self.exp_senses.rob_ori.data + math.radians(robobo_l_angle)
-			rob_dx, rob_dy = self.translate_pos(self.exp_senses.rob_sense.angle.data, self.exp_senses.rob_sense.dist.data)
-
-			inc_x = 0.07*np.cos(new_angle)
-			inc_y = 0.07*np.sin(new_angle)
-
-			boxdx, boxdy = self.translate_pos(self.exp_senses.box_sense.angle.data, self.exp_senses.box_sense.dist.data)
-
-			rob_box_dist = self.obtain_dist(boxdx-(rob_dx+inc_x), boxdy-(rob_dy+inc_y))
-
-			#print rob_dx, rob_dy, rob_dx+inc_x, rob_dy+inc_y
-			#if ((rob_dx+inc_x > 0.22+0.06+0.05+0.025) and (rob_dx+inc_x<0.22+1.22-0.06-0.05-0.025) and (rob_dy+inc_y<1.22-0.06-0.05-0.025) and (rob_dy+inc_y>-1.22+0.06+0.05+0.025)):
-			#if ((rob_dx+inc_x > 0.22+0.43) and (rob_dx+inc_x<0.22+1.22-0.43) and (rob_dy+inc_y<1.22-0.39) and (rob_dy+inc_y>-1.22+0.39)):
-			print "\nrob_box_dist: ", rob_box_dist
-			if ((rob_dx+inc_x > self.rob_limits[0]) and (rob_dx+inc_x<self.rob_limits[1]) and (rob_dy+inc_y<self.rob_limits[2]) and (rob_dy+inc_y>self.rob_limits[3]) and (rob_box_dist > 0.30)):
-				candidate.robobo_action = Int32(robobo_l_angle)
-				candidate.robobo_valid = Bool(True)
-			else:
-				candidate.robobo_action = Int32(robobo_l_angle)
-				candidate.robobo_valid = Bool(False)
+			(candidate.baxter_action, candidate.baxter_valid) = self.baxter_candidates(srv)
+			if self.self.exp_rec!="ltm": (candidate.robobo_action, candidate.robobo_valid) = self.robobo_policies.candidate_actions(srv)
 
 			print "Action number: ", candidate_n, " baxter_valid: ", candidate.baxter_valid.data, " robobo_valid: ", candidate.robobo_valid.data
-			if (candidate.baxter_valid.data == True and candidate.robobo_valid.data == True): #and n_valid_actions > 0:
+			if (candidate.baxter_valid.data == True and candidate.robobo_valid.data == True):
 				response.candidates.append(candidate)
 				candidate_n+=1
 				valid_action_number+=1
@@ -1598,34 +1491,11 @@ class baxter_policies():
 		return response
 
 	def handle_check_action_validity(self, srv):
-		rob_is_valid = False
 		bax_is_valid = False
+		rob_is_valid = False
 
-		### Baxter ###
-		angle_to_check = self.exp_senses.rgrip_ori
-		angle_to_check += math.radians(srv.baxter_angle.data)
-		angle_to_check = self.angle_fix(angle_to_check)
-
-		pos = self.baxter_arm.choose_arm_state("right").current_es.pose.position
-		x,y = self.translate_pos(angle_to_check, 0.07)
-		resp = self.baxter_arm.move_xyz_plan(pos.x+x, pos.y+y, pos.z, "current", "right", 1.0)
-
-		if ((pos.x+x > self.bax_limits[0]) and (pos.x+x<self.bax_limits[1]) and (pos.y+y<self.bax_limits[2]) and (pos.y+y>self.bax_limits[3])) and resp != False:
-			bax_is_valid = True
-
-		### Robobo ###
-		new_angle = self.exp_senses.rob_ori.data + math.radians(srv.robobo_angle.data)
-		rob_dx, rob_dy = self.translate_pos(self.exp_senses.rob_sense.angle.data, self.exp_senses.rob_sense.dist.data)
-
-		inc_x = 0.07*np.cos(new_angle)
-		inc_y = 0.07*np.sin(new_angle)
-
-		boxdx, boxdy = self.translate_pos(self.exp_senses.box_sense.angle.data, self.exp_senses.box_sense.dist.data)
-		rob_box_dist = self.obtain_dist(boxdx-(rob_dx+inc_x), boxdy-(rob_dy+inc_y))
-
-		if ((rob_dx+inc_x > self.rob_limits[0]) and (rob_dx+inc_x<self.rob_limits[1]) and (rob_dy+inc_y<self.rob_limits[2]) and (rob_dy+inc_y>self.rob_limits[3]) and (rob_box_dist > 0.30)):
-			rob_is_valid = True
-
+		bax_is_valid = self.check_baxter_validity(srv.baxter_angle.data)
+		if self.self.exp_rec!="ltm": rob_is_valid = self.robobo_policies.check_robobo_validity (srv.robobo_angle.data)
 		return Bool(bax_is_valid), Bool(rob_is_valid)
 
 	##################################
@@ -1658,16 +1528,6 @@ class baxter_policies():
 
 		print "\nObject distance: ", sens.const_dist.data, "Limit: ", far
 
-		'''print "Normal drop"
-		if self.normal_reach_drop(dx, dy, srv):
-			self.assign_grab_grip(srv.arm.data, first)
-			return Bool(True)
-		else:
-			self.baxter_arm.restore_arm_pose(srv.arm.data)
-			if first != self.baxter_arm.choose_gripper_state(srv.arm.data):
-				self.baxter_arm.gripper_manager(srv.arm.data)
-			return Bool(False)'''
-
 		if sens.const_dist.data < far:
 			print "Normal drop"
 			if self.normal_reach_drop(dx, dy, srv):
@@ -1690,155 +1550,9 @@ class baxter_policies():
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				return Bool(False)
 
-	  #################################
-	  ###			ROBOBO			###
-	  #################################
-
-	def rotate_robobo(self, time, lspeed):
-		self.robobo_command.wait_for_service()
-		#command_name = 'TWOWHEELSBLOCKING'
-		command_name = 'MOVE'
-		command_parameters = []
-		command_parameters.append(KeyValue('lspeed', str(lspeed)))
-		command_parameters.append(KeyValue('rspeed', str(-lspeed)))
-		#command_parameters.append(KeyValue('blockid','3'))
-		command_parameters.append(KeyValue('time', str(time)))
-		self.robobo_command(command_name, 0, command_parameters)
-		rospy.sleep(time)
-
-	def	rob_move_straight(self, time, way):
-		self.robobo_command.wait_for_service()
-		#command_name = 'TWOWHEELSBLOCKING'
-		command_name = 'MOVE'
-		command_parameters = []
-		command_parameters.append(KeyValue('lspeed', str(25*way)))
-		command_parameters.append(KeyValue('rspeed', str(25*way)))
-		#command_parameters.append(KeyValue('blockid','3'))
-		command_parameters.append(KeyValue('time', str(time)))
-		self.robobo_command(command_name, 0, command_parameters)
-		rospy.sleep(time)
-
-	def spin_robobo(self, angle):
-		self.robobo_command.wait_for_service()
-		#command_name = 'TWOWHEELSBLOCKING'
-		command_name = 'TURNINPLACE'
-		command_parameters = []
-		command_parameters.append(KeyValue('degrees', str(math.degress)))
-		self.robobo_command(command_name, 0, command_parameters)
-		rospy.sleep(time)
-
-	def handle_rob_move_backwards (self, srv):
-		self.rob_move_straight(1.0, -1)
-		return Bool(True)
-
-	def handle_rob_move (self, srv, threshold = 0.09): #5 grados
-		rob_angle = self.exp_senses.rob_sense.angle.data
-		rob_dist = self.exp_senses.rob_sense.dist.data
-
-		robdx = self.exp_senses.rob_sense.dist.data*np.cos(self.exp_senses.rob_sense.angle.data)
-		robdy = self.exp_senses.rob_sense.dist.data*np.sin(self.exp_senses.rob_sense.angle.data)
-
-		if srv.valid.data == True:
-			time = self.rob_poly(abs(srv.dest.angle.data))
-			lspeed = 10
-			if srv.dest.angle.data >= 0.0:
-				lspeed = -lspeed
-
-			#print "angle prediction: ", self.exp_senses.rob_ori.data + srv.dest.angle.data, srv.dest.angle.data
-			self.rotate_robobo(time, lspeed)
-			self.rob_move_straight(0.5, 1)
-
-			if not self.robobo_status:
-
-				predicted_angle = self.angle_fix(self.exp_senses.rob_ori.data+srv.dest.angle.data)
-				fx = robdx + 0.05*math.cos(predicted_angle)
-				fy = robdy + 0.05*math.sin(predicted_angle)
-
-				self.exp_senses.rob_sense.dist.data = np.sqrt((fy**2)+(fx**2))
-				self.exp_senses.rob_sense.angle.data = np.arctan(fy/fx)
-				self.exp_senses.rob_ori.data = predicted_angle
-
-		return Bool(True)
-
-	def handle_rob_pick (self, srv):
-		dx, dy = self.cartesian_to_push(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data, self.exp_senses.rob_sense.angle.data, self.exp_senses.rob_sense.dist.data)
-		dist = self.obtain_dist(dx, dy) ###Distance between the object and the robot
-
-		print "robobo should rotate ", self.exp_senses.rob_obj_ori.data - self.exp_senses.rob_ori.data, " since its current angle is ", self.exp_senses.rob_ori.data, " and the object is at ", self.exp_senses.rob_obj_ori.data
-		time = self.rob_poly(abs(self.exp_senses.rob_obj_ori.data - self.exp_senses.rob_ori.data))
-
-		lspeed = 10
-		if (self.exp_senses.rob_obj_ori.data - self.exp_senses.rob_ori.data) >= 0.0:
-			lspeed = -lspeed
-
-		self.rotate_robobo(time+0.2, lspeed)
-		rospy.sleep(2)
-		dist_time = self.rob_dist_poly(dist-0.09)
-		self.rob_move_straight(dist_time, 1)
-		self.exp_senses.rob_grip = 1.0
-		rospy.sleep(2)
-		return Bool(True)
-
-	def handle_rob_drop (self, srv):
-		dx, dy = self.cartesian_to_push(self.exp_senses.box_sense.angle.data, self.exp_senses.box_sense.dist.data, self.exp_senses.rob_sense.angle.data, self.exp_senses.rob_sense.dist.data)
-		dist = self.obtain_dist(dx, dy) ###Distance between the object and the robot
-
-		print "robobo should rotate ", self.exp_senses.rob_box_ori.data - self.exp_senses.rob_ori.data, " since its current angle is ", self.exp_senses.rob_ori.data, " and the object is at ", self.exp_senses.rob_box_ori.data
-		time = self.rob_poly(abs(self.exp_senses.rob_box_ori.data - self.exp_senses.rob_ori.data))
-
-		lspeed = 10
-		if (self.exp_senses.rob_box_ori.data - self.exp_senses.rob_ori.data) >= 0.0:
-			lspeed = -lspeed
-
-		self.rotate_robobo(time+0.1, lspeed)
-		rospy.sleep(2)
-		dist_time = self.rob_dist_poly(dist-0.09)
-		self.rob_move_straight(dist_time, 1)
-		self.rob_move_straight(1.0, -1)
-		self.exp_senses.rob_grip = 0.0
-		rospy.sleep(2)
-		return Bool(True)
-
 	#####################
 	##   Calibration   ##
 	#####################
-
-	'''def create_matrix (self, n, x_c, x_f, y_l, y_r):
-		matrix = []
-
-		points = math.sqrt(n) - 1
-		xdiff = x_f-x_c
-		ydiff = y_l-y_r
-
-		cont = 0
-		xi = 0
-		yi = 0
-
-		value = [0.785, -0.3925]
-		cont_v = 0
-
-		x = x_c
-		while x <= x_f:
-			if cont%2 == 0:
-				y = y_l
-				yi = 0
-				while y >= y_r*1.1:
-					matrix.append([x, y, math.atan2(yi,xi), value[cont_v%2]])
-					y -= ydiff/points
-					yi+=1
-					cont_v+=1
-			else:
-				y = y_r
-				yi = int(points)
-				while y <= y_l*1.1:
-					matrix.append([x, y, math.atan2(yi,xi), value[cont_v%2]])
-					y += ydiff/points
-					yi-=1
-					cont_v+=1
-			x += xdiff/points
-			xi+=1
-			cont+=1
-		return matrix'''
 
 	def quadrilateral_grid_points (self, vertex, grid_points, side):
 
@@ -1953,13 +1667,6 @@ class baxter_policies():
 			print pose_target
 
 			self.baxter_arm.move_to_pose_goal(pose_target, self.select_arm_to_calibrate(req.arm.data), True, 1.0)
-			
-			#current_angles = self.baxter_arm.choose_arm_group(self.select_arm_to_calibrate(req.arm.data)).get_current_joint_values()
-			#print pose[2]
-			#current_angles[6] += (pose[2]*self.select_sign(req.arm.data))
-			#current_angles[6] = self.limit_correction(current_angles[6])
-			#current_angles = self.baxter_arm.check_arm_bounds (current_angles)
-			#self.baxter_arm.move_joints_directly(current_angles, 'moveit', self.select_arm_to_calibrate(req.arm.data), True, 2.0)
 
 			raw_input("Press Enter to continue")
 

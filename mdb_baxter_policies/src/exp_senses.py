@@ -71,15 +71,9 @@ class exp_senses():
 	def rob_sense_cb (self, sens):
 		if sens.height.data > -0.10:
 			self.rob_sense = sens
-			#self.rob_sense.dist.data +=0.135
 
 	def rob_ori_cb (self, ori):
 		self.rob_ori = ori
-		'''ori.data += 3.14
-		if ori.data > 3.14:
-			self.rob_ori.data = ori.data - 6.28
-		elif ori.data < -3.14:
-			self.rob_ori.data = ori.data + 6.28'''
 
 	def rob_ori_obj_cb(self, ori):
 		self.rob_obj_ori = ori
@@ -113,16 +107,6 @@ class exp_senses():
 			robg_x = rob_dx + inc_x
 			robg_y = rob_dy + inc_y
 
-			#print "robobo before: ", rob_dx, rob_dy
-			#Robobo position = pusher position
-			'''angle_to_use = self.rob_ori.data
-			if self.rob_ori.data < 0.0:
-				if (self.rob_ori.data < -1.57):
-					angle_to_use = -3.14-self.rob_ori.data
-			else:
-				if (self.rob_ori.data > 1.57):
-					angle_to_use = 3.14-self.rob_ori.data'''
-
 			if self.grip_state_conversion(self.rgrip_sense.data):
 				box_ball_dist = self.dist_calc (box_dx, box_dy, self.rarm_state.current_es.pose.position.x, self.rarm_state.current_es.pose.position.y)
 				hand_ball_dist = 0.0
@@ -143,8 +127,7 @@ class exp_senses():
 			elif self.rob_grip > 0.0:
 				obj_dx = robg_x
 				obj_dy = robg_y
-				
-			#print 'box_obj: ', box_ball_dist, 'rob_obj: ', rob_ball_dist, 'obj_dx: ', Float64(obj_dx), 'obj_dy: ', Float64(obj_dy), 'box_dx: ', Float64(box_dx), 'box_dy: ', Float64(box_dy), 'rob_dx: ',Float64(rob_dx), 'rob_dy: ', Float64(rob_dy), 'rob_ori: ', Float64(-self.rob_ori.data+3.14)
+
 			print 'rob_obj: ', rob_ball_dist, 'hand_obj: ', hand_ball_dist, 'box_obj: ', box_ball_dist
 
 			return Float64(box_ball_dist), Float64(hand_ball_dist), Float64(rob_ball_dist), Float64(obj_dx), Float64(obj_dy), Float64(box_dx), Float64(box_dy), Float64(self.rarm_state.current_es.pose.position.x), Float64(self.rarm_state.current_es.pose.position.y), Float64(rob_dx), Float64(rob_dy), Float64(self.rgrip_ori), Float64(self.rob_ori.data)
@@ -160,8 +143,6 @@ class exp_senses():
 
 			hand_ball_dist = self.dist_calc(obj_dx, obj_dy, self.larm_state.current_es.pose.position.x, self.larm_state.current_es.pose.position.y)
 			hand_ball_angle = np.arctan2(obj_dy-self.larm_state.current_es.pose.position.y, obj_dx-self.larm_state.current_es.pose.position.x)
-			#print obj_dx, self.larm_state.current_es.pose.position.x, obj_dy, self.rarm_state.current_es.pose.position.y
-			#print hand_ball_angle
 
 			return Float64(hand_ball_dist), Float64(hand_ball_angle)
 
@@ -194,13 +175,13 @@ class exp_senses():
 		#print "\nSENSE: \nobj > ", self.obj_sense,"\nbox > ", self.box_sense, " \ngrippers > ", self.lgrip_sense, self.rgrip_sense 	
 
 		self.obj_dist_pb.publish(Float64(self.obj_sense.dist.data))
-		self.obj_ang_pb.publish(Float64(self.angle_conversion(self.obj_sense.angle.data)))
-		#self.obj_size_pb.publish(Float64(self.obj_sense.radius.data*100.0))
+		self.obj_ang_pb.publish(Float64(self.obj_sense.angle.data))
+		#self.obj_size_pb.publish(Float64(self.obj_sense.radius.data))
 		self.obj_size_pb.publish(Float64(obj_rad))
 
 		self.box_dist_pb.publish(Float64(self.box_sense.dist.data))
-		self.box_ang_pb.publish(Float64(self.angle_conversion(self.box_sense.angle.data)))
-		#self.box_size_pb.publish(Float64(self.box_sense.radius.data*100.0))
+		self.box_ang_pb.publish(Float64(self.box_sense.angle.data))
+		#self.box_size_pb.publish(Float64(self.box_sense.radius.data))
 		self.box_size_pb.publish(Float64(box_rad))
 
 		self.lgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.lgrip_sense.data)))
