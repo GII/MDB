@@ -317,8 +317,12 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
-        goal = max(self.goals, key=attrgetter('activation'))
-        rospy.loginfo('Selecting a goal => ' + goal.ident)
+        goal = None
+        if self.goals is not None:
+            goal = max(self.goals, key=attrgetter('activation'))
+            rospy.loginfo('Selecting a goal => ' + goal.ident)
+        else:
+            rospy.loginfo('No goals at the moment!')
         return goal
 
     def __add_antipoint(self, perception):
@@ -465,11 +469,12 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                self.current_reward = self.current_goal.get_reward()
-                if self.current_reward < self.current_goal.threshold:
-                    self.__add_antipoint(previous_sensing)
-                else:
-                    self.__add_point(previous_sensing)
+                if self.current_goal is not None:
+                    self.current_reward = self.current_goal.get_reward()
+                    if self.current_reward < self.current_goal.threshold:
+                        self.__add_antipoint(previous_sensing)
+                    else:
+                        self.__add_point(previous_sensing)
                 self.__update_policies_to_test()
                 if plot:
                     self.__show()

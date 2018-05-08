@@ -17,8 +17,9 @@ from matplotlib import colors
 import rospy
 
 # ROS services
-from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 from std_msgs.msg import Bool, String, Float64
+from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg
+from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 
 
 class MDBCore(object):

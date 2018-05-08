@@ -26,25 +26,25 @@ LTM:
         -
             data: PNode
             ros_name_prefix: /mdb/p_node
-            callback: __add_node_callback
+            callback: add_node_callback
             default_class: mdb_ltm.pnode.PNodeActCentroidAndNormal
         -
             data: CNode
             ros_name_prefix: /mdb/c_node
-            callback: __add_node_callback
+            callback: add_node_callback
         -
             data: Goal
             ros_name_prefix: /mdb/goal
-            callback: __add_node_callback
+            callback: add_node_callback
             default_class: mdb_ltm.goal.GoalMotiven
         -
             data: ForwardModel
             ros_name_prefix: /mdb/forward_model
-            callback: __add_node_callback
+            callback: add_node_callback
         -
             data: Policy
             ros_name_prefix: /mdb/policy
-            callback: __add_node_callback
+            callback: add_node_callback
     Nodes:
         Perception:
             -
@@ -85,7 +85,6 @@ LTM:
                 id: ball_in_right_hand
                 class: mdb_ltm.perception.Perception
                 ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
-        Goal:
         ForwardModel: 
             -
                 id: gripper_and_low_friction
