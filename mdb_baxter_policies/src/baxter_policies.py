@@ -38,13 +38,11 @@ class baxter_policies():
 		self.calib_obj_flag = False
 
 		self.speed_l = []
-		self.grip_l =  []
+		self.grip_l = []
 		self.impact_l = []
-
 		self.g_angle_l = []
 		self.g_low_d_l = []
 		self.g_high_d_l = []
-
 		self.g_angle_fat_l = []
 		self.g_low_fat_d_l = []
 		self.g_high_fat_d_l = []
@@ -80,12 +78,12 @@ class baxter_policies():
 		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
 
 		# ROS Service Servers
-		self.bt_srver = rospy.Service('/baxter_throw', BaxThrow, self.handle_bt)  #scale (velocity), angle, grip (angle to open), arm
-		self.bp_srver = rospy.Service('/baxter_push', BaxP, self.handle_bp) #sensorization, dist, orientation, arm, scale(velocity)
-		self.bc_srver = rospy.Service('/baxter_change', BaxChange, self.handle_bc) #Bool
-		self.bgb_srver = rospy.Service('/baxter_grab_both', BaxGB, self.handle_bgb) #sensorization_l, sensorization_r, size // sensorization, size
-		self.bdb_srver = rospy.Service('/baxter_drop_both', BaxDB, self.handle_bdb) #destination, size
-		self.bg_srver = rospy.Service('/baxter_grab', BaxG, self.handle_bg_prev) #object_position, orientation, arm, scale
+		self.bt_srver = rospy.Service('/baxter_throw', BaxThrow, self.handle_bt)  
+		self.bp_srver = rospy.Service('/baxter_push', BaxP, self.handle_bp) 
+		self.bc_srver = rospy.Service('/baxter_change', BaxChange, self.handle_bc) 
+		self.bgb_srver = rospy.Service('/baxter_grab_both', BaxGB, self.handle_bgb) 
+		self.bdb_srver = rospy.Service('/baxter_drop_both', BaxDB, self.handle_bdb) 
+		self.bg_srver = rospy.Service('/baxter_grab', BaxG, self.handle_bg_prev) 
 		self.bgm_srver = rospy.Service('/baxter_giveme', BaxChange, self.handle_bgm)
 		self.brap_srver = rospy.Service('/baxter_restore', BaxRAP, self.handle_brap)
 		self.bcf_srver = rospy.Service('/baxter_changeface', BaxCF, self.handle_bcf)
@@ -131,13 +129,11 @@ class baxter_policies():
 
 		# Read throw configuration
 		self.readtcfile()
-
 		# Obtain throw polinomial model
 		self.t_poly = self.obtain_t_poly()
 
 		# Read grab configuration
 		self.readgcfile()
-
 		# Obtain grab low polinomial model for the small object
 		self.g_lowpoly = self.obtain_poly(self.g_angle_l, self.g_low_d_l, 3)
 		# Obtain grab high polinomial model for the small object
@@ -148,20 +144,16 @@ class baxter_policies():
 		# Obtain grab high polinomial model for the big object
 		self.g_highfatpoly = self.obtain_poly(self.g_angle_fat_l, self.g_high_fat_d_l, 2)
 
-		############################
-		###		 Motivation		 ###
-		############################
+		self.ra_angle_l = []
+		self.ra_distance_l = []
+		self.ra_area_l = []
+		self.readmcfile()
+		self.right_arm_motiven_poly = self.obtain_poly(self.ra_angle_l, self.ra_distance_l, 3)
 
 		self.initialize_wrist("right")
 		self.initialize_wrist("left")
 		self.baxter_arm.update_init_data()
 		self.baxter_arm.update_data()
-
-		self.right_angle_list = [0.785, 0.3925, 0.0, -0.3925, -0.785, -1.1775, -1.57]
-		self.right_distances = [0.6, 0.7, 0.8, 0.925, 1.1025, 1.075, 1.07]
-		self.right_poly = self.obtain_poly(self.right_angle_list, self.right_distances, 3)
-
-		self.bax_limits = [0.4, 0.78, 0.0, -0.66] # xmin, xmax, ymin, ymax
 
 		###################
 		###		TEST	###
@@ -1056,38 +1048,6 @@ class baxter_policies():
 	#################################
 
 	def adquire_drop_pos (self, dx, dy, z, size):
-		'''cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
-		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
-
-		div = 0.05
-
-		init = (cles.x+cres.x)/2
-		distance = dx-init
-		iterations = abs(distance/div)
-		rem = abs(distance%div)
-		if distance < 0.0:
-			inc = -div
-			rem = -rem
-		else:
-			inc = div
-
-		cpos = init+inc
-		keep = True
-
-		while (iterations > 0.0) and keep:
-			print "\n", iterations, keep, cpos, "\n"
-			if self.move_object(cpos, dy, z, size):
-				keep=True
-				cpos+=inc
-				iterations-=1.0
-			else:
-				keep=False
-
-		if keep and self.move_object(cpos+rem, dy, z, size):
-			return True
-		else:
-			return False'''
-
 		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
 		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
 
@@ -1380,7 +1340,6 @@ class baxter_policies():
 		self.exp_senses.rgrip_ori = -self.obtain_wrist_correction(arm)
 		print "Current gripper orientation: ", self.exp_senses.rgrip_ori
 
-
 	def handle_bcm(self, srv):
 		if srv.valid.data == True:
 			#Update the current gripper orientation
@@ -1461,7 +1420,7 @@ class baxter_policies():
 		x,y = self.translate_pos(angle_to_check, distance)
 		resp = self.baxter_arm.move_xyz_plan(pos.x+x, pos.y+y, pos.z, "current", arm, 1.0)
 
-		if ((pos.x+x > self.bax_limits[0]) and (pos.x+x<self.bax_limits[1]) and (pos.y+y<self.bax_limits[2]) and (pos.y+y>self.bax_limits[3])) and resp != False:
+		if ((pos.x+x > self.ra_area_l[0]) and (pos.x+x<self.ra_area_l[1]) and (pos.y+y<self.ra_area_l[2]) and (pos.y+y>self.ra_area_l[3])) and resp != False:
 			return True
 		else:
 			return False
@@ -1502,6 +1461,20 @@ class baxter_policies():
 	###			Drop Object		   ###
 	##################################
 
+	def readmcfile(self):
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/motiven_parameters.yml"
+		config = yaml.load(open(custom_configuration_file))
+		for k in config.keys():
+			if k == 'right_arm_angle':
+				for angle in config[k]:
+					self.ra_angle_l.append(angle)
+			if k == 'right_arm_distance':
+				for distance in config[k]:
+					self.ra_distance_l.append(distance)
+			if k == 'right_arm_area_limit':
+				for limit in config[k]:
+					self.ra_area_l.append(limit)
+
 	def normal_reach_drop (self, dx, dy, srv):
 		result = False
 		if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data + self.safe_operation_height, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
@@ -1522,7 +1495,7 @@ class baxter_policies():
 		self.baxter_arm.update_data()
 		sens = srv.object_position
 		dx, dy = self.translate_pos(sens.angle.data, sens.const_dist.data)
-		far = self.right_poly(abs(sens.angle.data))
+		far = self.right_arm_motiven_poly(abs(sens.angle.data))
 
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
 
