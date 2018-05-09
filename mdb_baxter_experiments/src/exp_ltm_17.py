@@ -3,11 +3,11 @@ import rospy, cv2, re, math, vlc, rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from sensor_msgs.msg import Image
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, GetSense, BCheckR, BCheckRRequest, BaxSense, PlanMng
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, GetSense, BCheckR, BCheckRRequest, BaxSense, PlanMng
 from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxChangeRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest, PlanMngRequest
 from std_msgs.msg import Bool, Float64, String
 #from exp_scene import *
-from mdb_common.srv import ExecPolicy, RefreshWorld, NewExperiment
+from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
 from mdb_common.msg import SensData, ControlMsg
 

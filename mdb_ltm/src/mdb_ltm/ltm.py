@@ -10,6 +10,7 @@ import os.path
 from copy import copy
 from operator import attrgetter
 from enum import Enum
+import threading
 import yaml
 import numpy
 import networkx
@@ -69,6 +70,7 @@ class LTM(object):
         self.current_policy = None
         self.current_world = 0
         self.current_reward = 0
+        self.there_are_goals = threading.Event()
         self.graph = networkx.Graph()
         self.graph_node_label = {}
         self.graph_node_position = {}
@@ -217,6 +219,8 @@ class LTM(object):
                 ident=data.id,
                 execute_service=data.execute_service,
                 get_service=data.get_service)
+            if node_type == 'Goal':
+                self.there_are_goals.set()
 
     def __shutdown(self):
         """Save to disk everything is needed before shutting down."""
@@ -253,7 +257,7 @@ class LTM(object):
                 if self.iteration == 0:
                     for node_type in configuration['LTM']['Nodes']:
                         rospy.logdebug('Loading %s...', node_type)
-                        for element in configuration['Nodes'][node_type]:
+                        for element in configuration['LTM']['Nodes'][node_type]:
                             node_type = node_type
                             class_name = element['class']
                             ident = element['id']
@@ -317,6 +321,8 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
+        if not self.goals:
+            self.there_are_goals.wait()
         goal = max(self.goals, key=attrgetter('activation'))
         rospy.loginfo('Selecting a goal => ' + goal.ident)
         return goal

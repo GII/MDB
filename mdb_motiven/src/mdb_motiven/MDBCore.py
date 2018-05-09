@@ -17,9 +17,9 @@ from matplotlib import colors
 import rospy
 
 # ROS services
-from mdb_baxter_policies.srv import BaxMC, GetSenseMotiv, BaxMCRequest, GetSenseMotivRequest, BaxChange, BaxChangeRequest
-from mdb_common.srv import ExecPolicy, RefreshWorld
 from std_msgs.msg import Bool, String, Float64
+from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg
+from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 
 
 class MDBCore(object):
@@ -74,44 +74,10 @@ class MDBCore(object):
         self.min_dist_box = 100  # 150#0.275
         self.min_dist_robot = 120  # 150#0.275
 
-        # ROS publishers
-        self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, queue_size=1)  # Integration LTM
-        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg,
-                                                        queue_size=1)  # Integration LTM
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, queue_size=1)  # Integration LTM
-
-        # ROS subscribers # Integration LTM
-        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)  # Integration LTM
-        rospy.Subscriber("/mdb/baxter/sensor/ball_dist", Float64, self.sensor_cb, 'ball_dist')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_ang", Float64, self.sensor_cb, 'ball_ang')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_size", Float64, self.sensor_cb, 'ball_size')
-        rospy.Subscriber("/mdb/baxter/sensor/box_dist", Float64, self.sensor_cb, 'box_dist')
-        rospy.Subscriber("/mdb/baxter/sensor/box_ang", Float64, self.sensor_cb, 'box_ang')
-        rospy.Subscriber("/mdb/baxter/sensor/box_size", Float64, self.sensor_cb, 'box_size')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_in_left_hand", Bool, self.sensor_cb, 'ball_in_left_hand')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_in_right_hand", Bool, self.sensor_cb, 'ball_in_right_hand')
-        # rospy.Subscriber("/mdb/baxter/sensor/dist_diff", Float64, self.sensor_cb, 'dist_diff')
-        # rospy.Subscriber("/mdb/baxter/sensor/ang_diff", Float64, self.sensor_cb, 'ang_diff')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_in_box", Bool, self.sensor_cb, 'ball_in_box')
-        rospy.Subscriber("/mdb/baxter/sensor/ball_with_robot", Bool, self.sensor_cb, 'ball_with_robot')
-
-        # ROS services
-        self.refresh_world_srv = rospy.ServiceProxy('/mdb/baxter/refresh_world', RefreshWorld)
-        self.baxter_mov_srv = rospy.ServiceProxy('/baxter_cart_mov', BaxMC)
-        self.baxter_sa_srv = rospy.ServiceProxy('/baxter_sa', BaxChange)
-        self.baxter_policy_srv = rospy.ServiceProxy('/mdb/baxter/exec_policy', ExecPolicy)
-        self.get_sens_srv = rospy.ServiceProxy('/mdb/baxter/sensors', GetSenseMotiv)
-
-        self.robobo_mov_srv = rospy.ServiceProxy('/robobo_mv', BaxMC)
-        self.robobo_pick_srv = rospy.ServiceProxy('/robobo_pick', BaxChange)
-        self.robobo_drop_srv = rospy.ServiceProxy('/robobo_drop', BaxChange)
-        self.robobo_mov_back_srv = rospy.ServiceProxy('robobo_move_backwards', BaxChange)
-
         self.baxter_gripper_angle = 0.0
         self.robobo_angle = 0.0
 
-        self.loadDataFile = 1  # Variable to decide if load data from file
+        self.loadDataFile = 0  # Variable to decide if load data from file
         self.LTM = 0  # Variable to decide if MotivEn is executed alone or integrated with the LTM
 
         # Sensors LTM
@@ -127,13 +93,50 @@ class MDBCore(object):
 
         # Goals LTM
         # Establezco lista de goals
-        self.goals_list = ['Intrinsic', 'goal_ball_in_box', 'goal_ball_in_robot']
+        self.goals_list = ['Intrinsic', 'ball_in_box', 'ball_in_robot']
         for i in self.goals_list:
             self.goalManager.newGoal(i)
         self.active_goal = self.goals_list[1]
+
+    def init_ros_staff(self):
+        # ROS publishers
+        self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, queue_size=1)  # Integration LTM
+        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg,
+                                                        queue_size=1)  # Integration LTM
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, queue_size=1)  # Integration LTM
         # Publish Goal creation
         for i in range(len(self.goalManager.goals)):
-            self.goal_topic_pb.publish(String('new'), String(self.goalManager.goals[i].goal_id))
+            self.goal_topic_pb.publish(
+                command='new',
+                id=self.goalManager.goals[i].goal_id,
+                newdata_topic='',
+                execute_service='',
+                get_service='',
+                class_name='',
+                language='python')
+        # ROS services
+        self.refresh_world_srv = rospy.ServiceProxy('/mdb/baxter/refresh_world', RefreshWorld)
+        self.baxter_mov_srv = rospy.ServiceProxy('/baxter_cart_mov', BaxMC)
+        self.baxter_sa_srv = rospy.ServiceProxy('/baxter_sa', BaxChange)
+        self.baxter_policy_srv = rospy.ServiceProxy('/mdb/baxter/exec_policy', ExecPolicy)
+        self.get_sens_srv = rospy.ServiceProxy('/mdb/baxter/sensors', GetSenseMotiv)
+        self.robobo_mov_srv = rospy.ServiceProxy('/robobo_mv', BaxMC)
+        self.robobo_pick_srv = rospy.ServiceProxy('/robobo_pick', BaxChange)
+        self.robobo_drop_srv = rospy.ServiceProxy('/robobo_drop', BaxChange)
+        self.robobo_mov_back_srv = rospy.ServiceProxy('robobo_move_backwards', BaxChange)
+        # ROS subscribers # Integration LTM
+        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)  # Integration LTM
+        rospy.Subscriber("/mdb/baxter/sensor/ball_dist", Float64, self.sensor_cb, 'ball_dist')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_ang", Float64, self.sensor_cb, 'ball_ang')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_size", Float64, self.sensor_cb, 'ball_size')
+        rospy.Subscriber("/mdb/baxter/sensor/box_dist", Float64, self.sensor_cb, 'box_dist')
+        rospy.Subscriber("/mdb/baxter/sensor/box_ang", Float64, self.sensor_cb, 'box_ang')
+        rospy.Subscriber("/mdb/baxter/sensor/box_size", Float64, self.sensor_cb, 'box_size')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_in_left_hand", Bool, self.sensor_cb, 'ball_in_left_hand')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_in_right_hand", Bool, self.sensor_cb, 'ball_in_right_hand')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_in_box", Bool, self.sensor_cb, 'ball_in_box')
+        rospy.Subscriber("/mdb/baxter/sensor/ball_with_robot", Bool, self.sensor_cb, 'ball_with_robot')
 
     def executed_policy_topic_cb(self, policy_id):
         ############## PARTE 2: PARA CUANDO LEO LA POLICY EJECUTADA
@@ -238,17 +241,17 @@ class MDBCore(object):
         if self.iterations > 0:
             self.active_goal = self.goals_list[1]
 
-    def run(self):
+    def run(self, standalone=True):
         # Load data
         if self.loadDataFile:
             self.loadData()
-        self.main()
-
-    def main(self):
+        self.LTM = standalone
+        self.init_ros_staff()
         if not self.LTM:
             self.stop = 0
             self.iterations = 0
             self.refresh_world_srv(String("motiven"), Bool(False))  # Restart scenario
+            candidate_state = None
 
             while not self.stop and not rospy.is_shutdown():
 
@@ -880,12 +883,3 @@ class MDBCore(object):
         #     3].corr_established, self.correlationsManager.correlations[3].corr_established_type
         # print "Corr est 5", self.correlationsManager.correlations[4].established, self.correlationsManager.correlations[
         #     4].corr_established, self.correlationsManager.correlations[4].corr_established_type
-
-
-def main():
-    instance = MDBCore()
-    instance.run()
-
-
-if __name__ == '__main__':
-    main()

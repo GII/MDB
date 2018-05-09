@@ -12,8 +12,8 @@ from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from mdb_common.msg import OpenGripReq, Candidates, ObjDet
-from mdb_common.srv import CandAct
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxChange, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, BaxMC, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
+from mdb_common.srv import CandAct, BaxMC, BaxChange
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
 from dynamic_reconfigure.srv import Reconfigure
 from gazebo_msgs.srv import GetModelState
 

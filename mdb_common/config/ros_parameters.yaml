@@ -1,6 +1,6 @@
 # Topic to communicate with the simulator
 /mdb/control_topic: /mdb/baxter/control
-/mdb/control_msg: mdb_simulator.msg.ControlMsg
+/mdb/control_msg: mdb_common.msg.ControlMsg
 # Topic for publishing P-node creation
 /mdb/p_node_topic: /mdb/ltm/p_node
 /mdb/p_node_msg: mdb_common.msg.PNodeMsg

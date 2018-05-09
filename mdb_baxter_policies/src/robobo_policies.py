@@ -4,7 +4,7 @@ import numpy as np
 from std_msgs.msg import Bool, Int32
 from com_mytechia_robobo_ros_msgs.srv import Command
 from com_mytechia_robobo_ros_msgs.msg import KeyValue
-from mdb_baxter_policies.srv import BaxChange, BaxMC
+from mdb_common.srv import BaxChange, BaxMC
 
 class robobo_policies():
 	def __init__(self, global_policies):

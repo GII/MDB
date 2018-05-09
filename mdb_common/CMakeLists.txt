@@ -67,8 +67,11 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   BaxChange.srv
+   BaxMC.srv
    CandAct.srv
    ExecPolicy.srv
+   GetSenseMotiv.srv
    GetSURCertainty.srv
    NewExperiment.srv
    RefreshWorld.srv
