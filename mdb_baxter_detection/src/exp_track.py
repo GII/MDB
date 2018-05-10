@@ -51,6 +51,8 @@ class exp_track:
 		self.box_coor_pub = rospy.Publisher("/tracking/"+"box", ObjDet, queue_size = 1)
 		self.rob_coor_pub = rospy.Publisher("/tracking/"+"robobo", ObjDet, queue_size = 1)
 
+		self.obj_det_pub = rospy.Publisher("/tracking/"+"ball"+"_flag", Bool, queue_size = 1);
+
 		self.rob_ori_pub = rospy.Publisher("tracking/robobo_ori", Float64, queue_size = 1)
 		self.rob_ori_obj_pub = rospy.Publisher("tracking/robobo_ori_obj", Float64, queue_size = 1)
 		self.rob_ori_box_pub = rospy.Publisher("tracking/robobo_ori_box", Float64, queue_size = 1)
@@ -415,6 +417,11 @@ class exp_track:
 					obj_det.radius.data = 0
 					self.select_publisher("robobo").publish(obj_det)
 					self.rob_ori_pub.publish(Float64(angle))
+
+				if cylinder:
+					self.obj_det_pub.publish(Bool(True))
+				else:
+					self.obj_det_pub.publish(Bool(False))
 
 				self.track_pub.publish(self.image_cv2ros(im_out))
 				self.iteration_number+=1

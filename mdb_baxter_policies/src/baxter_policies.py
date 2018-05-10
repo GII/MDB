@@ -103,8 +103,7 @@ class baxter_policies():
 		self.baxter_sa_srver = rospy.Service('/baxter_sa', BaxChange, self.handle_sa)
 
 		self.baxter_calib_srver = rospy.Service('/baxter_calib', Calib, self.matrix_movement)
-		self.baxter_intcalib_srver = rospy.Service('/baxter_int_calib', GridCalib, self.lineal_calibration)
-		self.baxter_overcalib_srver = rospy.Service('/baxter_over_calib', Calib, self.overhead_calibration)
+		self.baxter_int_calib_srver = rospy.Service('/baxter_int_calib', GridCalib, self.interpolation_calibration)
 
 		# ROS Simulation Service Servers
 		self.bsrg_srver = rospy.Service('/baxter_reset_gippers', BaxChange, self.handle_bsrg)
@@ -1518,9 +1517,9 @@ class baxter_policies():
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				return Bool(False)
 
-	#####################
-	##   Calibration   ##
-	#####################
+	#####################################
+	##   Camera position calibration   ##
+	#####################################
 
 	def quadrilateral_grid_points (self, vertex, grid_points, side):
 
@@ -1643,6 +1642,10 @@ class baxter_policies():
 		self.baxter_arm.restore_arm_pose("both")
 		return Bool(True)
 
+	#####################################
+	###   Interpolation calibration   ###
+	#####################################
+
 	def lineal_quadrilateral_grid_points (self, vertex, grid_points):
 		points = int(math.sqrt(grid_points) - 1)
 		grid = [] 
@@ -1701,13 +1704,13 @@ class baxter_policies():
 
 	def angle_generator (self, number_of_angles, angle_seed):
 		list_of_ang = []
-		list_of_ang.append(angle_seed)
 
-		inc = angle_seed*2/(number_of_angles-1)
-
-		for it in range (0, number_of_angles-1):
-			angle_seed-=inc
+		if number_of_angles > 1:
 			list_of_ang.append(angle_seed)
+			inc = angle_seed*2/(number_of_angles-1)
+			for it in range (0, number_of_angles-1):
+				angle_seed-=inc
+				list_of_ang.append(angle_seed)
 		
 		return list_of_ang
 
@@ -1725,11 +1728,16 @@ class baxter_policies():
 	def pan_data_adquisition (self, pan_angles, use_tag):
 		self.adopt_oap()
 		pos_data = []
-		for pan in pan_angles:
-			self.pan_to_sp(pan, 0.05)
-			rospy.sleep(1.0)
+		if len(pan_angles)>1:
+			for pan in pan_angles:
+				self.pan_to_sp(pan, 0.05)
+				rospy.sleep(1.0)
+				if not self.select_calibration_flag(self.translate_flag(use_tag)): self.aruco_cent = 'None'
+				pos_data.append([self.head_state.pan, self.aruco_cent])
+		else:
 			if not self.select_calibration_flag(self.translate_flag(use_tag)): self.aruco_cent = 'None'
-			pos_data.append([self.head_state.pan, self.aruco_cent])
+			print self.aruco_cent
+			pos_data.append([self.aruco_cent])
 		self.pan_to_sp(0.0, 0.05)
 		return pos_data
 
@@ -1761,7 +1769,7 @@ class baxter_policies():
 				calibration_data.append(["unreachable", [dx, dy]])
 		else:
 			pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
-			calibration_data.append(["position_xy", pos_data])
+			calibration_data.append([[dx, dy], pos_data])
 			self.baxter_arm.restore_arm_pose("both")
 		raw_input("Position information obtained. Press the button to calibrate the next position")
 
@@ -1772,7 +1780,7 @@ class baxter_policies():
 			side = int(math.sqrt(req.point_num.data))
 			return side*req.row_to_calibrate.data, (side*req.row_to_calibrate.data)+side
 			
-	def lineal_calibration (self, req):
+	def interpolation_calibration (self, req):
 		x_min = 0.32
 		x_max = 1.34
 		y_min = -1.10
@@ -1782,6 +1790,7 @@ class baxter_policies():
 
 		height_data = req.height.data		
 		table_vertex = [[x_min,y_max],[x_min,y_min],[x_max,y_min],[x_max,y_max]]
+		
 		pan_angles = self.angle_generator(req.angle_num.data, seed_angle)
 		
 		self.adopt_oap()				
@@ -1792,6 +1801,7 @@ class baxter_policies():
 		(init, end) = self.obtain_calibration_limits(req)
 
 		rospy.set_param("baxter_sense", True)
+
 		for pose in range(init, end):
 			dx = grid_points[pose][0]
 			dy = grid_points[pose][1]
@@ -1808,65 +1818,7 @@ class baxter_policies():
 
 			self.calibration_cycle(dist, far, pan_angles, req, calibration_data, dx, dy, arm)			
 
-		self.baxter_arm.restore_arm_pose("both")
 		rospy.delete_param("baxter_sense")
-		print calibration_data
-		rospy.loginfo(calibration_data)
-		return Bool(True)
-
-	def overhead_calibration (self, req):
-		table_vertex = [[0.32,1.10],[0.32,-1.10],[1.34,-1.10],[1.34,1.10]]
-		height_data = -0.04
-
-		self.adopt_oap()
-		grid_points = self.lineal_quadrilateral_grid_points(table_vertex, req.point_number.data)
-
-		calibration_data = []
-
-		for pose in grid_points:
-			dx = pose[0]
-			dy = pose[1]
-
-			#Check the arm to use based on the y coordinate:
-			arm = self.select_arm_to_move(dy)
-
-			#Translate position in terms of angle and distance
-			dist = self.obtain_dist(dx,dy)
-			ang = math.atan2(dy,dx)
-		
-			far = self.g_highpoly(abs(ang))
-			self.baxter_arm.restore_arm_pose(arm)
-
-			if dist <= far:
-				#close_movement
-				real_position = self.calibration_move_close(height_data, arm, dx, dy)
-				if real_position != False:
-					self.adopt_oap()
-					pos_data = []
-					#if not self.calib_obj_flag: self.aruco_cent = None
-					pos_data.append([self.aruco_cent]) #+aruco_pos
-					calibration_data.append([real_position, pos_data])
-				else:
-					self.adopt_oap()
-					calibration_data.append(["unreachable"])
-				raw_input("Position information obtained. Press the button to calibrate the next position")
-			else:
-				#far_movement
-				self.pose_grab_far(arm, dx, dy)
-				real_position = self.calibration_move_loop(height_data, arm, dx, dy)
-				print real_position
-				if real_position != False:
-					self.adopt_oap()
-					pos_data = []
-					#if not self.calib_obj_flag: self.aruco_cent = None
-					pos_data.append([self.aruco_cent])
-					calibration_data.append([real_position, pos_data])
-				else:
-					self.loop_tries = 5
-					self.adopt_oap()
-					calibration_data.append(["unreachable"])
-				raw_input("Position information obtained. Press the button to calibrate the next position")
-
 		self.baxter_arm.restore_arm_pose("both")
 		print calibration_data
 		rospy.loginfo(calibration_data)
