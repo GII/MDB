@@ -27,10 +27,12 @@ def start_ltm():
     parser.add_argument('-p', '--plot', action='store_true', help='Show a LTM diagram in real time.')
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
-    if 'backup' in kwargs:
-        ltm = LTM.restore(kwargs['backup'])
+    backup = kwargs.pop('backup', None)
+    if backup is not None:
+        ltm = LTM.restore(backup)
     else:
         ltm = LTM()
+    
     ltm.run(**kwargs)
 
 

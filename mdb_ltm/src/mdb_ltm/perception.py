@@ -7,7 +7,6 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 import threading
-import time
 import rospy
 from mdb_ltm.node import Node
 
