@@ -799,28 +799,23 @@ class baxter_policies():
 				self.loop_tries = 5
 				return Bool(False)
 
+	def normal_reach_grab_measurement (self, dx, dy, srv, first):
+		result = False
+		if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data + self.safe_operation_height, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
+			if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data, False, srv.orientation.data, srv.arm.data, srv.scale.data, 0.5):
+				if self.baxter_arm.move_xyz(dx, dy, srv.object_position.height.data + self.safe_operation_height, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
+					result = True
+		return result
+
 	def handle_bg_reach(self, srv):
-		#self.initialize_wrist(srv.arm.data)
 		self.baxter_arm.update_data()
 		sens = srv.object_position
-		head_state = self.baxter_arm.get_hs(Bool(True))
 		dx, dy = self.translate_pos(sens.angle.data, sens.const_dist.data)
-
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
-		print "first: ", first
 
-		current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-
-		print "Normal reach"
-		if self.normal_reach_grab(dx, dy, srv, first):
-			if self.exp_rec == "ltm":
-				self.baxter_arm.restore_arm_pose(srv.arm.data)
+		if self.normal_reach_grab_measurement (dx, dy, srv, first):
+			self.baxter_arm.restore_arm_pose(srv.arm.data)
 			self.assign_grab_grip(srv.arm.data, first)
-			if self.exp_rec == "mot":
-				self.baxter_arm.move_joints_directly(current_angles, 'moveit', 'right', True, 1.0)
-				rospy.sleep(1)
-				self.exp_senses.rob_grip = 0.0
-				rospy.set_param("/baxter_sense", True)
 			return Bool(True)
 		else:
 			self.baxter_arm.restore_arm_pose(srv.arm.data)
