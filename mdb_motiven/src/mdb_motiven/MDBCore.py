@@ -1,25 +1,28 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-# from Simulador import *
-from Episode import *
-from CandidateStateEvaluator import *
-from TracesBuffer import *
-from CorrelationsManager import *
-from StateSpace import *
-from GoalManager import *
-
+import math
+import numpy
+import threading
 import logging
 import pickle
-from matplotlib import colors
-
-# ROS libraries
+from matplotlib import pyplot as plt
+# We need this if we want to debug due to every callback is a thread.
+# import pdb
+# ROS
 import rospy
-
-# ROS services
 from std_msgs.msg import Bool, String, Float64
 from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg
 from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
+# MOTIVEN
+from mdb_motiven.CandidateStateEvaluator import CandidateStateEvaluator
+from mdb_motiven.Correlations import Correlations
+from mdb_motiven.CorrelationsManager import CorrelationsManager
+from mdb_motiven.Episode import Episode
+from mdb_motiven.EpisodicBuffer import EpisodicBuffer
+from mdb_motiven.GoalManager import GoalManager
+from mdb_motiven.TracesBuffer import TracesBuffer
+from mdb_motiven.TracesMemory import TracesMemory
 
 
 class MDBCore(object):
@@ -78,33 +81,59 @@ class MDBCore(object):
         self.robobo_angle = 0.0
 
         self.loadDataFile = 0  # Variable to decide if load data from file
-        self.LTM = 0  # Variable to decide if MotivEn is executed alone or integrated with the LTM
+        self.LTM = False  # Variable to decide if MotivEn is executed alone or integrated with the LTM
 
         # Sensors LTM
-        # sensors_list = ['ball_dist', 'ball_ang', 'ball_size', 'box_dist', 'box_ang', 'box_size', 'ball_in_left_hand',
-        #                 'ball_in_right_hand', 'dist_diff', 'ang_diff', 'ball_in_box', 'ball_with_robot']
-        sensors_list = ['ball_dist', 'ball_ang', 'ball_size', 'box_dist', 'box_ang', 'box_size', 'ball_in_left_hand',
-                        'ball_in_right_hand', 'ball_in_box', 'ball_with_robot']
+        sensors_list = [
+            'ball_dist',
+            'ball_ang',
+            'ball_size',
+            'box_dist',
+            'box_ang',
+            'box_size',
+            'ball_in_left_hand',
+            'ball_in_right_hand',
+            'ball_in_box',
+            'ball_with_robot']
         self.perceptions = dict.fromkeys(sensors_list)
-
+        self.sens_t = dict.fromkeys(sensors_list)
+        self.sens_t1 = dict.fromkeys(sensors_list)
+        self.first_reading = True
+        self.run_memory_manager = threading.Event()
+        self.run_motivation_manager = threading.Event()
         # Policies LTM
         self.n_policies_exec = 0
         self.max_policies_exec = 8
-
         # Goals LTM
         # Establezco lista de goals
         self.goals_list = ['Intrinsic', 'ball_in_box', 'ball_in_robot']
         for i in self.goals_list:
             self.goalManager.newGoal(i)
         self.active_goal = self.goals_list[1]
+        # ROS stuff
+        self.motivation_pb = None
+        self.goal_topic_pb = None
+        self.goal_activation_topic_pb = None
+        self.goal_ok_topic_pb = None
+        self.refresh_world_srv = None
+        self.baxter_mov_srv = None
+        self.baxter_sa_srv = None
+        self.baxter_policy_srv = None
+        self.get_sens_srv = None
+        self.robobo_mov_srv = None
+        self.robobo_pick_srv = None
+        self.robobo_drop_srv = None
+        self.robobo_mov_back_srv = None
 
     def init_ros_staff(self):
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, queue_size=1)  # Integration LTM
-        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg,
-                                                        queue_size=1)  # Integration LTM
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, queue_size=1)  # Integration LTM
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)  # Integration LTM
+        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg, latch=True, queue_size=None)  # Integration LTM
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)  # Integration LTM
+        if self.LTM:
+            while self.goal_topic_pb.get_num_connections() == 0:
+                pass
         # Publish Goal creation
         for i in range(len(self.goalManager.goals)):
             self.goal_topic_pb.publish(
@@ -140,43 +169,39 @@ class MDBCore(object):
 
     def executed_policy_topic_cb(self, policy_id):
         ############## PARTE 2: PARA CUANDO LEO LA POLICY EJECUTADA
+        # pdb.set_trace()
         # Check if a new correlation is needed or established
         self.correlationsManager.newSUR(self.active_goal)
         if self.correlationsManager.correlations[self.activeCorr].i_reward_assigned == 0:
             self.correlationsManager.assignRewardAssigner(self.activeCorr, self.episode.getSensorialStateT1(),
                                                           self.active_goal)
-        # Leo sensorizacion de topic y la guardo en el episode
-        if self.iterations < 1:
-            sens_t = 0
-        else:
-            sens_t = sens_t1
-        sens_t1 = self.get_sensorization_LTM()
+        # This is to be sure that we have the new perceptions after the policy has been executed.
+        self.run_memory_manager.wait()
+        self.run_memory_manager.clear()
         # Como conozco el reward???
         if self.perceptions[self.active_goal]:
             self.reward = 1
         else:
             self.reward = 0
-        self.episode.setEpisode(sens_t, policy_id, sens_t1, self.reward)
+        self.episode.setEpisode(self.sens_t, policy_id, self.sens_t1, self.reward)
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.MemoryManagerLTM()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
         for i in range(len(self.goalManager.goals)):
             if self.active_goal == self.goalManager.goals[i].goal_id:
-                self.goal_ok_topic_pb.publish(String(self.goalManager.goals[i].goal_id),
-                                              Float64(self.isImprovingBehavior()))
+                self.goal_ok_topic_pb.publish(id=self.goalManager.goals[i].goal_id, ok=self.isImprovingBehavior())
             else:
-                self.goal_ok_topic_pb.publish(String(self.goalManager.goals[i].goal_id),
-                                              Float64(0))
+                self.goal_ok_topic_pb.publish(id=self.goalManager.goals[i].goal_id, ok=0.0)
         #############
         # Pongo las percepciones en None para asi controlar cuando debe empezar el nuevo ciclo, es decir,
         # cuando se hayan leido todas las percepciones
-        self.perceptions = dict.fromkeys(self.perceptions, None)
-        self.iterations += 1
         self.iter_min += 1
         self.iterations += 1
         self.it_reward += 1
         # self.stopCondition()
         self.episode.cleanEpisode()
+        self.run_motivation_manager.set()
+
 
     def isImprovingBehavior(self, UMtype='SUR'):
         """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly"""
@@ -210,31 +235,37 @@ class MDBCore(object):
                 # if i == 0:
                 #     self.goalManager.goals[i].activation = 0.0
                 # else:
-                    if self.goalManager.goals[i].goal_id == self.active_goal:
-                        self.goalManager.goals[i].activation = 1.0
-                    else:
-                        self.goalManager.goals[i].activation = 0.0
+                if self.goalManager.goals[i].goal_id == self.active_goal:
+                    self.goalManager.goals[i].activation = 1.0
+                else:
+                    self.goalManager.goals[i].activation = 0.0
         # Publish
         for i in range(len(self.goalManager.goals)):
-            self.goal_activation_topic_pb.publish(String(self.goalManager.goals[i].goal_id),
-                                                  Float64(self.goalManager.goals[i].activation))
+            self.goal_activation_topic_pb.publish(
+                id=self.goalManager.goals[i].goal_id,
+                activation=self.goalManager.goals[i].activation)
 
     def sensor_cb(self, sens_value, sensor_id): # Integration LTM
         self.perceptions[sensor_id] = sens_value
-        # Necesito algo que me indique que todas las percepciones estan actualizadas
-        # Cuando el valor de ninguna sea None
+        # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
         if not None in self.perceptions.values():
             ############## PARTE 1: PARA CUANDO LEO LAS PERCEPCIONES
+            self.sens_t = self.sens_t1
+            self.sens_t1 = self.perceptions.values()
+            self.perceptions = dict.fromkeys(self.perceptions, None)
+            if self.first_reading:
+                self.first_reading = False
+            else:
+                self.run_memory_manager.set()
+                self.run_motivation_manager.wait()
+                self.run_motivation_manager.clear()
+            self.select_goal()
             # MOTIVATION MANAGER
             # MOTIVEN calculates the goal relevance for the current state
-            self.select_goal()
             self.MotivationManagerLTM()
             # Set goal activations in Goal Manager and publish in topics for LTM
             self.publishGoalActivations()
             #############
-
-    def get_sensorization_LTM(self):  # Integration LTM
-        return self.perceptions.values()  # List with the values of the sensors without key
 
     def select_goal(self):
         """Method ad hoc to select the current goal"""
@@ -245,7 +276,7 @@ class MDBCore(object):
         # Load data
         if self.loadDataFile:
             self.loadData()
-        self.LTM = standalone
+        self.LTM = not standalone
         self.init_ros_staff()
         if not self.LTM:
             self.stop = 0
@@ -328,8 +359,10 @@ class MDBCore(object):
                 # Check if a new correlation is needed or established
                 self.correlationsManager.newSUR(self.active_goal)
                 if self.correlationsManager.correlations[self.activeCorr].i_reward_assigned == 0:
-                    self.correlationsManager.assignRewardAssigner(self.activeCorr, self.episode.getSensorialStateT1(),
-                                                              self.active_goal)
+                    self.correlationsManager.assignRewardAssigner(
+                        self.activeCorr,
+                        self.episode.getSensorialStateT1(),
+                        self.active_goal)
 
                 ### Memory Manager: Save episode in the pertinent memories and Traces, weak traces and antitraces
                 self.MemoryManager()
@@ -342,8 +375,10 @@ class MDBCore(object):
                 self.robobo_angle = sensorization.rob_angle.data * 180.0 / math.pi
                 # Generate new action
                 SimData = (
-                    (sensorization.grip_x.data * 1000, sensorization.grip_y.data * 1000), self.baxter_gripper_angle,
-                    (sensorization.rob_x.data * 1000, sensorization.rob_y.data * 1000), self.robobo_angle,
+                    (sensorization.grip_x.data * 1000, sensorization.grip_y.data * 1000),
+                    self.baxter_gripper_angle,
+                    (sensorization.rob_x.data * 1000, sensorization.rob_y.data * 1000),
+                    self.robobo_angle,
                     (sensorization.obj_x.data * 1000, sensorization.obj_y.data * 1000),
                     (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000),
                     (sensorization.box_x.data * 1000, sensorization.box_y.data * 1000),
@@ -422,8 +457,8 @@ class MDBCore(object):
     def MotivationManagerLTM(self):
         if self.useMotivManager:
             if self.correlationsManager.correlations[self.activeCorr].goal != self.active_goal:  # If the goal changes
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.get_sensorization_LTM(), self.active_goal)
-            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(tuple(self.get_sensorization_LTM()), self.activeCorr, self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
+            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(tuple(self.sens_t1), self.activeCorr, self.active_goal)
             if self.corr_sensor == 0:
                 self.activeMot = 'Int'
             else:
@@ -548,7 +583,7 @@ class MDBCore(object):
                 ###
                 self.reward = 0
                 self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(self.tracesBuffer.getTrace())
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.get_sensorization_LTM(), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
                 logging.info('Goal reward when Intrinsic Motivation')
                 self.it_reward = 0
@@ -573,7 +608,7 @@ class MDBCore(object):
                 # Save as trace in TracesMemory of the correlated sensor
                 self.correlationsManager.correlations[self.activeCorr].addTrace(self.tracesBuffer.getTrace(),
                                                                                 self.corr_sensor, self.corr_type)
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.get_sensorization_LTM(), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
                 logging.info('Goal reward when Extrinsic Motivation')
                 self.useMotivManager = 1
@@ -606,7 +641,7 @@ class MDBCore(object):
                             # Guardo antitraza en el sensor correspondiente y vuelvo a comezar el bucle
                             self.correlationsManager.correlations[self.activeCorr].addAntiTrace(
                                 self.tracesBuffer.getTrace(), self.corr_sensor, self.corr_type)
-                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.get_sensorization_LTM(), self.active_goal)
+                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                             self.reinitializeMemories()
                             logging.info('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             logging.info('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
@@ -698,13 +733,13 @@ class MDBCore(object):
         # Simple moving average
         reward_matrix = []
         blind_matrix = []
-        iter = []
+        itera = []
         for i in range(len(self.graph1)):
             # for i in range(40000):
             if self.graph1[i][1]:
                 reward_matrix.append(self.graph1[i][2])
                 blind_matrix.append(min(self.graph1[i][3] / 50, 1))
-                iter.append(self.graph1[i][0])
+                itera.append(self.graph1[i][0])
         window = 10
         window_aux = 1
         media = self.calcSma(reward_matrix, window)
@@ -746,7 +781,7 @@ class MDBCore(object):
         j = next(i for i, x in enumerate(data) if x is not None)
         our_range = range(len(data))[j + smaPeriod - 1:]
         empty_list = [None] * (j + smaPeriod - 1)
-        sub_result = [np.mean(data[i - smaPeriod + 1:i + 1]) for i in our_range]
+        sub_result = [numpy.mean(data[i - smaPeriod + 1:i + 1]) for i in our_range]
 
         return list(empty_list + sub_result)
 

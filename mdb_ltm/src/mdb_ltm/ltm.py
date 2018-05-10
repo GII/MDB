@@ -55,8 +55,20 @@ class LTM(object):
         """Constructor."""
         self.file_name = None
         self.files = []
-        self.nodes = {'Perception': {}, 'PNode': [], 'CNode': [], 'Goal': [], 'ForwardModel': [], 'Policy': []}
-        self.module_names = {'Perception': 'perception', 'PNode': 'p_node', 'CNode': 'c_node', 'Goal': 'goal', 'ForwardModel': 'forward_model', 'Policy': 'policy'}
+        self.nodes = {
+            'Perception': {},
+            'PNode': [],
+            'CNode': [],
+            'Goal': [],
+            'ForwardModel': [],
+            'Policy': []}
+        self.module_names = {
+            'Perception': 'perception',
+            'PNode': 'p_node',
+            'CNode': 'c_node',
+            'Goal': 'goal',
+            'ForwardModel': 'forward_model',
+            'Policy': 'policy'}
         self.default_class = {}
         self.default_ros_name_prefix = {}
         self.control_publisher = None
@@ -158,7 +170,12 @@ class LTM(object):
         if ident is None:
             ident = node_type + str(len(self.nodes[node_type]))
         # Create the object
-        node = self.__class_from_classname(class_name)(ident=ident, node_type=node_type, ros_name_prefix=ros_name_prefix, ltm=self, **kwargs)
+        node = self.__class_from_classname(class_name)(
+            ident=ident,
+            node_type=node_type,
+            ros_name_prefix=ros_name_prefix,
+            ltm=self,
+            **kwargs)
         # Add the object to the appropriate list (the perceptions are in a dictionary, not a list)
         if node.type == 'Perception':
             self.nodes[node.type][ident] = node
@@ -178,6 +195,7 @@ class LTM(object):
         for neighbor in node.neighbors:
             neighbor.neighbors.append(node)
             self.graph.add_edge(neighbor, node)
+        rospy.loginfo('Created ' + node_type + ' ' + ident)
         return node
 
     def __add_file(self, file_item):
@@ -207,7 +225,7 @@ class LTM(object):
                 else:
                     if data.class_name != '':
                         node_class = self.__class_from_classname(data.class_name)
-                    else:           
+                    else:
                         node_class = self.default_class.get(node_type)
                         if node_class is None:
                             rospy.logerr('Class name not specified and default value not found while processing a message for creating a new node!')
@@ -263,7 +281,12 @@ class LTM(object):
                             ident = element['id']
                             data = element.get('data')
                             ros_name_prefix = element.get('ros_name_prefix')
-                            self.__add_node(node_type=node_type, class_name=class_name, ident=ident, data=data, ros_name_prefix=ros_name_prefix)
+                            self.__add_node(
+                                node_type=node_type,
+                                class_name=class_name,
+                                ident=ident,
+                                data=data,
+                                ros_name_prefix=ros_name_prefix)
                     self.__write_headers_in_files()
                 # Load simulator / robot configuration channel
                 topic = rospy.get_param(configuration['Control']['ros_name_prefix'] + '_topic')
@@ -321,8 +344,6 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
-        if not self.goals:
-            self.there_are_goals.wait()
         goal = max(self.goals, key=attrgetter('activation'))
         rospy.loginfo('Selecting a goal => ' + goal.ident)
         return goal
@@ -346,14 +367,13 @@ class LTM(object):
                 rospy.loginfo('Added point in p-node ' + pnode.ident)
         if not cnodes:
             pnode = self.__add_node('PNode', self.default_class['PNode'])
-            rospy.loginfo('Created p-node ' + pnode.ident)
             pnode.add_perception(perception, 1.0)
             rospy.loginfo('Added point in p-node ' + pnode.ident)
             forward_model = max(self.forward_models, key=attrgetter('activation'))
             goal = max(self.goals, key=attrgetter('activation'))
             neighbors = [pnode, forward_model, goal, self.current_policy]
             cnode = self.__add_node('CNode', 'mdb_ltm.cnode.CNode', neighbors=neighbors, weight=1.0)
-            rospy.logdebug('Created c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
+            rospy.logdebug('New c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
                            ', ' + goal.ident + ' and ' + self.current_policy.ident)
 
     def __update_policies_to_test(self):
@@ -384,7 +404,8 @@ class LTM(object):
         if circles:
             circles.set_edgecolor('k')
 
-    def __graph_set_edge_properties(self, edges):
+    @staticmethod
+    def __graph_set_edge_properties(edges):
         """Set edge width and color for graphical representation."""
         graph_edge_width = []
         graph_edge_color = []
@@ -457,7 +478,7 @@ class LTM(object):
             self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
-    def run(self, seed=None, iterations=1000, log_level='INFO', plot=False, **kwargs):
+    def run(self, seed=None, iterations=1000, log_level='INFO', plot=False):
         """Start the LTM part of the brain."""
         try:
             self.__init(log_level, seed)
@@ -465,6 +486,8 @@ class LTM(object):
             sensing = self.__read_perceptions()
             while (not rospy.is_shutdown()) and (self.iteration <= iterations):
                 rospy.loginfo('*** ITERATION: ' + str(self.iteration) + ' ***')
+                if not self.goals:
+                    self.there_are_goals.wait()
                 self.__update_activations(sensing)
                 self.current_policy = self.__select_policy()
                 previous_sensing = sensing
