@@ -1,14 +1,14 @@
-import numpy as np
 import math
+import numpy as np
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-from TracesMemory import *
+from mdb_motiven.TracesMemory import TracesMemory
 
 
 class DistancesCertainty(object):
-    """ This class represents a mathematical model that defines the
-    implementation used for the creation of certainty maps. 
+    """
+    This class represents a mathematical model that defines the
+    implementation used for the creation of certainty maps.
 
     Its aim is to obtain the certainty value for a point 'p' given.
 

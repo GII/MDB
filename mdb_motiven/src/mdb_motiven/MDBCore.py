@@ -1,11 +1,15 @@
-#!/usr/bin/env python
-# coding=utf-8
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
 
 import math
-import numpy
 import threading
 import logging
 import pickle
+import numpy
 from matplotlib import pyplot as plt
 # We need this if we want to debug due to every callback is a thread.
 # import pdb
@@ -128,12 +132,13 @@ class MDBCore(object):
     def init_ros_staff(self):
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True,
-                                             queue_size=None)  # Integration LTM
-        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg, latch=True,
-                                                        queue_size=None)  # Integration LTM
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True,
-                                                queue_size=None)  # Integration LTM
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)
+        self.goal_activation_topic_pb = rospy.Publisher(
+            "/mdb/motiven/goal_activation",
+            GoalActivationMsg,
+            latch=True,
+            queue_size=None)
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)
         if self.LTM:
             while self.goal_topic_pb.get_num_connections() == 0:
                 pass
@@ -183,6 +188,7 @@ class MDBCore(object):
         self.saveData()
         self.memoryVF.removeAll()
         self.perceptions = dict.fromkeys(self.perceptions, None)  # Esto no tengo claro si es necesario
+        self.sens_t = self.sens_t1  # y yo esto tampoco :-)
         # Policies LTM
         self.n_policies_exec = 0
         # Choose active goal
