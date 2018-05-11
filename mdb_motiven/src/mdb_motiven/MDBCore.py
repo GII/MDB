@@ -1,11 +1,15 @@
-#!/usr/bin/env python
-# coding=utf-8
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
 
 import math
-import numpy
 import threading
 import logging
 import pickle
+import numpy
 from matplotlib import pyplot as plt
 # We need this if we want to debug due to every callback is a thread.
 # import pdb
@@ -13,7 +17,7 @@ from matplotlib import pyplot as plt
 import rospy
 from std_msgs.msg import Bool, String, Float64
 from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg
-from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
+from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange, ControlMsg
 # MOTIVEN
 from mdb_motiven.CandidateStateEvaluator import CandidateStateEvaluator
 from mdb_motiven.Correlations import Correlations
@@ -128,9 +132,13 @@ class MDBCore(object):
     def init_ros_staff(self):
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)  # Integration LTM
-        self.goal_activation_topic_pb = rospy.Publisher("/mdb/motiven/goal_activation", GoalActivationMsg, latch=True, queue_size=None)  # Integration LTM
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)  # Integration LTM
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)
+        self.goal_activation_topic_pb = rospy.Publisher(
+            "/mdb/motiven/goal_activation",
+            GoalActivationMsg,
+            latch=True,
+            queue_size=None)
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)
         if self.LTM:
             while self.goal_topic_pb.get_num_connections() == 0:
                 pass
@@ -155,7 +163,7 @@ class MDBCore(object):
         self.robobo_drop_srv = rospy.ServiceProxy('/robobo_drop', BaxChange)
         self.robobo_mov_back_srv = rospy.ServiceProxy('robobo_move_backwards', BaxChange)
         # ROS subscribers # Integration LTM
-        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)  # Integration LTM
+        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)
         rospy.Subscriber("/mdb/baxter/sensor/ball_dist", Float64, self.sensor_cb, 'ball_dist')
         rospy.Subscriber("/mdb/baxter/sensor/ball_ang", Float64, self.sensor_cb, 'ball_ang')
         rospy.Subscriber("/mdb/baxter/sensor/ball_size", Float64, self.sensor_cb, 'ball_size')
@@ -166,6 +174,25 @@ class MDBCore(object):
         rospy.Subscriber("/mdb/baxter/sensor/ball_in_right_hand", Bool, self.sensor_cb, 'ball_in_right_hand')
         rospy.Subscriber("/mdb/baxter/sensor/ball_in_box", Bool, self.sensor_cb, 'ball_in_box')
         rospy.Subscriber("/mdb/baxter/sensor/ball_with_robot", Bool, self.sensor_cb, 'ball_with_robot')
+        rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.baxter_control_cb)
+
+    def baxter_control_cb(self):
+        # Restart necessary things
+        self.reinitializeMemories()
+        self.useMotivManager = 1
+        logging.info('No reward. Restart scenario.')
+        self.it_reward = 0
+        self.it_blind = 0
+        self.n_execution += 1
+        self.graphExec = []
+        self.saveData()
+        self.memoryVF.removeAll()
+        self.perceptions = dict.fromkeys(self.perceptions, None)  # Esto no tengo claro si es necesario
+        self.sens_t = self.sens_t1  # y yo esto tampoco :-)
+        # Policies LTM
+        self.n_policies_exec = 0
+        # Choose active goal
+        self.select_goal()
 
     def executed_policy_topic_cb(self, policy_id):
         ############## PARTE 2: PARA CUANDO LEO LA POLICY EJECUTADA
@@ -202,10 +229,9 @@ class MDBCore(object):
         self.episode.cleanEpisode()
         self.run_motivation_manager.set()
 
-
     def isImprovingBehavior(self, UMtype='SUR'):
         """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly"""
-        #For now, only SURs are considered as possible utility models
+        # For now, only SURs are considered as possible utility models
         if UMtype == 'SUR':
             if self.activeMot == 'Ext':
                 sens_t = self.tracesBuffer.getTrace()[-2][self.corr_sensor - 1]
@@ -245,7 +271,7 @@ class MDBCore(object):
                 id=self.goalManager.goals[i].goal_id,
                 activation=self.goalManager.goals[i].activation)
 
-    def sensor_cb(self, sens_value, sensor_id): # Integration LTM
+    def sensor_cb(self, sens_value, sensor_id):  # Integration LTM
         self.perceptions[sensor_id] = sens_value
         # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
         if not None in self.perceptions.values():
@@ -458,7 +484,9 @@ class MDBCore(object):
         if self.useMotivManager:
             if self.correlationsManager.correlations[self.activeCorr].goal != self.active_goal:  # If the goal changes
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
-            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(tuple(self.sens_t1), self.activeCorr, self.active_goal)
+            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(tuple(self.sens_t1),
+                                                                                             self.activeCorr,
+                                                                                             self.active_goal)
             if self.corr_sensor == 0:
                 self.activeMot = 'Int'
             else:
@@ -582,7 +610,8 @@ class MDBCore(object):
                                                                   self.active_goal, 1)
                 ###
                 self.reward = 0
-                self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(self.tracesBuffer.getTrace())
+                self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(
+                    self.tracesBuffer.getTrace())
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
                 logging.info('Goal reward when Intrinsic Motivation')
@@ -641,7 +670,8 @@ class MDBCore(object):
                             # Guardo antitraza en el sensor correspondiente y vuelvo a comezar el bucle
                             self.correlationsManager.correlations[self.activeCorr].addAntiTrace(
                                 self.tracesBuffer.getTrace(), self.corr_sensor, self.corr_type)
-                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
+                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1,
+                                                                                                  self.active_goal)
                             self.reinitializeMemories()
                             logging.info('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             logging.info('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
@@ -796,13 +826,30 @@ class MDBCore(object):
             pickle.dump(self.correlationsManager.correlations[i].S2_neg, f)
             pickle.dump(self.correlationsManager.correlations[i].S3_pos, f)
             pickle.dump(self.correlationsManager.correlations[i].S3_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S4_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S4_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S5_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S5_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S6_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S6_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S7_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S7_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S8_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S8_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S9_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S9_neg, f)
+            pickle.dump(self.correlationsManager.correlations[i].S10_pos, f)
+            pickle.dump(self.correlationsManager.correlations[i].S10_neg, f)
             pickle.dump(self.correlationsManager.correlations[i].corr_active, f)
             pickle.dump(self.correlationsManager.correlations[i].corr_type, f)
+            pickle.dump(self.correlationsManager.correlations[i].corr_threshold, f)
             pickle.dump(self.correlationsManager.correlations[i].established, f)
             pickle.dump(self.correlationsManager.correlations[i].corr_established, f)
             pickle.dump(self.correlationsManager.correlations[i].corr_established_type, f)
             pickle.dump(self.correlationsManager.correlations[i].i_reward, f)
             pickle.dump(self.correlationsManager.correlations[i].i_reward_assigned, f)
+            pickle.dump(self.correlationsManager.correlations[i].goal_id, f)
+            pickle.dump(self.correlationsManager.correlations[i].Tb, f)
         # pickle.dump(self.activeMot, f)
         # pickle.dump(self.activeCorr, f)
         # pickle.dump(self.corr_sensor, f)

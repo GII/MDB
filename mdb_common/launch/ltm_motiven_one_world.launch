@@ -9,7 +9,7 @@
 	<arg name="plot_arg" value="--plot" if="$(arg plot)"/>
     <arg name="standalone" default="False"/>
 	<arg name="standalone_arg" value="" unless="$(arg standalone)"/>
-	<arg name="standalone_arg" value="--plot" if="$(arg standalone)"/>
+	<arg name="standalone_arg" value="--standalone" if="$(arg standalone)"/>
 	<rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
 	<group ns="mdb" unless="$(arg debug)">
 		<node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)"/>

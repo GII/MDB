@@ -1,14 +1,14 @@
-import numpy as np
 import math
+import numpy as np
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-from TracesMemory import *
+from mdb_motiven.TracesMemory import TracesMemory
 
 
 class DistancesCertainty(object):
-    """ This class represents a mathematical model that defines the
-    implementation used for the creation of certainty maps. 
+    """
+    This class represents a mathematical model that defines the
+    implementation used for the creation of certainty maps.
 
     Its aim is to obtain the certainty value for a point 'p' given.
 
@@ -23,8 +23,10 @@ class DistancesCertainty(object):
         self.Cf = 0.7  # Reliability factor
 
         # Establecer estos limites antes de realizar los ejemplos en funcion de las distacias y el numero de sensores
-        self.Linf = (0.0, 0.0, 0.0)  # It should be an array with the inferior limits of the different sensors
-        self.Lsup = (1735.0, 1373.0, 1373.0)  # It should be an array with the superior limits of the different sensors
+        self.Linf = (0.2, -1.4, 0.0, 0.2, -1.4, 0.0, 0.0, 0.0, 0.0,
+                     0.0)  # It should be an array with the inferior limits of the different sensors
+        self.Lsup = (1.9, 1.4, 0.15, 1.9, 1.4, 0.15, 1.0, 1.0, 1.0,
+                     1.0)  # It should be an array with the superior limits of the different sensors
 
         self.Nt_factor = 6.0
         self.K = pow(0.05, 1.0 / (self.Nt_factor - 1.0))
