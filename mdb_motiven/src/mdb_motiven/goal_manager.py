@@ -1,14 +1,21 @@
-from Goal import *
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+from mdb_motiven.goal import Goal
 
 class GoalManager(object):
-    """Class that represents the Goal Manager
-    
+    """
+    Class that represents the Goal Manager.
+
     This component includes different processes involved in achieving the goal,
     mainly the sub-goal identification and combination. It provides the Candidate
     State Evaluator with some criteria to evaluate the sensorial candidate states,
     and it requires the current set of motivations from the Motivation Manager in
     order to create the sub-goals.
-    
     """
 
     def __init__(self):

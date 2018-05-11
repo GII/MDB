@@ -7,7 +7,6 @@ Distributed under the (yes, we are still thinking about this too...).
 
 import math
 import threading
-import logging
 import pickle
 import numpy
 from matplotlib import pyplot as plt
@@ -16,22 +15,21 @@ from matplotlib import pyplot as plt
 # ROS
 import rospy
 from std_msgs.msg import Bool, String, Float64
-from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg
-from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange, ControlMsg
+from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg, ControlMsg
+from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 # MOTIVEN
-from mdb_motiven.CandidateStateEvaluator import CandidateStateEvaluator
-from mdb_motiven.Correlations import Correlations
-from mdb_motiven.CorrelationsManager import CorrelationsManager
-from mdb_motiven.Episode import Episode
-from mdb_motiven.EpisodicBuffer import EpisodicBuffer
-from mdb_motiven.GoalManager import GoalManager
-from mdb_motiven.TracesBuffer import TracesBuffer
-from mdb_motiven.TracesMemory import TracesMemory
+from mdb_motiven.candidate_state_evaluator import CandidateStateEvaluator
+from mdb_motiven.correlations import Correlations
+from mdb_motiven.correlations_manager import CorrelationsManager
+from mdb_motiven.episode import Episode
+from mdb_motiven.episodic_buffer import EpisodicBuffer
+from mdb_motiven.goal_manager import GoalManager
+from mdb_motiven.traces_buffer import TracesBuffer
+from mdb_motiven.traces_memory import TracesMemory
 
 
-class MDBCore(object):
+class MOTIVEN(object):
     def __init__(self):
-        rospy.init_node("MDBCore")
         # Object initialization
         self.memoryVF = TracesBuffer()
         self.memoryVF.setMaxSize(100)
@@ -62,8 +60,7 @@ class MDBCore(object):
 
         self.iter_min = 0  # Minimum number of iterations to consider possible an antitrace
 
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG, filename='LogFile.log')
-        logging.info('Iteration  ActiveMotivation  ActiveCorrelation  CorrelatedSensor  CorrelationType  Episode')
+        rospy.loginfo('Iteration  ActiveMotivation  ActiveCorrelation  CorrelatedSensor  CorrelationType  Episode')
 
         self.useMotivManager = 0
 
@@ -129,7 +126,8 @@ class MDBCore(object):
         self.robobo_drop_srv = None
         self.robobo_mov_back_srv = None
 
-    def init_ros_staff(self):
+    def init_ros_staff(self, log_level):
+        rospy.init_node('motiven', log_level=getattr(rospy, log_level))
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
         self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)
@@ -176,11 +174,11 @@ class MDBCore(object):
         rospy.Subscriber("/mdb/baxter/sensor/ball_with_robot", Bool, self.sensor_cb, 'ball_with_robot')
         rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.baxter_control_cb)
 
-    def baxter_control_cb(self):
+    def baxter_control_cb(self, data):
         # Restart necessary things
         self.reinitializeMemories()
         self.useMotivManager = 1
-        logging.info('No reward. Restart scenario.')
+        rospy.loginfo('No reward. Restart scenario.')
         self.it_reward = 0
         self.it_blind = 0
         self.n_execution += 1
@@ -298,12 +296,12 @@ class MDBCore(object):
         if self.iterations > 0:
             self.active_goal = self.goals_list[1]
 
-    def run(self, standalone=True):
+    def run(self, log_level='INFO', standalone=True):
         # Load data
         if self.loadDataFile:
             self.loadData()
         self.LTM = not standalone
-        self.init_ros_staff()
+        self.init_ros_staff(log_level)
         if not self.LTM:
             self.stop = 0
             self.iterations = 0
@@ -346,7 +344,7 @@ class MDBCore(object):
                 try:
                     self.baxter_mov_srv(movement_req)  # self.simulator.baxter_larm_action(action)
                 except rospy.ServiceException, e:
-                    rospy.loginfo("Movement service call failed: {0}".format(e))
+                    rospy.logerr("Movement service call failed: {0}".format(e))
                 ######
                 movement_req = BaxMCRequest()
                 movement_req.dest.const_dist.data = 0.05
@@ -359,7 +357,7 @@ class MDBCore(object):
                 try:
                     self.robobo_mov_srv(movement_req)
                 except rospy.ServiceException, e:
-                    rospy.loginfo("Movement service call failed: {0}".format(e))
+                    rospy.logerr("Movement service call failed: {0}".format(e))
                 self.world_rules()
 
                 # SENSORIZATION in t+1 (distances and reward)
@@ -440,8 +438,14 @@ class MDBCore(object):
             self.stop = 1
 
     def writeLogs(self):
-        logging.debug('%s  -  %s  -  %s  -  %s  -  %s  -  %s', self.iterations, self.activeMot, self.activeCorr,
-                      self.corr_sensor, self.corr_type, self.episode.getEpisode())
+        rospy.logdebug(
+            '%s  -  %s  -  %s  -  %s  -  %s  -  %s',
+            self.iterations,
+            self.activeMot,
+            self.activeCorr,
+            self.corr_sensor,
+            self.corr_type,
+            self.episode.getEpisode())
 
     def debugPrint(self):
         print '------------------'
@@ -523,7 +527,7 @@ class MDBCore(object):
                     (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
                      sensorization.obj_box_dist.data * 1000), self.active_goal)
                 self.reinitializeMemories()
-                logging.info('Goal reward when Intrinsic Motivation')
+                rospy.loginfo('Goal reward when Intrinsic Motivation')
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -538,7 +542,7 @@ class MDBCore(object):
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
-                logging.info('Correlation reward when Intrinsic Motivation')
+                rospy.loginfo('Correlation reward when Intrinsic Motivation')
         elif self.activeMot == 'Ext':
             self.useMotivManager = 0
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
@@ -554,7 +558,7 @@ class MDBCore(object):
                     (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
                      sensorization.obj_box_dist.data * 1000), self.active_goal)
                 self.reinitializeMemories()
-                logging.info('Goal reward when Extrinsic Motivation')
+                rospy.loginfo('Goal reward when Extrinsic Motivation')
                 self.useMotivManager = 1
                 self.it_reward = 0
                 self.it_blind = 0
@@ -571,7 +575,7 @@ class MDBCore(object):
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
-                logging.info('Correlation reward when Extrinsic Motivation')
+                rospy.loginfo('Correlation reward when Extrinsic Motivation')
                 self.useMotivManager = 1
             else:
                 # Check if the the active correlation is still active
@@ -588,8 +592,8 @@ class MDBCore(object):
                             (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
                              sensorization.obj_box_dist.data * 1000), self.active_goal)
                         self.reinitializeMemories()
-                        logging.info('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
-                        logging.info('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
+                        rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
+                        rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                         self.useMotivManager = 1
                         print "ANTITRAZA \n"
 
@@ -614,7 +618,7 @@ class MDBCore(object):
                     self.tracesBuffer.getTrace())
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
-                logging.info('Goal reward when Intrinsic Motivation')
+                rospy.loginfo('Goal reward when Intrinsic Motivation')
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -629,7 +633,7 @@ class MDBCore(object):
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
-                logging.info('Correlation reward when Intrinsic Motivation')
+                rospy.loginfo('Correlation reward when Intrinsic Motivation')
         elif self.activeMot == 'Ext':
             self.useMotivManager = 0
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
@@ -639,7 +643,7 @@ class MDBCore(object):
                                                                                 self.corr_sensor, self.corr_type)
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
-                logging.info('Goal reward when Extrinsic Motivation')
+                rospy.loginfo('Goal reward when Extrinsic Motivation')
                 self.useMotivManager = 1
                 self.it_reward = 0
                 self.it_blind = 0
@@ -656,7 +660,7 @@ class MDBCore(object):
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
-                logging.info('Correlation reward when Extrinsic Motivation')
+                rospy.loginfo('Correlation reward when Extrinsic Motivation')
                 self.useMotivManager = 1
             else:
                 # Check if the the active correlation is still active
@@ -673,8 +677,8 @@ class MDBCore(object):
                             self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1,
                                                                                                   self.active_goal)
                             self.reinitializeMemories()
-                            logging.info('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
-                            logging.info('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
+                            rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
+                            rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                             self.useMotivManager = 1
                             print "ANTITRAZA \n"
                             self.n_policies_exec = 0

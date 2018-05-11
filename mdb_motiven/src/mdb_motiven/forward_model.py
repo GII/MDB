@@ -1,17 +1,25 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 import math
 
 
 class ForwardModel(object):
-    """Class tha represents a Forward Model, a model of the World.
-    
+    """
+    Class tha represents a Forward Model, a model of the World.
+
     It contains the methods needed to predict the next State Space created with the application of a particular
     action in the actual State Space.
     """
 
     def predictedState(self, candidate_action, (bax_l_pos, bax_l_angle, rob_pos, rob_angle, ball_pos, ball_situation, box1_pos, desp_vel)):
-        """Return the predicted sensorization vector calculated as a function of the actual states and the particular 
+        """Return the predicted sensorization vector calculated as a function of the actual states and the particular
         actions applied to the robots.
-        
+
         :param bax_l_action: Tuple containing the action applied (vel, angle) to the left arm of the Baxter robot
         :param bax_l_pos: Tuple containing the position (x, y) of the center of the left arm of the Baxter robot
         :param bax_l_angle: actual Angle of the baxter actuator
@@ -38,7 +46,7 @@ class ForwardModel(object):
 
     def get_ball_pos(self, ball_pos, situation, rob_pos, bax_l_pos):
         """Returns the predicted position of the ball according to its current situation.
-    
+
         :param ball_pos: Tuple containing the position (x, y) of the center of the ball
         :param situation: String that indicates the situation of the ball in the scenario ('robobo','baxter_rarm', 'bxter_larm' or else)
         :param bax_l_pos: Tuple containing the new position (x, y) of the center of the left arm of the Baxter robot
@@ -56,7 +64,7 @@ class ForwardModel(object):
 
     def get_sensorization(self, rob_act_pos, baxter_l_act_pos, ball_pos, box1_pos):
         """Return a sensorization vector with the distances between the ball and the robots' actuators.
-        
+
         :param rob_act_pos: Tuple containing the new position (x, y) of the center of the actuator of the Robobo robot
         :param baxter_l_act_pos: Tuple containing the new position (x, y) of the center of the actuator of the left arm of the Baxter robot
         :param ball_pos: Tuple containing the new position (x, y) of the center of the ball
@@ -75,12 +83,12 @@ class ForwardModel(object):
 
     def get_act_new_pos(self, (x, y), angle, rel_angle, robot, vel=0.05*1000):
         """Returns the new position of the actuator of the robot.
-        
+
         :param x, y: Tuple containing the position (x, y) of the center of the robot
         :param angle: actual angle of the robot
         :param rel_angle: candidate relative angle to apply to the robot
         :param w:  width of the rectangle that represents the robot
-        :param h: height of the rectangle that represents the robot 
+        :param h: height of the rectangle that represents the robot
         :param w_act:  width of the rectangle that represents the robot actuator
         :param h_act: height of the rectangle that represents the robot actuator
         :param vel: velocity of movement (default = 10)
@@ -94,7 +102,7 @@ class ForwardModel(object):
         #
         # xc_act = x_act + w_act / 2 * math.cos(angle * math.pi / 180) - h_act / 2 * math.sin(angle * math.pi / 180)
         # yc_act = y_act + w_act / 2 * math.sin(angle * math.pi / 180) + h_act / 2 * math.cos(angle * math.pi / 180)
-        
+
         if robot == 'baxter':
             if rel_angle.baxter_valid.data == False:
                 x_act = x

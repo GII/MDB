@@ -1,11 +1,19 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 from matplotlib import pyplot as plt
 from matplotlib import patches
 
 
 class StateSpace(object):
-    """ Class that implements a State Space Figure 
+    """
+    Class that implements a State Space Figure.
 
-    This figure makes possible to visualize the state spaces
+    This figure makes possible to visualize the state spaces.
     """
 
     def __init__(self):
