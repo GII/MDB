@@ -12,7 +12,8 @@
 
    <arg name="camera_frame" default="camera_rgb_optical_frame"/>
    <!--arg name="camera_frame" default="headcamera_rgb_optical_frame"/-->
-   <arg name="image_topic" default="/camera/rgb/image_rect_color_drop"/>
+   <arg name="original_image_topic" default="/camera/rgb/image_rect_color"/>
+   <arg name="image_topic" default="$(arg original_image_topic)_drop"/>
    <!--arg name="image_topic" default="/pano_camera/image_color"/-->
    <arg name="cloud_topic" default="/camera/depth_registered/points"/>
    <!--arg name="cloud_topic" default="/example/pointcloud"/-->
@@ -20,7 +21,7 @@
 
    <!--node pkg="tf" type="static_transform_publisher" name="camera_link_broadcaster" args="0.866 0.102 2.026 -0.007 0.708 0.003 0.706 base camera_link 100" required="true"/-->
 
-   <node name="drop_node" pkg="topic_tools" type="drop" args="/camera/rgb/image_rect_color 3 4 /camera/rgb/image_rect_color_drop"/>
+   <node name="drop_node" pkg="topic_tools" type="drop" args="$(arg original_image_topic) 3 4 $(arg image_topic)"/>
 
    <include file="$(find mdb_baxter_detection)/launch/head_aruco_marker.launch" if="$(arg tag)"/> 
 
