@@ -863,39 +863,11 @@ class MOTIVEN(object):
         pickle.dump(self.graph2, f)
         f.close()
 
-    def loadData(self):
-
-        # f = open('SimulationDataLongExecBis2.pckl', 'rb')  # SimulationDataLongExecBis2
-        # numero = pickle.load(f)
-        # for i in range(numero):  # for i in range(numero):
-        #     self.correlationsManager.correlations.append(Correlations(None))
-        # for i in range(numero):  # for i in range(numero):
-        #     self.correlationsManager.correlations[i].S1_pos = pickle.load(f)
-        #     self.correlationsManager.correlations[i].S1_neg = pickle.load(f)
-        #     self.correlationsManager.correlations[i].S2_pos = pickle.load(f)
-        #     self.correlationsManager.correlations[i].S2_neg = pickle.load(f)
-        #     self.correlationsManager.correlations[i].S3_pos = pickle.load(f)
-        #     self.correlationsManager.correlations[i].S3_neg = pickle.load(f)
-        #     self.correlationsManager.correlations[i].corr_active = pickle.load(f)
-        #     self.correlationsManager.correlations[i].corr_type = pickle.load(f)
-        #     self.correlationsManager.correlations[i].established = pickle.load(f)
-        #     self.correlationsManager.correlations[i].corr_established = pickle.load(f)
-        #     self.correlationsManager.correlations[i].corr_established_type = pickle.load(f)
-        #     self.correlationsManager.correlations[i].i_reward = pickle.load(f)
-        #     self.correlationsManager.correlations[i].i_reward_assigned = pickle.load(f)
-        # # # self.activeMot = pickle.load(f)
-        # # # self.activeCorr = pickle.load(f)
-        # # # self.corr_sensor = pickle.load(f)
-        # # # self.corr_type = pickle.load(f)
-        # # self.graph1 = pickle.load(f)
-        # # self.graphx = pickle.load(f)
-        # # self.graph2 = pickle.load(f)
-        # f.close()
-
-        f = open('SimulationDataRealSUR3R75.pckl', 'rb')  # SimulationDataLongExecBis2 SimulationDataRealSUR3R75
+    def loadData(self, file_name):
+        f = open(file_name, 'rb')  # SimulationDataLongExecBis2 SimulationDataRealSUR3R75
         numero = pickle.load(f)
         for i in range(numero):  # for i in range(numero):
-            self.correlationsManager.correlations.append(Correlations(None))
+            self.correlationsManager.correlations.append(Correlations(None, None))
         for i in range(numero):  # for i in range(numero):
             self.correlationsManager.correlations[i].S1_pos = pickle.load(f)
             self.correlationsManager.correlations[i].S1_neg = pickle.load(f)
@@ -903,69 +875,35 @@ class MOTIVEN(object):
             self.correlationsManager.correlations[i].S2_neg = pickle.load(f)
             self.correlationsManager.correlations[i].S3_pos = pickle.load(f)
             self.correlationsManager.correlations[i].S3_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S4_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S4_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S5_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S5_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S6_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S6_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S7_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S7_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S8_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S8_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S9_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S9_neg = pickle.load(f)
+            self.correlationsManager.correlations[i].S10_pos = pickle.load(f)
+            self.correlationsManager.correlations[i].S10_neg = pickle.load(f)
             self.correlationsManager.correlations[i].corr_active = pickle.load(f)
             self.correlationsManager.correlations[i].corr_type = pickle.load(f)
+            self.correlationsManager.correlations[i].corr_threshold = pickle.load(f)
             self.correlationsManager.correlations[i].established = pickle.load(f)
             self.correlationsManager.correlations[i].corr_established = pickle.load(f)
             self.correlationsManager.correlations[i].corr_established_type = pickle.load(f)
             self.correlationsManager.correlations[i].i_reward = pickle.load(f)
             self.correlationsManager.correlations[i].i_reward_assigned = pickle.load(f)
+            self.correlationsManager.correlations[i].goal_id = pickle.load(f)
+            self.correlationsManager.correlations[i].Tb = pickle.load(f)
         # # self.activeMot = pickle.load(f)
         # # self.activeCorr = pickle.load(f)
         # # self.corr_sensor = pickle.load(f)
         # # self.corr_type = pickle.load(f)
-        # self.graph1 = pickle.load(f)
-        # self.graphx = pickle.load(f)
-        # self.graph2 = pickle.load(f)
-        f.close()
-
-        f = open('GraphData.pckl', 'rb')
         self.graph1 = pickle.load(f)
         self.graphx = pickle.load(f)
         self.graph2 = pickle.load(f)
         f.close()
-        # self.correlationsManager.correlations[0].S1_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[0].S1_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[0].S2_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[0].S2_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[0].S3_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[0].S3_neg.numberOfGoalsWithoutAntiTraces = 0
-        self.n_execution = 362
-        self.iterations = 50483
-
-        # self.correlationsManager.correlations[1].S1_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[1].S1_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[1].S2_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[1].S3_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[1].S3_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[1].S3_neg.numberOfGoalsWithoutAntiTraces = 0
-        #
-        # self.correlationsManager.correlations[2].S1_neg = self.correlationsManager.correlations[3].S1_neg
-        # self.correlationsManager.correlations[2].S1_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[2].S2_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[2].S2_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[2].S3_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[2].S3_pos = DistancesCertainty()
-        # #
-        # self.correlationsManager.correlations[3].S1_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[3].S2_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[3].S2_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[3].S3_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[3].S3_pos = DistancesCertainty()
-
-        # self.correlationsManager.correlations[4].S1_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[4].S1_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[4].S2_pos = DistancesCertainty()
-        # self.correlationsManager.correlations[4].S3_neg = DistancesCertainty()
-        # self.correlationsManager.correlations[4].S3_pos = DistancesCertainty()
-
-        print "Corr est", self.correlationsManager.correlations[0].established, self.correlationsManager.correlations[
-            0].corr_established, self.correlationsManager.correlations[0].corr_established_type
-        print "Corr est 2", self.correlationsManager.correlations[1].established, self.correlationsManager.correlations[
-            1].corr_established, self.correlationsManager.correlations[1].corr_established_type
-        print "Corr est 3", self.correlationsManager.correlations[2].established, self.correlationsManager.correlations[
-            2].corr_established, self.correlationsManager.correlations[2].corr_established_type
-        # print "Corr est 4", self.correlationsManager.correlations[3].established, self.correlationsManager.correlations[
-        #     3].corr_established, self.correlationsManager.correlations[3].corr_established_type
-        # print "Corr est 5", self.correlationsManager.correlations[4].established, self.correlationsManager.correlations[
-        #     4].corr_established, self.correlationsManager.correlations[4].corr_established_type
