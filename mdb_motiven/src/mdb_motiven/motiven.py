@@ -312,16 +312,20 @@ class MOTIVEN(object):
 
                 ## SENSORIZATION in t(distances, action and motivation)
                 sensorization = self.get_sens_srv(Bool(True))
-                self.episode.setSensorialStateT(
-                    (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
-                     sensorization.obj_box_dist.data * 1000))
+                self.episode.setSensorialStateT((
+                    sensorization.obj_rob_dist.data * 1000,
+                    sensorization.obj_grip_dist.data * 1000,
+                    sensorization.obj_box_dist.data * 1000))
 
                 if self.iterations > 0:
                     print '*************************'
                     print "Predicted state: ", candidate_state
 
-                self.motivation_pb.publish(String('Motivation: ' + str(self.activeMot) + '\nActive SUR: ' + str(
-                    self.activeCorr + 1) + ', Correlated Sensor: ' + str(self.corr_sensor) + ' ' + str(self.corr_type)))
+                self.motivation_pb.publish(String(
+                    'Motivation: ' + str(self.activeMot) +
+                    '\nActive SUR: ' + str(self.activeCorr + 1) +
+                    ', Correlated Sensor: ' + str(self.corr_sensor) +
+                    ' ' + str(self.corr_type)))
 
                 # Apply Action
                 if self.iterations == 0:
@@ -365,9 +369,10 @@ class MOTIVEN(object):
                 if self.reward:
                     self.episode.setSensorialStateT1((sensorization.obj_rob_dist.data * 1000, 0.0, 0.0))
                 else:
-                    self.episode.setSensorialStateT1(
-                        (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
-                         sensorization.obj_box_dist.data * 1000))
+                    self.episode.setSensorialStateT1((
+                        sensorization.obj_rob_dist.data * 1000,
+                        sensorization.obj_grip_dist.data * 1000,
+                        sensorization.obj_box_dist.data * 1000))
                 self.episode.setReward(self.reward)
 
                 print "Real state: ", self.episode.getSensorialStateT1()
@@ -407,12 +412,14 @@ class MOTIVEN(object):
                     (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000),
                     (sensorization.box_x.data * 1000, sensorization.box_y.data * 1000),
                     movement_req.dest.const_dist.data * 1000)
-                action = self.CSE.getAction(self.activeMot, SimData,
-                                            tuple((sensorization.obj_rob_dist.data * 1000,
-                                                   sensorization.obj_grip_dist.data * 1000,
-                                                   sensorization.obj_box_dist.data * 1000)),
-                                            self.corr_sensor, self.corr_type,
-                                            self.intrinsicMemory.getContents())
+                action = self.CSE.getAction(
+                    self.activeMot, SimData,
+                    tuple((
+                        sensorization.obj_rob_dist.data * 1000,
+                        sensorization.obj_grip_dist.data * 1000,
+                        sensorization.obj_box_dist.data * 1000)),
+                    self.corr_sensor, self.corr_type,
+                    self.intrinsicMemory.getContents())
                 # Predicted state
                 candidate_state = self.CSE.ForwModel.predictedState(action, SimData)
                 # print "predicted State en i =: ", self.iterations+1, candidate_state
@@ -488,9 +495,10 @@ class MOTIVEN(object):
         if self.useMotivManager:
             if self.correlationsManager.correlations[self.activeCorr].goal != self.active_goal:  # If the goal changes
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
-            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(tuple(self.sens_t1),
-                                                                                             self.activeCorr,
-                                                                                             self.active_goal)
+            self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(
+                tuple(self.sens_t1),
+                self.activeCorr,
+                self.active_goal)
             if self.corr_sensor == 0:
                 self.activeMot = 'Int'
             else:
@@ -511,10 +519,11 @@ class MOTIVEN(object):
             if self.episode.getReward():
                 ###
                 if self.correlationsManager.correlations[self.activeCorr].i_reward_assigned == 0:
-                    self.correlationsManager.assignRewardAssigner(self.activeCorr,
-                                                                  self.episode.getSensorialStateT1(),
-                                                                  self.active_goal,
-                                                                  1)
+                    self.correlationsManager.assignRewardAssigner(
+                        self.activeCorr,
+                        self.episode.getSensorialStateT1(),
+                        self.active_goal,
+                        1)
                 ###
                 self.refresh_world_srv(String("motiven"), Bool(True))  # Restart scenario
                 self.reward = 0
@@ -523,9 +532,10 @@ class MOTIVEN(object):
                 self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(
                     self.tracesBuffer.getTrace())
                 sensorization = self.get_sens_srv(Bool(True))
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
-                    (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
-                     sensorization.obj_box_dist.data * 1000), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba((
+                    sensorization.obj_rob_dist.data * 1000,
+                    sensorization.obj_grip_dist.data * 1000,
+                    sensorization.obj_box_dist.data * 1000), self.active_goal)
                 self.reinitializeMemories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
                 self.it_reward = 0
@@ -535,8 +545,11 @@ class MOTIVEN(object):
                 self.saveData()
                 self.TracesMemoryVF.addTraces(self.memoryVF.getTraceReward())
                 self.memoryVF.removeAll()
-            elif self.correlationsManager.getReward(self.activeCorr, self.reward,
-                                                    tuple(self.episode.getSensorialStateT1()), self.active_goal):
+            elif self.correlationsManager.getReward(
+                    self.activeCorr,
+                    self.reward,
+                    tuple(self.episode.getSensorialStateT1()),
+                    self.active_goal):
                 self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(
                     self.tracesBuffer.getTrace())
                 # The active correlation is now the correlation that has provided the reward
@@ -551,12 +564,15 @@ class MOTIVEN(object):
                 self.ball_gripper = False
                 self.ball_robobo = False
                 # Save as trace in TracesMemory of the correlated sensor
-                self.correlationsManager.correlations[self.activeCorr].addTrace(self.tracesBuffer.getTrace(),
-                                                                                self.corr_sensor, self.corr_type)
+                self.correlationsManager.correlations[self.activeCorr].addTrace(
+                    self.tracesBuffer.getTrace(),
+                    self.corr_sensor,
+                    self.corr_type)
                 sensorization = self.get_sens_srv(Bool(True))
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
-                    (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000,
-                     sensorization.obj_box_dist.data * 1000), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba((
+                    sensorization.obj_rob_dist.data * 1000,
+                    sensorization.obj_grip_dist.data * 1000,
+                    sensorization.obj_box_dist.data * 1000), self.active_goal)
                 self.reinitializeMemories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
                 self.useMotivManager = 1
@@ -567,11 +583,16 @@ class MOTIVEN(object):
                 self.saveData()
                 self.TracesMemoryVF.addTraces(self.memoryVF.getTraceReward())
                 self.memoryVF.removeAll()
-            elif self.correlationsManager.getReward(self.activeCorr, self.reward,
-                                                    tuple(self.episode.getSensorialStateT1()), self.active_goal):
+            elif self.correlationsManager.getReward(
+                    self.activeCorr,
+                    self.reward,
+                    tuple(self.episode.getSensorialStateT1()),
+                    self.active_goal):
                 # Save as trace in TracesMemory of the correlated sensor
-                self.correlationsManager.correlations[self.activeCorr].addTrace(self.tracesBuffer.getTrace(),
-                                                                                self.corr_sensor, self.corr_type)
+                self.correlationsManager.correlations[self.activeCorr].addTrace(
+                    self.tracesBuffer.getTrace(),
+                    self.corr_sensor,
+                    self.corr_type)
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
@@ -639,8 +660,10 @@ class MOTIVEN(object):
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
                 self.reward = 0
                 # Save as trace in TracesMemory of the correlated sensor
-                self.correlationsManager.correlations[self.activeCorr].addTrace(self.tracesBuffer.getTrace(),
-                                                                                self.corr_sensor, self.corr_type)
+                self.correlationsManager.correlations[self.activeCorr].addTrace(
+                    self.tracesBuffer.getTrace(),
+                    self.corr_sensor,
+                    self.corr_type)
                 self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1, self.active_goal)
                 self.reinitializeMemories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
@@ -655,8 +678,10 @@ class MOTIVEN(object):
             elif self.correlationsManager.getReward(self.activeCorr, self.reward,
                                                     tuple(self.episode.getSensorialStateT1()), self.active_goal):
                 # Save as trace in TracesMemory of the correlated sensor
-                self.correlationsManager.correlations[self.activeCorr].addTrace(self.tracesBuffer.getTrace(),
-                                                                                self.corr_sensor, self.corr_type)
+                self.correlationsManager.correlations[self.activeCorr].addTrace(
+                    self.tracesBuffer.getTrace(),
+                    self.corr_sensor,
+                    self.corr_type)
                 # The active correlation is now the correlation that has provided the reward
                 self.activeCorr = self.correlationsManager.correlations[self.activeCorr].i_reward
                 self.reinitializeMemories()
@@ -673,9 +698,12 @@ class MOTIVEN(object):
                         if self.n_policies_exec == self.max_policies_exec:
                             # Guardo antitraza en el sensor correspondiente y vuelvo a comezar el bucle
                             self.correlationsManager.correlations[self.activeCorr].addAntiTrace(
-                                self.tracesBuffer.getTrace(), self.corr_sensor, self.corr_type)
-                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1,
-                                                                                                  self.active_goal)
+                                self.tracesBuffer.getTrace(),
+                                self.corr_sensor,
+                                self.corr_type)
+                            self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
+                                self.sens_t1,
+                                self.active_goal)
                             self.reinitializeMemories()
                             rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
@@ -715,12 +743,13 @@ class MOTIVEN(object):
              len(self.correlationsManager.correlations), self.activeMot, self.activeCorr,
              self.episode.getSensorialStateT1()))
 
-        self.graph2.append((self.correlationsManager.correlations[-1].S1_neg.numberOfGoalsWithoutAntiTraces,
-                            self.correlationsManager.correlations[-1].S1_pos.numberOfGoalsWithoutAntiTraces,
-                            self.correlationsManager.correlations[-1].S2_neg.numberOfGoalsWithoutAntiTraces,
-                            self.correlationsManager.correlations[-1].S2_pos.numberOfGoalsWithoutAntiTraces,
-                            self.correlationsManager.correlations[-1].S3_neg.numberOfGoalsWithoutAntiTraces,
-                            self.correlationsManager.correlations[-1].S3_pos.numberOfGoalsWithoutAntiTraces))
+        self.graph2.append((
+            self.correlationsManager.correlations[-1].S1_neg.numberOfGoalsWithoutAntiTraces,
+            self.correlationsManager.correlations[-1].S1_pos.numberOfGoalsWithoutAntiTraces,
+            self.correlationsManager.correlations[-1].S2_neg.numberOfGoalsWithoutAntiTraces,
+            self.correlationsManager.correlations[-1].S2_pos.numberOfGoalsWithoutAntiTraces,
+            self.correlationsManager.correlations[-1].S3_neg.numberOfGoalsWithoutAntiTraces,
+            self.correlationsManager.correlations[-1].S3_pos.numberOfGoalsWithoutAntiTraces))
         # Save executions
         self.graphExec.append(
             (self.iterations, self.episode.getReward(), self.it_reward, self.it_blind,
@@ -816,11 +845,9 @@ class MOTIVEN(object):
         our_range = range(len(data))[j + smaPeriod - 1:]
         empty_list = [None] * (j + smaPeriod - 1)
         sub_result = [numpy.mean(data[i - smaPeriod + 1:i + 1]) for i in our_range]
-
         return list(empty_list + sub_result)
 
     def saveData(self):  # , action, seed):
-
         f = open('SimulationDataRealFinal' + str(self.n_execution) + '.pckl', 'wb')
         pickle.dump(len(self.correlationsManager.correlations), f)
         for i in range(len(self.correlationsManager.correlations)):
