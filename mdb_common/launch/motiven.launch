@@ -5,9 +5,9 @@
 	<arg name="standalone_arg" value="--standalone" if="$(arg standalone)"/>
   	<rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
     <group ns="mdb" unless="$(arg debug)">
-        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="$(arg standalone_arg)"/>
+        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-l $(arg log_level) $(arg standalone_arg)"/>
     </group>
     <group ns="mdb" if="$(arg debug)">
-        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="$(arg standalone_arg)" launch-prefix="xterm -e python -m pdb"/>
+        <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-l $(arg log_level) $(arg standalone_arg)" launch-prefix="xterm -e python -m pdb"/>
     </group>
 </launch>

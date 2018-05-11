@@ -1,13 +1,20 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 class Episode(object):
-    """ Class that represents an Episode
-    
-    An Episode (E) is a sample of the real world response to the robot actions. 
+    """
+    Class that represents an Episode.
+
+    An Episode (E) is a sample of the real world response to the robot actions.
     Within the MDB, an episode is made up of the sensorial state in t, the applied action in t,
-    the sensorial state in t + 1 and the reward in t + 1: 
+    the sensorial state in t + 1 and the reward in t + 1:
     episode = {S(t), A(t), S(t+1), R(t+1)}
-    
-    This class implements different methods to get/set the sensorial states, action or reward 
-    of the episode
+    This class implements different methods to get/set the sensorial states, action or reward
+    of the episode.
     """
 
     def __init__(self):

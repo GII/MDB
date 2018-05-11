@@ -1,11 +1,18 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 class EpisodicBuffer(object):
-    """ Class that represents an Episodic Buffer
-    
+    """
+    Class that represents an Episodic Buffer.
+
     This Episodic buffer (EB) stores the last episodes experienced by the robot.
     The EB has a limited capacity according to the temporal nature of the STM.
     All episodes of the same trace are kept together, so each time a new trace is
     acquired, some of the old ones could be deleted following a FIFO policy.
-    
     This class implements different methods to get/set the buffer size, get its
     contents, add/remove episodes and check if the buffer is full. It also assigns
     the reward when necessary.

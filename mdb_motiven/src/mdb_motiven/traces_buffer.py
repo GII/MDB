@@ -1,4 +1,11 @@
-from EpisodicBuffer import EpisodicBuffer
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+from mdb_motiven.episodic_buffer import EpisodicBuffer
 
 class TracesBuffer(EpisodicBuffer):
 
@@ -29,7 +36,7 @@ class TracesBuffer(EpisodicBuffer):
         return tuple(Trace)
 
     def getAntiTrace(self):
-        """Return the antitrace values needed to use in the Correlations, 
+        """Return the antitrace values needed to use in the Correlations,
         the sensorization in t+1 obtained using the extrinsic motivation"""
         for i in reversed(range(len(self.buffer))):
             if self.buffer[i][4] == 'Int':

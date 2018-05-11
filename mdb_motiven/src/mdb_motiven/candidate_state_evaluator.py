@@ -1,12 +1,18 @@
-# from MotivationManager import *
-from ForwardModel import *
-import numpy as np
-from ActionChooser import *
+"""
+The shiny, all new, MDB 3.0.
 
-# ROS services
-from mdb_common.srv import CandAct
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+import numpy as np
+
 import rospy
 from std_msgs.msg import Bool, Int32, String
+
+from mdb_common.srv import CandAct
+from mdb_motiven.forward_model import ForwardModel
+from mdb_motiven.action_chooser import ActionChooser
 
 class CandidateStateEvaluator(object):
     def __init__(self):

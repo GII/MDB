@@ -1,11 +1,18 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 class TracesMemory(object):
-    """ Class that represents a Memory of Traces
-    
+    """
+    Class that represents a Memory of Traces.
+
     A trace is a list of episodes with an assigned value (expected reward)
     which are stored together.
     It distinguish between Positive Traces (named Traces), Negative Traces
     (named AntiTraces) and WeakPositive Traces (named WeakTraces)
-        
     This class implements different methods to get/set the different traces
     lists, get their contents and add/remove traces.
     """

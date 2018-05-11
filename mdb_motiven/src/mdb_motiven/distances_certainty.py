@@ -1,14 +1,20 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 import math
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mdb_motiven.TracesMemory import TracesMemory
+from mdb_motiven.traces_memory import TracesMemory
 
 
 class DistancesCertainty(object):
     """
-    This class represents a mathematical model that defines the
-    implementation used for the creation of certainty maps.
+    This class represents a mathematical model that defines the implementation used for the creation of certainty maps.
 
     Its aim is to obtain the certainty value for a point 'p' given.
 

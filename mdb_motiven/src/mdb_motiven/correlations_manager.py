@@ -1,15 +1,21 @@
-from Correlations import *
-import logging
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+from mdb_motiven.correlations import Correlations
 
 
 class CorrelationsManager(object):
-    """Class that represents the Correlations Manager module.
-        This module identifies when new correlations are needed and contains the set of existing correlations.
+    """
+    Class that represents the Correlations Manager module.
 
-        It contains a list with all the existing Correlations.
-
-        It also chooses the active correlation and gives the value of the reward based on this active correlation.
-        """
+    This module identifies when new correlations are needed and contains the set of existing correlations.
+    It contains a list with all the existing Correlations.
+    It also chooses the active correlation and gives the value of the reward based on this active correlation.
+    """
 
     def __init__(self):
 
@@ -21,7 +27,7 @@ class CorrelationsManager(object):
         1- There are no SURs associated with the active goal.
         2- All the SURs associated with the active goal are established.
 
-        :return: 
+        :return:
         """
         surs_asoc_active_goal = 0  # Used to count the number of SURs associated with the active goal. Condition 1
         index_last_sur_asoc = None  # Used to save the index of the last SUR associated wiht the active goal. Condition 2
@@ -33,17 +39,17 @@ class CorrelationsManager(object):
         if surs_asoc_active_goal == 0:  # Condition 1
             self.correlations.append(Correlations(None, active_goal))
             # self.correlations[-1].figure.canvas.set_window_title('SUR' + ' ' + str(len(self.correlations) - 1))
-            # logging.info('New correlation. Number of existing correlations: %s', len(self.correlations))
+            # rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
         elif self.correlations[index_last_sur_asoc].established:  # Condition 2
             self.correlations.append(Correlations(None, active_goal))
             # self.correlations[-1].figure.canvas.set_window_title('SUR' + ' ' + str(len(self.correlations) - 1))
-            # logging.info('New correlation. Number of existing correlations: %s', len(self.correlations))
+            # rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
 
 
         # if len(self.correlations) == 0:
         #     self.correlations.append(Correlations(None))
         #     self.correlations[-1].figure.canvas.set_window_title('Correlation' + ' ' + str(len(self.correlations) - 1))
-        #     logging.info('New correlation. Number of existing correlations: %s', len(self.correlations))
+        #     rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
         #
         #     self.correlations[-1].i_reward_assigned = 1
         #
@@ -53,7 +59,7 @@ class CorrelationsManager(object):
         #         #self.correlations.append(Correlations(0))
         #         self.correlations[-1].figure.canvas.set_window_title(
         #             'Correlation' + ' ' + str(len(self.correlations) - 1))
-        #         logging.info('New correlation. Number of existing correlations: %s', len(self.correlations))
+        #         rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
 
     def getActiveCorrelation(self, p, active_corr, active_goal):
         """ This method provides the active correlation among all the possible correlations for a given point p

@@ -1,8 +1,16 @@
-class Goal(object):
-    """ Class that represents a Goal
+"""
+The shiny, all new, MDB 3.0.
 
-    This class implements different methods to get/set the goal 'id' and its 'activation', 
-    as well as many other possible characteristics
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+class Goal(object):
+    """
+    Class that represents a Goal.
+
+    This class implements different methods to get/set the goal 'id' and its 'activation',
+    as well as many other possible characteristics.
     """
 
     def __init__(self, id):

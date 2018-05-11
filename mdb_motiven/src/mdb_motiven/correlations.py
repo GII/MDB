@@ -1,16 +1,23 @@
-from DistancesCertainty import *
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
+from mdb_motiven.distances_certainty import DistancesCertainty
 
 
 class Correlations(object):
-    """Class that represents the Correlations module.
+    """
+    Class that represents the Correlations module.
+
     This module identifies new correlations and contains the set of existing correlations.
-    
     It contains the Correlation Evaluator that is an algorithm that has to be executed each time a trace is added
     to the Traces Memory and searches for possible correlations to be stored in the Traces Correlation Memory.
-    
-    It also has the Distances Certainty module that makes possible the creation of certainty maps using the traces 
+    It also has the Distances Certainty module that makes possible the creation of certainty maps using the traces
     stored as positive-traces, negative-traces and weak-traces, which aim is to obtain the certainty value for a
-    point p given
+    point p given.
     """
 
     def __init__(self, rewardAssigner, goal_id):

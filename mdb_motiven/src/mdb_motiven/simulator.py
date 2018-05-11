@@ -1,3 +1,10 @@
+"""
+The shiny, all new, MDB 3.0.
+
+Available from (we are still thinking about this...)
+Distributed under the (yes, we are still thinking about this too...).
+"""
+
 import math
 import numpy as np
 from matplotlib import pyplot as plt
@@ -8,14 +15,15 @@ from matplotlib import patches
 # debo considerar la distancia del baxter a la pelota y de la pelota a la caja
 
 class Sim(object):
-    """ Class that implements a Simulator
-    
+    """
+    Class that implements a Simulator.
+
     This simulator makes possible to make/test different experiments in a virtual scenario.
     It contains the two arms of the Baxter robot, the Robobo! robot, some boxes and a
     ball.
-    
+
     The implemented methods allow the user to move both robots throw the scenario (with
-    and without the ball), get distances and relative angles between the different objects 
+    and without the ball), get distances and relative angles between the different objects
     and get/set the position of all of them.
     """
 
