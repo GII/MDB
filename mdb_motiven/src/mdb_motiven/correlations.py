@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from matplotlib import pyplot as plt
+
 from mdb_motiven.distances_certainty import DistancesCertainty
 
 
@@ -72,7 +74,7 @@ class Correlations(object):
         # self.figure.canvas.set_window_title('PRUEBA')
 
     def correlationEvaluator(self, Trace):
-        """This method evaluates the possible correlations existing in a trace T and save them in the proper Correlation 
+        """This method evaluates the possible correlations existing in a trace T and save them in the proper Correlation
         Traces Memory Buffer
 
         Keyword arguments:
@@ -119,9 +121,9 @@ class Correlations(object):
 
         # Evaluo la certeza del nuevo punto en todas las correlaciones para ver si pertenece a alguna
         # Si es mayor que un umbral para alguna de ellas, considero la mayor y si hay empate, una al azar
-        # Si es menor que el umbral, consireo la motivacion intrinseca        
-        :param p: 
-        :return: 
+        # Si es menor que el umbral, consireo la motivacion intrinseca
+        :param p:
+        :return:
         """
         if active_goal == self.goal:
             c1_pos = self.S1_pos.getCertaintyValue(p)
@@ -286,8 +288,8 @@ class Correlations(object):
     def getCertainty(self, p, active_goal):
         """This method provides the maximum certainty value of the correlations
 
-        :param p: 
-        :return: 
+        :param p:
+        :return:
         """
         if active_goal == self.goal:
             c1_pos = self.S1_pos.getCertaintyValue(p)

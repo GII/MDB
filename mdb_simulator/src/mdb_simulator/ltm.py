@@ -242,7 +242,7 @@ class LTMSim(object):
         self.world = data.world
         self.__random_perceptions()
         for ident, publisher in self.publishers.iteritems():
-            rospy.logdebug('Publishing %s: %.2f...', ident, self.perceptions[ident])
+            rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
 
     def __new_action_callback(self, data):
@@ -250,7 +250,7 @@ class LTMSim(object):
         rospy.logdebug('Executing policy %s...', data.data)
         getattr(self, data.data + '_policy')()
         for ident, publisher in self.publishers.iteritems():
-            rospy.logdebug('Publishing %s: %.2f...', ident, self.perceptions[ident])
+            rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
 
     def __configure_sensors(self, sensors):
