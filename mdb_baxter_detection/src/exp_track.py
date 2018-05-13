@@ -68,6 +68,7 @@ class exp_track:
 		self.c2_sub = rospy.Subscriber("/aruco_single_head/corner_2_pixel", PointStamped, self.c2_cb)
 		self.cc_sub = rospy.Subscriber("/aruco_single_head/pixel", PointStamped, self.cc_cb)
 		###
+		
 
 	def rob_loc_cb(self, msg):
 		self.tag_detect = msg.data
@@ -151,18 +152,17 @@ class exp_track:
 
 	def get_bg(self, im, margin=1.0/3, N=10):
 		#Limites malla
-		#f_i=int(round(im.shape[0]*margin))
-		#f_f=int(round(im.shape[0]*(1.0-margin)))
-		#c_i=int(round(im.shape[1]*margin))
-		#c_f=int(round(im.shape[1]*(1.0-margin)))
-
 		f_i=int(round(im.shape[0]*margin))
+		f_f=int(round((im.shape[0]/2)*(1.0-margin)))
+		c_i=int(round(im.shape[1]*margin))
+		c_f=int(round(im.shape[1]*(1.0-margin)))
+
+		'''f_i=int(round(im.shape[0]*margin))
 		f_f=int(round((im.shape[0]*1.0)-1))
 		c_i=int(round(im.shape[1]*0.0))
-		c_f=int(round((im.shape[1]*1.0)-1))
+		c_f=int(round((im.shape[1]*1.0)-1))'''
 
 		#Malla NxN
-		N = 10 
 		f = np.linspace(f_i,f_f,N, dtype=int)
 		c = np.linspace(c_i,c_f,N, dtype=int)
 
@@ -320,6 +320,12 @@ class exp_track:
 		if rospy.has_param("/baxter_sense"):
 			self.do_sense = rospy.get_param("/baxter_sense")
 			if self.do_sense:
+				###
+				'''im_cv = cv2.imread('/home/baxter/catkin_ws/src/mdb_baxter_policies/src/photo6023781007070703177.jpg')
+				im_cv = im_cv[:, :, ::-1]
+				im = img_as_float(im_cv)'''
+				###
+
 				if self.bg_rec_check():
 					print "background refresh" 
 					self.table_v = self.get_bg(im) #color medio mesa, solo habria que calcularlo cada X iteraciones
