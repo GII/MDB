@@ -1,6 +1,6 @@
 Experiment:
     period: 3000
-    trials: 200
+    trials: 3000
     worlds: ['gripper_and_low_friction']
 Control:
     id: ltm_simulator
@@ -85,7 +85,7 @@ LTM:
                 id: ball_in_right_hand
                 class: mdb_ltm.perception.Perception
                 ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
-        ForwardModel: 
+        ForwardModel:
             -
                 id: gripper_and_low_friction
                 class: mdb_ltm.forward_model.ForwardModelGripper
