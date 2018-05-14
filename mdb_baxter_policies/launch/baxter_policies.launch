@@ -37,10 +37,10 @@
 	<param name="cal_ymax" type="double" value="$(arg cal_ymax)"/>
     <param name="cal_ang" type="double" value="$(arg cal_ang)"/>
 
-	<param name="grab_param_file" type="double" value="$(arg grab_param_file)"/>
-	<param name="throw_param_file" type="double" value="$(arg throw_param_file)"/>
-	<param name="motiven_param_file" type="double" value="$(arg motiven_param_file)"/>
-	<param name="robobo_param_file" type="double" value="$(arg robobo_param_file)"/>
+	<param name="grab_param_file" type="str" value="$(arg grab_param_file)"/>
+	<param name="throw_param_file" type="str" value="$(arg throw_param_file)"/>
+	<param name="motiven_param_file" type="str" value="$(arg motiven_param_file)"/>
+	<param name="robobo_param_file" type="str" value="$(arg robobo_param_file)"/>
 
   </node>
 </launch>
