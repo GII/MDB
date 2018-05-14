@@ -215,7 +215,9 @@ class MOTIVEN(object):
         self.memory_manager_ltm()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
         for i in range(len(self.goalManager.goals)):
-            if self.active_goal == self.goalManager.goals[i].goal_id:
+            if self.episode.getReward() and self.goalManager.goals[i].goal_id == 'Intrinsic':
+                self.goal_ok_topic_pb()(id=self.goalManager.goals[i].goal_id, ok=1.0)
+            elif self.active_goal == self.goalManager.goals[i].goal_id:
                 self.goal_ok_topic_pb.publish(id=self.goalManager.goals[i].goal_id, ok=self.is_improving_behavior())
             else:
                 self.goal_ok_topic_pb.publish(id=self.goalManager.goals[i].goal_id, ok=0.0)
