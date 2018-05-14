@@ -152,10 +152,18 @@ class exp_track:
 
 	def get_bg(self, im, margin=1.0/3, N=10):
 		#Limites malla
-		f_i=int(round(im.shape[0]*margin))
+		margin = margin
+
+		f_i=int(round((im.shape[0]/2)*margin))
 		f_f=int(round((im.shape[0]/2)*(1.0-margin)))
-		c_i=int(round(im.shape[1]*margin))
-		c_f=int(round(im.shape[1]*(1.0-margin)))
+		c_i=int(round((im.shape[1])*(margin)))
+		c_f=int(round((im.shape[1])*(1.0-(margin))))
+
+		print im.shape[0], im.shape[1], margin
+		print f_i, f_f, c_i, c_f
+
+		#cv2.imshow("wipe",  im[f_i:f_f,c_i:c_f])
+		#cv2.waitKey(0)
 
 		'''f_i=int(round(im.shape[0]*margin))
 		f_f=int(round((im.shape[0]*1.0)-1))
@@ -203,7 +211,8 @@ class exp_track:
 		region_dist[aux] = np.arccos(np.clip(c, -1, 1)) # if you really want the angle
 		return region_dist
 
-	def segment_table(self, im, v, threshold=0.05):
+	def segment_table(self, im, v, threshold=0.15):
+		threshold = rospy.get_param("~table_segmentation_threshold")
 		im_angle = self.im_angledist(im, v)  #angulo entre RGB de pixel y color medio mesa
 		
 		hist_v = np.sum(im_angle<threshold,axis=0) #histograma vertical
@@ -223,10 +232,10 @@ class exp_track:
 		h1 = np.argmax(diff_h[:arg_h_medio]) * space
 		h2 = (np.argmax(diff_h[arg_h_medio:]) + arg_h_medio) * space
 
-		if self.head_camera:
+		'''if self.head_camera:
 			v1 = 0
 			v2 = im.shape[1]
-			h2 = im.shape[0]		
+			h2 = im.shape[0]'''
 
 		rr, cc = draw.polygon(np.array([h1, h1, h2, h2]), np.array([v1, v2, v2, v1]), shape=im.shape)
 		mask = np.zeros([im.shape[0],im.shape[1]], dtype='bool')
@@ -294,6 +303,8 @@ class exp_track:
 
 	def color_cb (self, img):
 		img_cv = self.image_ros2cv(img)
+		#img_cv = cv2.imread('/home/baxter/Descargas/photo6039835045067336906.jpg')
+		#img_cv = cv2.imread('/home/baxter/Descargas/photo6023781007070703177.jpg')
 		if self.head_camera:
 			im_cv = img_cv[:, :, ::-1]
 			img_float = img_as_float(im_cv)
@@ -301,6 +312,7 @@ class exp_track:
 		else:
 			img_float = img_as_float(img_cv)
 			self.track_objects(img_float, np.array(np.array(img_cv, dtype=np.uint8)))
+
 
 	def bg_rec_check (self):
 		if self.iteration_number == 0 or self.iteration_number>self.bg_rec:
@@ -320,12 +332,6 @@ class exp_track:
 		if rospy.has_param("/baxter_sense"):
 			self.do_sense = rospy.get_param("/baxter_sense")
 			if self.do_sense:
-				###
-				'''im_cv = cv2.imread('/home/baxter/catkin_ws/src/mdb_baxter_policies/src/photo6023781007070703177.jpg')
-				im_cv = im_cv[:, :, ::-1]
-				im = img_as_float(im_cv)'''
-				###
-
 				if self.bg_rec_check():
 					print "background refresh" 
 					self.table_v = self.get_bg(im) #color medio mesa, solo habria que calcularlo cada X iteraciones

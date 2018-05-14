@@ -1,7 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-   <arg name="mode" default="real"/> <!--sim/real-->
-   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
+  <arg name="mode" default="real"/> <!--sim/real-->
+  <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
+
+  <arg name="cal_xmin" default="0.32"/>
+  <arg name="cal_xmax" default="1.34"/>
+  <arg name="cal_ymin" default="-1.10"/>
+  <arg name="cal_ymax" default="1.10"/>
+  <arg name="cal_ang" default="0.98125"/>
+
+  <arg name="grab_param_file" default="grab_parameters.yml"/>
+  <arg name="throw_param_file" default="throw_parameters.yml"/>
+  <arg name="motiven_param_file" default="motiven_parameters.yml"/>
+  <arg name="robobo_param_file" default="robobo_parameters.yml"/>
 
   <node name="get_joints_state_server" pkg="mdb_baxter_policies"  type="get_joints_state.py" required="true" output="log"/>
   <node name="get_end_state_server" pkg="mdb_baxter_policies"  type="get_end_state.py" required="true" output="log"/>
@@ -19,5 +30,17 @@
    <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
+
+	<param name="cal_xmin" type="double" value="$(arg cal_xmin)"/>
+	<param name="cal_xmax" type="double" value="$(arg cal_xmax)"/>
+	<param name="cal_ymin" type="double" value="$(arg cal_ymin)"/>
+	<param name="cal_ymax" type="double" value="$(arg cal_ymax)"/>
+    <param name="cal_ang" type="double" value="$(arg cal_ang)"/>
+
+	<param name="grab_param_file" type="str" value="$(arg grab_param_file)"/>
+	<param name="throw_param_file" type="str" value="$(arg throw_param_file)"/>
+	<param name="motiven_param_file" type="str" value="$(arg motiven_param_file)"/>
+	<param name="robobo_param_file" type="str" value="$(arg robobo_param_file)"/>
+
   </node>
 </launch>

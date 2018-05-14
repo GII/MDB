@@ -12,8 +12,8 @@ from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from mdb_common.msg import OpenGripReq, Candidates, ObjDet
-from mdb_common.srv import CandAct, BaxMC, BaxChange
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CandActResponse, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
+from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
 from dynamic_reconfigure.srv import Reconfigure
 from gazebo_msgs.srv import GetModelState
 
@@ -282,7 +282,7 @@ class baxter_policies():
 		return np.sqrt((x**2)+(y**2))
 
 	def readtcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/throw_parameters.yml"
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~throw_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'speed':
@@ -562,7 +562,7 @@ class baxter_policies():
 	##################
 
 	def readgcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/grab_parameters.yml"
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~grab_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'angles':
@@ -614,7 +614,7 @@ class baxter_policies():
 		#Adjust w1 joint
 		current_ang = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 
-		print "angle_increment: ", angle_inc
+		#print "angle_increment: ", angle_inc
 		current_ang[5] += -angle_inc
 
 		###Check if angles within limits
@@ -1456,7 +1456,7 @@ class baxter_policies():
 	##################################
 
 	def readmcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/motiven_parameters.yml"
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~motiven_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'right_arm_angle':
@@ -1757,21 +1757,28 @@ class baxter_policies():
 		}
 		return options[flag]
 
-	def calibration_cycle (self, dist, far, pan_angles, req, calibration_data, dx, dy, arm):
+	def calibration_cycle (self, dist, far, pan_angles, req, calibration_data, dx, dy, arm, non_reach):
 		if req.use_arm.data:
-			real_position = self.select_calibration_move(self.translate_move_flag(dist, far))(req.height.data, arm, dx, dy)
-			if real_position != False:
-				pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
-				calibration_data.append([real_position, pos_data])
+			if non_reach:
+				calibration_data.append([[dx, dy], 'non_reachable'])
+				return True
 			else:
-				self.loop_tries = 5
-				self.adopt_oap()
-				calibration_data.append(["unreachable", [dx, dy]])
+				real_position = self.select_calibration_move(self.translate_move_flag(dist, far))(req.height.data, arm, dx, dy)
+				if real_position != False:
+					pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
+					calibration_data.append([real_position, pos_data])
+					return True
+				else:
+					self.loop_tries = 5
+					self.adopt_oap()
+					calibration_data.append([[dx, dy], 'non_reachable'])
+					return False
+			
 		else:
 			pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
 			calibration_data.append([[dx, dy], pos_data])
 			self.baxter_arm.restore_arm_pose("both")
-		raw_input("Position information obtained. Press the button to calibrate the next position")
+			return True
 
 	def obtain_calibration_limits (self, req):
 		if req.row_to_calibrate.data == -1:
@@ -1781,12 +1788,12 @@ class baxter_policies():
 			return side*req.row_to_calibrate.data, (side*req.row_to_calibrate.data)+side
 			
 	def interpolation_calibration (self, req):
-		x_min = 0.32
-		x_max = 1.34
-		y_min = -1.10
-		y_max = 1.10
+		x_min = rospy.get_param("~cal_xmin")
+		x_max = rospy.get_param("~cal_xmax")
+		y_min = rospy.get_param("~cal_ymin")
+		y_max = rospy.get_param("~cal_ymax")
 
-		seed_angle = 0.98125
+		seed_angle = rospy.get_param("~cal_ang")
 
 		height_data = req.height.data		
 		table_vertex = [[x_min,y_max],[x_min,y_min],[x_max,y_min],[x_max,y_max]]
@@ -1800,9 +1807,17 @@ class baxter_policies():
 
 		(init, end) = self.obtain_calibration_limits(req)
 
+		row_point_num = int(math.sqrt(req.point_num.data))
+
 		rospy.set_param("baxter_sense", True)
 
-		for pose in range(init, end):
+		fail = True
+		non_reach = False
+		for pose in range(init, end):		
+
+			if (pose%row_point_num ) == 0:
+				fail = True
+
 			dx = grid_points[pose][0]
 			dy = grid_points[pose][1]
 
@@ -1816,11 +1831,16 @@ class baxter_policies():
 			far = self.g_highpoly(abs(ang))
 			self.baxter_arm.restore_arm_pose(arm)
 
-			self.calibration_cycle(dist, far, pan_angles, req, calibration_data, dx, dy, arm)			
+			result = self.calibration_cycle(dist, far, pan_angles, req, calibration_data, dx, dy, arm, non_reach)
+			
+			fail = fail and not result 
+			if ((pose+1)%row_point_num) == 0 and fail:
+				non_reach = True
+
+			raw_input("\nPosition "+str(pose)+": information obtained. Press the button to calibrate the next position")
 
 		rospy.delete_param("baxter_sense")
 		self.baxter_arm.restore_arm_pose("both")
-		print calibration_data
 		rospy.loginfo(calibration_data)
 		return Bool(True)
 
