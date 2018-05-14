@@ -210,7 +210,7 @@ class MOTIVEN(object):
             rospy.logdebug('Reward obtained for ' + self.active_goal)
         else:
             self.reward = 0
-        self.episode.setEpisode(self.sens_t.values(), policy_id, self.sens_t1.values(), self.reward)
+        self.episode.setEpisode(self.sens_t.values(), policy_id.data, self.sens_t1.values(), self.reward)
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.MemoryManagerLTM()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
