@@ -10,6 +10,8 @@
    <arg name="tag" default="false"/>
    <arg name="head_camera" default="false"/>
 
+   <arg name="table_segmentation_threshold" default="0.05"/>
+
    <arg name="camera_frame" default="camera_rgb_optical_frame"/>
    <!--arg name="camera_frame" default="headcamera_rgb_optical_frame"/-->
    <arg name="original_image_topic" default="/camera/rgb/image_rect_color"/>
@@ -29,12 +31,14 @@
        <remap from="/image_color" to="$(arg image_topic)" />
        <param name="exp_rec" type="str" value="$(arg exp_rec)" />
        <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
+       <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
    </node>
 
    <node name="exp_track" pkg="mdb_baxter_detection" type="exp_track.py" required="true" output="screen" if="$(arg debug)" launch-prefix="xterm -e python -m pdb">
        <remap from="/image_color" to="$(arg image_topic)" />
        <param name="exp_rec" type="str" value="$(arg exp_rec)" />
-       <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
+       <param name="head_camera" type="bool" value="$(arg head_camera)"/>
+       <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
    </node>
 
    <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen">

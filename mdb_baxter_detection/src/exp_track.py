@@ -212,6 +212,7 @@ class exp_track:
 		return region_dist
 
 	def segment_table(self, im, v, threshold=0.15):
+		threshold = rospy.get_param("~table_segmentation_threshold")
 		im_angle = self.im_angledist(im, v)  #angulo entre RGB de pixel y color medio mesa
 		
 		hist_v = np.sum(im_angle<threshold,axis=0) #histograma vertical
