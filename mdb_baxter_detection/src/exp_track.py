@@ -211,7 +211,7 @@ class exp_track:
 		region_dist[aux] = np.arccos(np.clip(c, -1, 1)) # if you really want the angle
 		return region_dist
 
-	def segment_table(self, im, v, threshold=0.05):
+	def segment_table(self, im, v, threshold=0.15):
 		im_angle = self.im_angledist(im, v)  #angulo entre RGB de pixel y color medio mesa
 		
 		hist_v = np.sum(im_angle<threshold,axis=0) #histograma vertical
@@ -302,17 +302,7 @@ class exp_track:
 
 	def color_cb (self, img):
 		img_cv = self.image_ros2cv(img)
-		'''img_cv = cv2.imread('/home/baxter/Descargas/photo6039835045067336906.jpg')'''
-		'''img_yuv = cv2.cvtColor(img_cv, cv2.COLOR_BGR2YUV)
-			
-		# equalize the histogram of the Y channel
-		img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
-
-		# convert the YUV image back to RGB format
-		img_cv = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)'''
-
-		#img_aux = img_cv[0:int(img_cv.shape[0]/1.5), 0:img_cv.shape[1]]
-		#img_cv = img_aux
+		#img_cv = cv2.imread('/home/baxter/Descargas/photo6039835045067336906.jpg')
 		#img_cv = cv2.imread('/home/baxter/Descargas/photo6023781007070703177.jpg')
 		if self.head_camera:
 			im_cv = img_cv[:, :, ::-1]
