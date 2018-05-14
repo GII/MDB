@@ -201,9 +201,9 @@ class MOTIVEN(object):
             self.correlationsManager.assignRewardAssigner(self.activeCorr, self.episode.getSensorialStateT1(),
                                                           self.active_goal)
         # This is to be sure that we have the new perceptions after the policy has been executed.
-        # pdb.set_trace()
         self.run_memory_manager.wait()
         self.run_memory_manager.clear()
+        pdb.set_trace()
         # Como conozco el reward???
         if self.sens_t1[self.active_goal]:
             self.reward = 1
@@ -274,6 +274,7 @@ class MOTIVEN(object):
     def sensor_cb(self, sens_value, sensor_id):  # Integration LTM
         self.perceptions[sensor_id] = sens_value.data
         rospy.logdebug('Reading ' + sensor_id + ' = ' + str(sens_value.data))
+        # pdb.set_trace()
         # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
         if not None in self.perceptions.values():
             ############## PARTE 1: PARA CUANDO LEO LAS PERCEPCIONES
@@ -497,7 +498,9 @@ class MOTIVEN(object):
     def motivation_manager_ltm(self):
         if self.useMotivManager:
             if self.correlationsManager.correlations[self.activeCorr].goal != self.active_goal:  # If the goal changes
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1.values(), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
+                    self.sens_t1.values(),
+                    self.active_goal)
             self.corr_sensor, self.corr_type = self.correlationsManager.getActiveCorrelation(
                 tuple(self.sens_t1.values()),
                 self.activeCorr,
@@ -640,7 +643,9 @@ class MOTIVEN(object):
                 self.reward = 0
                 self.correlationsManager.correlations[self.activeCorr].correlationEvaluator(
                     self.tracesBuffer.getTrace())
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1.values(), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
+                    self.sens_t1.values(),
+                    self.active_goal)
                 self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
                 self.it_reward = 0
@@ -667,7 +672,9 @@ class MOTIVEN(object):
                     self.tracesBuffer.getTrace(),
                     self.corr_sensor,
                     self.corr_type)
-                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(self.sens_t1.values(), self.active_goal)
+                self.activeCorr = self.correlationsManager.getActiveCorrelationPrueba(
+                    self.sens_t1.values(),
+                    self.active_goal)
                 self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
                 self.useMotivManager = 1
@@ -717,7 +724,7 @@ class MOTIVEN(object):
                         self.n_policies_exec = 0  # Si sigo bien la SUR reinicio el numero de policies ejecutadas
 
     def world_rules(self):
-        """Return the reward checking if the ball is inside one of the boxes"""
+        """Return the reward checking if the ball is inside one of the boxes."""
         sens = self.get_sens_srv(Bool(True))
         if sens.obj_box_dist.data * 1000 < self.min_dist_box and self.ball_gripper:  # distance ball-box1
             print 'Baxter ACTION Drop'
@@ -882,7 +889,7 @@ class MOTIVEN(object):
             pickle.dump(self.correlationsManager.correlations[i].corr_established_type, f)
             pickle.dump(self.correlationsManager.correlations[i].i_reward, f)
             pickle.dump(self.correlationsManager.correlations[i].i_reward_assigned, f)
-            pickle.dump(self.correlationsManager.correlations[i].goal_id, f)
+            pickle.dump(self.correlationsManager.correlations[i].goal, f)
             pickle.dump(self.correlationsManager.correlations[i].Tb, f)
         # pickle.dump(self.activeMot, f)
         # pickle.dump(self.activeCorr, f)
