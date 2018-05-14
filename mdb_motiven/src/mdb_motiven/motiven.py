@@ -175,7 +175,7 @@ class MOTIVEN(object):
         # rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.baxter_control_cb)
 
     def baxter_control_cb(self, data):
-        # Restart necessary things
+        """Restart necessary things when the experiment is reset."""
         # pdb.set_trace()
         self.reinitialize_memories()
         self.useMotivManager = 1
@@ -194,7 +194,7 @@ class MOTIVEN(object):
         self.select_goal()
 
     def executed_policy_topic_cb(self, policy_id):
-        ############## PARTE 2: PARA CUANDO LEO LA POLICY EJECUTADA
+        """Second part of integration with LTM (a policiy has been executed)."""
         # Check if a new correlation is needed or established
         self.correlationsManager.newSUR(self.active_goal)
         if self.correlationsManager.correlations[self.activeCorr].i_reward_assigned == 0:
@@ -230,7 +230,7 @@ class MOTIVEN(object):
         self.run_motivation_manager.set()
 
     def is_improving_behavior(self, UMtype='SUR'):
-        """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly"""
+        """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly."""
         # For now, only SURs are considered as possible utility models
         if UMtype == 'SUR':
             if self.activeMot == 'Ext':
@@ -249,7 +249,7 @@ class MOTIVEN(object):
         return goal_ok_response
 
     def publish_goal_activations(self):
-        """Set goal activations in Goal Manager and publish them in the corresponding ROS topic"""
+        """Set goal activations in Goal Manager and publish them in the corresponding ROS topic."""
         if self.activeMot == 'Int':
             for i in range(len(self.goalManager.goals)):
                 if i == 0:
@@ -296,7 +296,7 @@ class MOTIVEN(object):
             #############
 
     def select_goal(self):
-        """Method ad hoc to select the current goal"""
+        """Method ad hoc to select the current goal."""
         if self.iterations > 0:
             self.active_goal = self.goals_list[1]
 
@@ -513,7 +513,7 @@ class MOTIVEN(object):
                 self.activeMot = 'Ext'
 
     def memory_manager(self):
-        # Save episode in the pertinent memories
+        """Save episode in the pertinent memories."""
         self.tracesBuffer.addEpisode(self.episode.getEpisode())
         self.intrinsicMemory.addEpisode(self.episode.getSensorialStateT1())
         self.memoryVF.addEpisode(self.episode.getEpisode())
