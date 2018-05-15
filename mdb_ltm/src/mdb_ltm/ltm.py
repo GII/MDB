@@ -305,12 +305,10 @@ class LTM(object):
         """Update the value of every perception."""
         rospy.loginfo('Reading perceptions...')
         sensing = []
-        text = 'Perceptions: '
         for perception in self.perceptions.itervalues():
+            rospy.logdebug('Reading ' + perception.ident + ' = ' + str(perception.raw))
             perception.read()
             sensing.append(perception.value)
-            text += perception.ident + ' = ' + str(perception.value) + ', '
-        rospy.logdebug(text)
         return sensing
 
     def __update_activations(self, perception):
@@ -344,8 +342,10 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
-        goal = max(self.goals, key=attrgetter('activation'))
-        rospy.loginfo('Selecting a goal => ' + goal.ident)
+        for goal in self.goals:
+            goal.update_reward()
+        goal = max(self.goals, key=attrgetter('reward'))
+        rospy.loginfo('Selecting goal => ' + goal.ident)
         return goal
 
     def __add_antipoint(self, perception):
@@ -370,7 +370,7 @@ class LTM(object):
             pnode.add_perception(perception, 1.0)
             rospy.loginfo('Added point in p-node ' + pnode.ident)
             forward_model = max(self.forward_models, key=attrgetter('activation'))
-            goal = max(self.goals, key=attrgetter('activation'))
+            goal = max(self.goals, key=attrgetter('reward'))
             neighbors = [pnode, forward_model, goal, self.current_policy]
             cnode = self.__add_node('CNode', 'mdb_ltm.cnode.CNode', neighbors=neighbors, weight=1.0)
             rospy.logdebug('New c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
@@ -494,7 +494,7 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                self.current_reward = self.current_goal.get_reward()
+                self.current_reward = self.current_goal.reward
                 if self.current_reward < self.current_goal.threshold:
                     self.__add_antipoint(previous_sensing)
                 else:
