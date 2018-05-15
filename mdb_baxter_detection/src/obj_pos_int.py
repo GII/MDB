@@ -29,13 +29,13 @@ class obj_pos_int:
 		self.fu, self.fv = self.obtain_interpolation_rbf("linear")
 
 	def read_grid_data_file(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_detection')+"/config/ceiling_data_sort.yml"
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_detection')+"/config/"+rospy.get_param("~overhead_camera_file") 
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'data':
 				for pose in config[k]:
-					if pose[0] != "unreachable" and pose[0] != "pose_xy" and pose[1][0][0] != "None":
-						self.complete_uv.append(pose[1][0][0]) ### reversed order in comparison with screen camera position configuration file!!
+					if pose[1] != 'non_reachable' and pose[1][0][0] != "None":
+						self.complete_uv.append([pose[1][0][0][1], pose[1][0][0][0]]) 
 						self.complete_xy.append(pose[0])
 
 	def obtain_interpolation_rbf(self, f_type):
