@@ -7,7 +7,6 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 import threading
-import time
 import rospy
 from mdb_ltm.node import Node
 from mdb_simulator.ltm import LTMSim
@@ -85,7 +84,7 @@ class GoalBallInBox(Goal):
             else:
                 self.activation = 0.0
         super(GoalBallInBox, self).update_activation(**kwargs)
-        
+
     def get_reward(self, perceptions=None):
         """Calculate the value for the current sensor values."""
         reward = 0.0
