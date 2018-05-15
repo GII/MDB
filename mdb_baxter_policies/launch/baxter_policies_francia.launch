@@ -3,9 +3,9 @@
   <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
 
-  <arg name="cal_xmin" default="0.198"/>
+  <arg name="cal_xmin" default="0.260"/>
   <arg name="cal_xmax" default="0.948"/>
-  <arg name="cal_ymin" default="-0.896"/>
+  <arg name="cal_ymin" default="-0.836"/>
   <arg name="cal_ymax" default="0.804"/>
   <arg name="cal_ang" default="0.98125"/>
 
