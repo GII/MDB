@@ -9,7 +9,7 @@
   <arg name="cal_ymax" default="0.804"/>
   <arg name="cal_ang" default="0.98125"/>
 
-  <arg name="grab_param_file" default="grab_parameters.yml"/>
+  <arg name="grab_param_file" default="grab_parameters_francia.yml"/>
   <arg name="throw_param_file" default="throw_parameters.yml"/>
   <arg name="motiven_param_file" default="motiven_parameters.yml"/>
   <arg name="robobo_param_file" default="robobo_parameters.yml"/>
