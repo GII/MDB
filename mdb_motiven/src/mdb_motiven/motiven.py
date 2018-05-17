@@ -871,7 +871,7 @@ class MOTIVEN(object):
         return list(empty_list + sub_result)
 
     def save_data(self):  # , action, seed):
-        f = open('SimulationDataRealFinal' + str(self.n_execution) + '.pckl', 'wb')
+        f = open('SimulationDataMotiven' + str(self.n_execution) + '.pckl', 'wb')
         pickle.dump(len(self.correlations_manager.correlations), f)
         for correlation in self.correlations_manager.correlations:
             pickle.dump(correlation.S1_pos, f)
