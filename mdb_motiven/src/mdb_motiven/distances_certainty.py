@@ -252,7 +252,7 @@ class DistancesCertainty(object):
         # self.DrawCertaintyMap()
         # self.DrawTrace('p', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'p')
+        # self.SaveTraceDraw(newTrace, 'p')
 
     def addWeakTraces(self, newTrace):
 
@@ -268,7 +268,7 @@ class DistancesCertainty(object):
         # self.DrawCertaintyMap()
         # self.DrawTrace('w', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'w')
+        # self.SaveTraceDraw(newTrace, 'w')
 
     def addAntiTraces(self, newTrace):
 
@@ -285,7 +285,7 @@ class DistancesCertainty(object):
         # self.DrawPoints()
         # self.DrawTrace('n', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'n')
+        # self.SaveTraceDraw(newTrace, 'n')
 
     def getNumberOfGoalslWithoutAntiTraces(self):
         return self.numberOfGoalsWithoutAntiTraces

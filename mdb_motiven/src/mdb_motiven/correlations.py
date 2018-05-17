@@ -5,6 +5,9 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+import pdb
+import rospy  # ROS
+
 from matplotlib import pyplot as plt
 
 from mdb_motiven.distances_certainty import DistancesCertainty
@@ -24,7 +27,7 @@ class Correlations(object):
 
     def __init__(self, rewardAssigner, goal_id):
         self.n_sensor = 10  # Number of sensors. Useful to know how many possible correlations there are
-        self.min_ep = 5  # Minimum number of episodes to consider the correlation possible
+        self.min_ep = 2#5  # Minimum number of episodes to consider the correlation possible
         self.same_values_accepted = 1  # Number of sensor admitted to be equal
 
         # Correlations Traces Memories and certainty evaluators
@@ -82,6 +85,7 @@ class Correlations(object):
         """
         # print "Correlation evaluator"
         # print "len trace: ", len(Trace)
+        # pdb.set_trace()
         if len(Trace) >= self.min_ep:
             for i in range(self.n_sensor):
                 p_corr = 1  # Positive correlation
@@ -112,8 +116,10 @@ class Correlations(object):
                 # If there is a correlation, save it in the pertinent correlation trace memory
                 if p_corr:  # Si esto esta bien corregirlo, porque es redundante
                     self.addWeakTrace(Trace, i + 1, 'pos')
+                    # pdb.set_trace()
                 elif n_corr:
                     self.addWeakTrace(Trace, i + 1, 'neg')
+                    # pdb.set_trace()
 
     def getActiveCorrelation(self, p, active_goal):
         """
@@ -391,6 +397,7 @@ class Correlations(object):
 
     def addTrace(self, Trace, sensor, corr_type):
         if not self.established:
+            rospy.logdebug('New ' + str(corr_type) + ' Trace in sensor ' + str(sensor))
             # Guardo solo hasta donde se cumple la correlacion
             for i in reversed(range(len(Trace))):
                 if corr_type == 'neg':
@@ -456,6 +463,7 @@ class Correlations(object):
     def addAntiTrace(self, Trace, sensor, corr_type):
         # Filtro aqui para guardar los valores obtenidos con motivacion extrinseca
         # if not self.established:
+        rospy.logdebug('New ' + str(corr_type) + ' AntiTrace in sensor ' + str(sensor))
         if sensor == 1:
             if corr_type == 'pos':
                 self.S1_pos.addAntiTraces(Trace)
@@ -510,6 +518,7 @@ class Correlations(object):
     def addWeakTrace(self, Trace, sensor, corr_type):
         # plt.figure()
         if not self.established:
+            rospy.logdebug('New ' + str(corr_type) + ' WeakTrace in sensor ' + str(sensor))
             # Guardo solo hasta donde se cumple la correlacion
             for i in reversed(range(len(Trace))):
                 if corr_type == 'neg':
