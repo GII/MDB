@@ -75,6 +75,7 @@ class LTM(object):
         self.policies_to_test = []
         self.iteration = 0
         self.trial = 0
+        self.iterations = None
         self.period = None
         self.trials = None
         self.worlds = None
@@ -293,6 +294,7 @@ class LTM(object):
                 message = self.__class_from_classname(rospy.get_param(configuration['Control']['ros_name_prefix'] + '_msg'))
                 self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=None)
                 # Load experiment configuration
+                self.iterations = configuration['Experiment']['iterations']
                 self.period = configuration['Experiment']['period']
                 self.trials = configuration['Experiment']['trials']
                 self.worlds = configuration['Experiment']['worlds']
@@ -478,13 +480,13 @@ class LTM(object):
             self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
-    def run(self, seed=None, iterations=1000, log_level='INFO', plot=False):
+    def run(self, seed=None, log_level='INFO', plot=False):
         """Start the LTM part of the brain."""
         try:
             self.__init(log_level, seed)
             rospy.loginfo('Running LTM...')
             sensing = self.__read_perceptions()
-            while (not rospy.is_shutdown()) and (self.iteration <= iterations):
+            while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo('*** ITERATION: ' + str(self.iteration) + ' ***')
                 if not self.goals:
                     self.there_are_goals.wait()

@@ -34,7 +34,7 @@ class LTMSim(object):
         return node_class
 
     @classmethod
-    def __object_too_close(cls, dist, ang):
+    def object_too_close(cls, dist, ang):
         """Return True if the object is too close to the robot to be caught."""
         return dist < cls.inner(abs(ang))
 
@@ -51,12 +51,12 @@ class LTMSim(object):
         return object_y < -1.07 or object_y > 1.07 or object_x < 0.35 or object_x > 1.27
 
     @classmethod
-    def __ball_is_small(cls, rad):
+    def ball_is_small(cls, rad):
         """Return True if the ball is small, False if it is big. Right now, small is 0.03 and big 0.07."""
         return rad <= 0.05
 
     @classmethod
-    def __object_pickable_withtwohands(cls, dist, ang):
+    def object_pickable_withtwohands(cls, dist, ang):
         """Return True if the object is in a place where it can be picked with two hands."""
         return abs(ang) <= 0.3925 and dist >= 0.46 and dist <= 0.75
 
@@ -120,7 +120,7 @@ class LTMSim(object):
             ball_x = numpy.random.uniform(low=0.37, high=1.29)
             self.perceptions['ball_dist'] = numpy.linalg.norm([ball_y, ball_x])
             self.perceptions['ball_ang'] = numpy.arctan2(ball_y, ball_x)
-            valid = not self.__object_too_close(self.perceptions['ball_dist'], self.perceptions['ball_ang'])
+            valid = not self.object_too_close(self.perceptions['ball_dist'], self.perceptions['ball_ang'])
         # Box position
         valid = False
         while not valid:
@@ -128,7 +128,7 @@ class LTMSim(object):
             box_x = numpy.random.uniform(low=0.37, high=1.29)
             self.perceptions['box_dist'] = numpy.linalg.norm([box_y, box_x])
             self.perceptions['box_ang'] = numpy.arctan2(box_y, box_x)
-            valid = not self.__object_too_close(self.perceptions['box_dist'], self.perceptions['box_ang'])
+            valid = not self.object_too_close(self.perceptions['box_dist'], self.perceptions['box_ang'])
         # Hands
         self.perceptions['ball_in_left_hand'] = False
         self.perceptions['ball_in_right_hand'] = False
@@ -141,7 +141,7 @@ class LTMSim(object):
         if (
                 self.world == 'gripper_and_low_friction' and
                 (not self.object_too_far(self.perceptions['ball_dist'], self.perceptions['ball_ang'])) and
-                self.__ball_is_small(self.perceptions['ball_size']) and
+                self.ball_is_small(self.perceptions['ball_size']) and
                 (not self.perceptions['ball_in_left_hand']) and
                 (not self.perceptions['ball_in_right_hand'])
             ): # yapf: disable
@@ -153,10 +153,10 @@ class LTMSim(object):
     def grasp_with_two_hands_policy(self):
         """Grasp an object using both arms."""
         if (
-                self.__object_pickable_withtwohands(self.perceptions['ball_dist'], self.perceptions['ball_ang']) and
+                self.object_pickable_withtwohands(self.perceptions['ball_dist'], self.perceptions['ball_ang']) and
                 (
                     (self.world == 'no_gripper_and_high_friction') or
-                    (not self.__ball_is_small(self.perceptions['ball_size']))
+                    (not self.ball_is_small(self.perceptions['ball_size']))
                 ) and
                 (not self.perceptions['ball_in_left_hand']) and
                 (not self.perceptions['ball_in_right_hand'])
@@ -184,7 +184,7 @@ class LTMSim(object):
             ): # yapf: disable
             if (
                     (self.world == 'no_gripper_and_high_friction') or
-                    (not self.__ball_is_small(self.perceptions['ball_size']))
+                    (not self.ball_is_small(self.perceptions['ball_size']))
                 ): # yapf: disable
                 self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.__send_object_twohandsreachable(self.perceptions['ball_dist'])
             else:
