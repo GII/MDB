@@ -5,6 +5,7 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+import pdb
 import math
 import numpy as np
 from matplotlib import pyplot as plt
@@ -112,6 +113,9 @@ class DistancesCertainty(object):
 
     def get_h(self, T, p):
         """Return the distances between each of the n components of the trace points contained in T and any point p"""
+        # print "Punto p en get_h: ", p
+        if None in p:
+            pdb.set_trace()
         h = [[None] * len(T) for i in range(len(T[0]))]
         for i in range(len(T[0])):
             for j in range(len(T)):

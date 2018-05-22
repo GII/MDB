@@ -268,10 +268,12 @@ class MOTIVEN(object):
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
-                pdb.set_trace()
-                sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
-                sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
-                dif = sens_t1 - sens_t
+                if len(self.traces_buffer.getTrace()) < 2:
+                    dif = 0
+                else:
+                    sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
+                    sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
+                    dif = sens_t1 - sens_t
                 if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
                     goal_ok_response = 0
                 else:
@@ -643,7 +645,7 @@ class MOTIVEN(object):
             self.use_motiv_manager = 1
             # If there is a reward, make reward assignment and save trace in Traces Memory
             if self.episode.getReward():
-                pdb.set_trace()
+                # pdb.set_trace()
                 ###
                 if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
                     self.correlations_manager.assignRewardAssigner(
@@ -661,9 +663,9 @@ class MOTIVEN(object):
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
                 pdb.set_trace()
+                self.reinitialize_memories()
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -685,7 +687,7 @@ class MOTIVEN(object):
         elif self.active_mot == 'Ext':
             self.use_motiv_manager = 0
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reward = 0
                 # Save as trace in TracesMemory of the correlated sensor
                 self.correlations_manager.correlations[self.active_corr].addTrace(
@@ -698,9 +700,9 @@ class MOTIVEN(object):
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
                 pdb.set_trace()
+                self.reinitialize_memories()
                 self.use_motiv_manager = 1
                 self.it_reward = 0
                 self.it_blind = 0
