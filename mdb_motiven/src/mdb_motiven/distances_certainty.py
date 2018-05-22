@@ -113,8 +113,16 @@ class DistancesCertainty(object):
         return Dr
 
     def get_h(self, T, p):
-        """Return the distances between each of the n components of the trace points contained in T and any point p."""
-        return np.absolute(T-p).T
+        """Return the distances between each of the n components of the trace points contained in T and any point p"""
+        # print "Punto p en get_h: ", p
+        if None in p:
+            pdb.set_trace()
+        h = [[None] * len(T) for i in range(len(T[0]))]
+        for i in range(len(T[0])):
+            for j in range(len(T)):
+                h[i][j] = abs(p[i] - T[j][i])
+
+        return h
 
     def getHlim(self, MinDistancesMap, percentile, T, n_traces):
         """Return Hlim. the limit distances in the m dimensions from
@@ -135,7 +143,7 @@ class DistancesCertainty(object):
     def get_hn(self, MinDistancesMap, percentile, T, n_traces, p):
         """Return the effective distances in the m dimensions between the trace points and any point p"""
 
-        h = self.get_h(np.array(T), np.array(p)).tolist()
+        h = self.get_h(T, p)
         Hlim = self.getHlim(MinDistancesMap, percentile, T, n_traces)
 
         hn = [[None] * len(h) for i in range(len(h[0]))]
@@ -160,11 +168,8 @@ class DistancesCertainty(object):
             for j in range(len(hn[0])):
                 norm_value.append(hn[i][j] / (self.Lsup[j] - self.Linf[j]))
                 norm_value_aux.append(h[j][i] / (self.Lsup[j] - self.Linf[j]))
-            try:
-                W.append(max(0, 1 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1 / self.epsilon))
-            except ZeroDivisionError:
-                pdb.set_trace()
-                rospy.logerr('Division by zero! norm_value_aux: ' + np.linalg.norm(norm_value_aux) + ' epsilon: ' + self.epsilon)
+            W.append(max(0, 1 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1 / self.epsilon))
+
         return W
 
     def getCertaintyValue(self, p):

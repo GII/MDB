@@ -268,10 +268,12 @@ class MOTIVEN(object):
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
-                pdb.set_trace()
-                sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
-                sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
-                dif = sens_t1 - sens_t
+                if len(self.traces_buffer.getTrace()) < 2:
+                    dif = 0
+                else:
+                    sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
+                    sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
+                    dif = sens_t1 - sens_t
                 if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
                     goal_ok_response = 0
                 else:
@@ -508,9 +510,6 @@ class MOTIVEN(object):
             #     tuple(self.sens_t1.values()),
             #     self.active_corr,
             #     self.active_goal)
-            if self.sens_t1 is None:
-                pdb.set_trace()
-                rospy.logerr('MIERDA')
             self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
                 tuple(self.order_dict_as_keys_list(self.sens_t1, self.sensors_list)),
                 self.active_corr,
@@ -664,9 +663,9 @@ class MOTIVEN(object):
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
-                # pdb.set_trace()
+                pdb.set_trace()
+                self.reinitialize_memories()
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -701,9 +700,9 @@ class MOTIVEN(object):
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
-                # pdb.set_trace()
+                pdb.set_trace()
+                self.reinitialize_memories()
                 self.use_motiv_manager = 1
                 self.it_reward = 0
                 self.it_blind = 0
