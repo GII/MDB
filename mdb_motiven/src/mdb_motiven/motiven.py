@@ -506,6 +506,9 @@ class MOTIVEN(object):
             #     tuple(self.sens_t1.values()),
             #     self.active_corr,
             #     self.active_goal)
+            if self.sens_t1 is None:
+                pdb.set_trace()
+                rospy.logerr('MIERDA')
             self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
                 tuple(self.order_dict_as_keys_list(self.sens_t1, self.sensors_list)),
                 self.active_corr,
@@ -641,7 +644,7 @@ class MOTIVEN(object):
             self.use_motiv_manager = 1
             # If there is a reward, make reward assignment and save trace in Traces Memory
             if self.episode.getReward():
-                pdb.set_trace()
+                # pdb.set_trace()
                 ###
                 if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
                     self.correlations_manager.assignRewardAssigner(
@@ -661,7 +664,7 @@ class MOTIVEN(object):
                     self.active_goal)
                 self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -683,7 +686,7 @@ class MOTIVEN(object):
         elif self.active_mot == 'Ext':
             self.use_motiv_manager = 0
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reward = 0
                 # Save as trace in TracesMemory of the correlated sensor
                 self.correlations_manager.correlations[self.active_corr].addTrace(
@@ -698,7 +701,7 @@ class MOTIVEN(object):
                     self.active_goal)
                 self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.use_motiv_manager = 1
                 self.it_reward = 0
                 self.it_blind = 0
