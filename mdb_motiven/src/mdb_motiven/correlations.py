@@ -131,9 +131,6 @@ class Correlations(object):
         :param p:
         :return:
         """
-        if p is None or len(p) == 0:
-            pdb.set_trace()
-
         if active_goal == self.goal:
             c1_pos = self.S1_pos.getCertaintyValue(p)
             c1_neg = self.S1_neg.getCertaintyValue(p)
