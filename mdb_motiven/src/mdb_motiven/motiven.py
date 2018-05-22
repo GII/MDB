@@ -32,12 +32,12 @@ class MOTIVEN(object):
     def __init__(self):
         # Object initialization
         self.memory_vf = TracesBuffer()
-        self.memory_vf.setMaxSize(100)
+        self.memory_vf.setMaxSize(50) # 100
         self.traces_memory_vf = TracesMemory()
         # self.StateSpace = StateSpace()
         # self.simulator = Sim()
         self.traces_buffer = TracesBuffer()
-        self.traces_buffer.setMaxSize(50)  # 15
+        self.traces_buffer.setMaxSize(20)  # 15 50
         self.intrinsic_memory = EpisodicBuffer()
         self.intrinsic_memory.setMaxSize(20)  # 50
         self.episode = Episode()
@@ -268,6 +268,7 @@ class MOTIVEN(object):
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
+                pdb.set_trace()
                 sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
                 sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
                 dif = sens_t1 - sens_t
@@ -494,6 +495,7 @@ class MOTIVEN(object):
                 self.active_mot = 'Ext'
 
     def motivation_manager_ltm(self):
+        # pdb.set_trace()
         if self.use_motiv_manager:
             if self.correlations_manager.correlations[self.active_corr].goal != self.active_goal:  # If the goal changes
                 # self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
@@ -745,7 +747,7 @@ class MOTIVEN(object):
                             self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                                 self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                                 self.active_goal)
-                            self.reinitialize_memories()
+                            # self.reinitialize_memories()
                             rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                             self.use_motiv_manager = 1

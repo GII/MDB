@@ -260,29 +260,29 @@ class Correlations(object):
                         c7_pos,
                         c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg))
                     if i < 2:
-                        self.corr_established = 1  # Sensor 1
+                        self.corr_active = 1  # Sensor 1
                     elif i < 4:
-                        self.corr_established = 2  # Sensor 2
+                        self.corr_active = 2  # Sensor 2
                     elif i < 6:
-                        self.corr_established = 3  # Sensor 3
+                        self.corr_active = 3  # Sensor 3
                     elif i < 8:
-                        self.corr_established = 4  # Sensor 4
+                        self.corr_active = 4  # Sensor 4
                     elif i < 10:
-                        self.corr_established = 5  # Sensor 5
+                        self.corr_active = 5  # Sensor 5
                     elif i < 12:
-                        self.corr_established = 6  # Sensor 6
+                        self.corr_active = 6  # Sensor 6
                     elif i < 14:
-                        self.corr_established = 7  # Sensor 7
+                        self.corr_active = 7  # Sensor 7
                     elif i < 16:
-                        self.corr_established = 8  # Sensor 8
+                        self.corr_active = 8  # Sensor 8
                     elif i < 18:
-                        self.corr_established = 9  # Sensor 9
+                        self.corr_active = 9  # Sensor 9
                     else:
-                        self.corr_established = 10  # Sensor 10
+                        self.corr_active = 10  # Sensor 10
                     if i % 2 == 0:  # Posicion par
-                        self.corr_established_type = 'pos'
+                        self.corr_type = 'pos'
                     else:
-                        self.corr_established_type = 'neg'
+                        self.corr_type = 'neg'
                         # certainty_value = max(c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg)
                         # return self.corr_active, self.corr_type  # , certainty_value
         else:  # if the goal associated with the SUR is deactivated, this SUR has certainty 0
