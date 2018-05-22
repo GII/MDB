@@ -194,6 +194,7 @@ class MOTIVEN(object):
         if not None in self.perceptions.values():
             self.sens_t = self.sens_t1
             self.sens_t1 = self.perceptions
+            print "Sens_t1: ", self.sens_t1
             self.perceptions = dict.fromkeys(self.perceptions, None)
             if self.reset:
                 rospy.loginfo('MOTIVEN STAGE 0: initial sensor reading')
