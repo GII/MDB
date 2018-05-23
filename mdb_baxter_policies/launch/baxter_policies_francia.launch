@@ -3,10 +3,10 @@
   <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
 
-  <arg name="cal_xmin" default="0.260"/>
-  <arg name="cal_xmax" default="0.948"/>
-  <arg name="cal_ymin" default="-0.836"/>
-  <arg name="cal_ymax" default="0.804"/>
+  <arg name="cal_xmin" default="0.35"/>
+  <arg name="cal_xmax" default="1.00"/>
+  <arg name="cal_ymin" default="-0.78"/>
+  <arg name="cal_ymax" default="0.72"/>
   <arg name="cal_ang" default="0.98125"/>
 
   <arg name="grab_param_file" default="grab_parameters_francia.yml"/>
