@@ -45,7 +45,7 @@ class DistancesCertainty(object):
         self.cw = 0.4  # 0.3  # Weighting factor for w-traces
         self.ca = 1.0  # Weighting factor for n-traces
 
-        self.epsilon = 100.0
+        self.epsilon = 1.0 / 100.0
 
         self.percentile = 100  # q-th percentile
 
@@ -168,7 +168,7 @@ class DistancesCertainty(object):
             for j in range(len(hn[0])):
                 norm_value.append(hn[i][j] / (self.Lsup[j] - self.Linf[j]))
                 norm_value_aux.append(h[j][i] / (self.Lsup[j] - self.Linf[j]))
-            W.append(max(0, 1.0 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1.0 / self.epsilon))
+            W.append(max(0, 1.0 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + self.epsilon))
 
         return W
 
