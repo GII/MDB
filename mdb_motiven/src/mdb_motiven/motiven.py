@@ -87,8 +87,9 @@ class MOTIVEN(object):
         self.perceptions = dict.fromkeys(self.sensors_list)
         self.sens_t = dict.fromkeys(self.sensors_list)
         self.sens_t1 = dict.fromkeys(self.sensors_list)
-        self.run_memory_manager = threading.Event()
-        self.run_motivation_manager = threading.Event()
+        self.sensor_semaphore = threading.Semaphore()
+        self.run_executed_policy_cb = threading.Event()
+        self.run_sensor_cb = threading.Event()
         # Policies LTM
         self.n_policies_exec = 0
         self.max_policies_exec = 8
@@ -155,7 +156,7 @@ class MOTIVEN(object):
         self.robobo_drop_srv = rospy.ServiceProxy('/robobo_drop', BaxChange)
         self.robobo_mov_back_srv = rospy.ServiceProxy('robobo_move_backwards', BaxChange)
         # ROS subscribers # Integration LTM
-        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)
+        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
         rospy.Subscriber("/mdb/baxter/sensor/ball_dist", Float64, self.sensor_cb, 'ball_dist')
         rospy.Subscriber("/mdb/baxter/sensor/ball_ang", Float64, self.sensor_cb, 'ball_ang')
         rospy.Subscriber("/mdb/baxter/sensor/ball_size", Float64, self.sensor_cb, 'ball_size')
@@ -187,40 +188,47 @@ class MOTIVEN(object):
         # Choose active goal
         self.select_goal()
 
-    def sensor_cb(self, sens_value, sensor_id):  # Integration LTM
+    def sensor_cb(self, sens_value, sensor_id):
+        self.sensor_semaphore.acquire()
+        if all(perception is None for perception in self.perceptions.values()):
+            if self.reset:
+                rospy.loginfo('MOTIVEN STAGE 0: begin reading sensors after reset')
+            else:
+                rospy.loginfo('MOTIVEN STAGE 2: begin reading sensors after policy execution')
         self.perceptions[sensor_id] = sens_value.data
         rospy.logdebug('Reading ' + sensor_id + ' = ' + str(sens_value.data))
         # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
         if not None in self.perceptions.values():
             self.sens_t = self.sens_t1
             self.sens_t1 = self.perceptions
-            print "Sens_t1: ", self.sens_t1
             self.perceptions = dict.fromkeys(self.perceptions, None)
             if self.reset:
-                rospy.loginfo('MOTIVEN STAGE 0: initial sensor reading')
+                rospy.loginfo('MOTIVEN STAGE 0: end reading sensors after reset')
                 self.reset = False
             else:
-                rospy.loginfo('MOTIVEN STAGE 2: sensors read after policy execution')
-                self.run_memory_manager.set()
+                rospy.loginfo('MOTIVEN STAGE 2: end reading sensors after policy execution')
+                self.run_executed_policy_cb.set()
                 # Now, policy callback will be executed and self.reset could change there, so be ware
                 # and don't combine 'if's!
-                self.run_motivation_manager.wait()
-                self.run_motivation_manager.clear()
+                self.run_sensor_cb.wait()
+                self.run_sensor_cb.clear()
             if not self.reset:
-                rospy.loginfo('MOTIVEN STAGE 1: publishing goal activations')
+                rospy.loginfo('MOTIVEN STAGE 1: begin calculating and publishing goal activations')
                 self.select_goal()
                 # Calculate the goal relevance for the current state
                 # pdb.set_trace()
                 self.motivation_manager_ltm()
                 # Set goal activations in Goal Manager and publish in topics for LTM
                 self.publish_goal_activations()
+                rospy.loginfo('MOTIVEN STAGE 1: end calculating and publishing goal activations')
+        self.sensor_semaphore.release()
 
-    def executed_policy_topic_cb(self, policy_id):
+    def executed_policy_cb(self, policy_id):
         """Second part of integration with LTM (a policiy has been executed)."""
         # This is to be sure that we have the new perceptions after the policy has been executed.
-        self.run_memory_manager.wait()
-        self.run_memory_manager.clear()
-        rospy.loginfo('MOTIVEN STAGE 3: publishing goal success values')
+        self.run_executed_policy_cb.wait()
+        self.run_executed_policy_cb.clear()
+        rospy.loginfo('MOTIVEN STAGE 3: begin calculating and publishing goal success values')
         # Check if a new correlation is needed or established
         self.correlations_manager.newSUR(self.active_goal)
         if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
@@ -262,7 +270,8 @@ class MOTIVEN(object):
         self.it_reward += 1
         # self.stop_condition()
         self.episode.cleanEpisode()
-        self.run_motivation_manager.set()
+        rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
+        self.run_sensor_cb.set()
 
     def is_improving_behavior(self, um_type='SUR'):
         """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly."""
@@ -665,7 +674,7 @@ class MOTIVEN(object):
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reinitialize_memories()
                 self.it_reward = 0
                 self.it_blind = 0
@@ -702,7 +711,7 @@ class MOTIVEN(object):
                     self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reinitialize_memories()
                 self.use_motiv_manager = 1
                 self.it_reward = 0

@@ -116,7 +116,7 @@ class DistancesCertainty(object):
         """Return the distances between each of the n components of the trace points contained in T and any point p"""
         # print "Punto p en get_h: ", p
         if None in p:
-            pdb.set_trace()
+            # pdb.set_trace()
         h = [[None] * len(T) for i in range(len(T[0]))]
         for i in range(len(T[0])):
             for j in range(len(T)):
