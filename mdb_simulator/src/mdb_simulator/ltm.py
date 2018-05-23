@@ -104,6 +104,18 @@ class LTMSim(object):
         new_ang = numpy.arctan2(y_coord, x_coord)
         return new_dist, new_ang
 
+    def __update_goal_sensors(self):
+        """Update goal sensors' values."""
+        if (self.perceptions['ball_dist'] == self.perceptions['box_dist']) and (self.perceptions['ball_ang'] == self.perceptions['box_ang']):
+            self.perceptions['ball_in_box'] = True
+        else:
+            self.perceptions['ball_in_box'] = False
+        dist, ang = self.calculate_closest_position(self.perceptions['ball_ang'])
+        if (self.perceptions['ball_dist'] == dist) and (self.perceptions['ball_ang'] == ang):
+            self.perceptions['ball_with_robot'] = True
+        else:
+            self.perceptions['ball_with_robot'] = False
+
     def __random_perceptions(self):
         """Randomize the state of the environment."""
         # Sizes
@@ -132,9 +144,8 @@ class LTMSim(object):
         # Hands
         self.perceptions['ball_in_left_hand'] = False
         self.perceptions['ball_in_right_hand'] = False
-        # High level sensors
-        self.perceptions['ball_in_box'] = False
-        self.perceptions['ball_with_robot'] = False
+        # Goal sensors
+        self.__update_goal_sensors()
 
     def grasp_object_policy(self):
         """Grasp an object with a gripper."""
@@ -203,7 +214,6 @@ class LTMSim(object):
             self.perceptions['ball_ang'] = self.perceptions['box_ang']
             self.perceptions['ball_in_left_hand'] = False
             self.perceptions['ball_in_right_hand'] = False
-            self.perceptions['ball_in_box'] = True
 
     def put_object_in_robot_policy(self):
         """Put an object as close to the robot as possible."""
@@ -211,7 +221,6 @@ class LTMSim(object):
             self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.calculate_closest_position(self.perceptions['ball_ang'])
             self.perceptions['ball_in_left_hand'] = False
             self.perceptions['ball_in_right_hand'] = False
-            self.perceptions['ball_with_robot'] = True
 
     def throw_policy(self):
         """Throw an object."""
@@ -225,7 +234,6 @@ class LTMSim(object):
                 ): # yapf: disable
                 self.perceptions['ball_dist'] = self.perceptions['box_dist']
                 self.perceptions['ball_ang'] = self.perceptions['box_ang']
-                self.perceptions['ball_in_box'] = True
             else:
                 self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.__send_object_outofreach(self.perceptions['ball_ang'])
             self.perceptions['ball_in_left_hand'] = False
@@ -249,6 +257,7 @@ class LTMSim(object):
         """Whenever a policy is selected to be executed by the LTM, the simulator executes it and publishes the new perceptions."""
         rospy.logdebug('Executing policy %s...', data.data)
         getattr(self, data.data + '_policy')()
+        self.__update_goal_sensors()
         for ident, publisher in self.publishers.iteritems():
             rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
