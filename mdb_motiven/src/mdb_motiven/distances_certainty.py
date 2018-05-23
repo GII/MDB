@@ -38,14 +38,14 @@ class DistancesCertainty(object):
 
         self.Nt_factor = 6.0
         self.K = pow(0.05, 1.0 / (self.Nt_factor - 1.0))
-        self.ce = 1
-        self.M = 50
+        self.ce = 1.0
+        self.M = 50.0
 
         self.cp = 1.0  # 0.6  # Stability factor
         self.cw = 0.4  # 0.3  # Weighting factor for w-traces
         self.ca = 1.0  # Weighting factor for n-traces
 
-        self.epsilon = 100
+        self.epsilon = 100.0
 
         self.percentile = 100  # q-th percentile
 
