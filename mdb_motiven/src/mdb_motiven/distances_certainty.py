@@ -168,7 +168,7 @@ class DistancesCertainty(object):
             for j in range(len(hn[0])):
                 norm_value.append(hn[i][j] / (self.Lsup[j] - self.Linf[j]))
                 norm_value_aux.append(h[j][i] / (self.Lsup[j] - self.Linf[j]))
-            W.append(max(0, 1 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1 / self.epsilon))
+            W.append(max(0, 1.0 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1.0 / self.epsilon))
 
         return W
 
