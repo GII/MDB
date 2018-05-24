@@ -38,11 +38,11 @@ class obj_pos_int:
 		self.complete_uv = self.left_uv
 		self.complete_xy = self.left_xy'''
 
-		self.fu, self.fv = self.obtain_interpolation_rbf("quintic")
+		self.fu, self.fv = self.obtain_interpolation_rbf(rospy.get_param("~function_type"))
 		#self.fu, self.fv = self.obtain_interpolation_int2d("cubic")
 
-		print [197, 276]
-		print self.fu(197, 276), self.fv(197, 276)
+		#print [197, 276]
+		#print self.fu(197, 276), self.fv(197, 276)
 
 
 	def read_grid_data_file(self):
