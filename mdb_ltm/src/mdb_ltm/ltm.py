@@ -441,7 +441,7 @@ class LTM(object):
         networkx.draw_networkx_edges(
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5)
         networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
-        goal = max(self.goals, key=attrgetter('activation'))
+        goal = max(self.goals, key=attrgetter('reward'))
         pyplot.title(
             'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
             str(self.iteration) + ' REWARD: ' + str(self.current_reward) + '\nPOLICY: ' + self.current_policy.ident,
