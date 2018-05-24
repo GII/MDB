@@ -27,6 +27,7 @@ class Perception(Node):
         self.raw = 0.0
         self.old_value = 0.0
         self.value = 0.0
+        self.sensor_semaphore = threading.Semaphore()
         self.new_value = threading.Event()
         topic = rospy.get_param(ros_name_prefix + '_topic')
         message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
@@ -35,6 +36,7 @@ class Perception(Node):
 
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""
+        self.sensor_semaphore.acquire()
         self.old_raw = self.raw
         self.raw = reading.data
         self.old_value = self.value
@@ -43,6 +45,7 @@ class Perception(Node):
         else:
             self.value = self.raw
         self.new_value.set()
+        self.sensor_semaphore.release()
 
     def read(self):
         """Obtain a new value for the sensor / redescription."""
