@@ -22,7 +22,6 @@ def start_ltm():
         'Otherwise, it creates the file. '
         'When the process ends, the backup file is updated.')
     parser.add_argument('-s', '--seed', help='Yaml file with some nodes to populate the LTM')
-    parser.add_argument('-i', '--iterations', type=int, help='Number of iterations to run the experiment')
     parser.add_argument('-l', '--log_level', help='ROS log level (DEBUG, INFO, WARN, ERROR or FATAL)')
     parser.add_argument('-p', '--plot', action='store_true', help='Show a LTM diagram in real time.')
     args, _ = parser.parse_known_args()
@@ -32,7 +31,7 @@ def start_ltm():
         ltm = LTM.restore(backup)
     else:
         ltm = LTM()
-    
+
     ltm.run(**kwargs)
 
 

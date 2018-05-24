@@ -33,7 +33,7 @@ class CNode(Node):
     def context_is_on(self):
         """Check if the context of this CNode is activated or not."""
         fms = [node for node in self.neighbors if node.type == 'ForwardModel' and node.activation >= node.threshold]
-        goals = [node for node in self.neighbors if node.type == 'Goal' and node.activation >= node.threshold]
+        goals = [node for node in self.neighbors if node.type == 'Goal' and node.reward >= node.threshold]
         if (fms) and (goals):
             return True
         else:

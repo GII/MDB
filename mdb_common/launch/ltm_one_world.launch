@@ -1,7 +1,6 @@
 <launch>
 	<arg name="backup" default="ltm.backup"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_one_world.yaml"/>
-	<arg name="iterations" default="3000"/>
 	<arg name="log_level" default="DEBUG"/>
 	<arg name="debug" default="False"/>
 	<arg name="plot" default="False"/>
@@ -10,10 +9,10 @@
 	<rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
 	<group ns="mdb" unless="$(arg debug)">
 		<node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)"/>
-		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -i $(arg iterations) -l $(arg log_level) $(arg plot_arg)"/>
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)"/>
 	</group>
 	<group ns="mdb" if="$(arg debug)">
 		<node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" launch-prefix="xterm -e python -m pdb"/>
-		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -i $(arg iterations) -l $(arg log_level) $(arg plot_arg)" launch-prefix="xterm -e python -m pdb"/>
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)" launch-prefix="xterm -e python -m pdb"/>
 	</group>
 </launch>

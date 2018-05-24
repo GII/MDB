@@ -6,9 +6,11 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 import math
+import pdb
 import numpy as np
 from matplotlib import pyplot as plt
 
+import rospy
 from mdb_motiven.traces_memory import TracesMemory
 
 
@@ -36,14 +38,14 @@ class DistancesCertainty(object):
 
         self.Nt_factor = 6.0
         self.K = pow(0.05, 1.0 / (self.Nt_factor - 1.0))
-        self.ce = 1
-        self.M = 50
+        self.ce = 1.0
+        self.M = 50.0
 
         self.cp = 1.0  # 0.6  # Stability factor
         self.cw = 0.4  # 0.3  # Weighting factor for w-traces
         self.ca = 1.0  # Weighting factor for n-traces
 
-        self.epsilon = 100
+        self.epsilon = 1.0 / 100.0
 
         self.percentile = 100  # q-th percentile
 
@@ -112,11 +114,11 @@ class DistancesCertainty(object):
 
     def get_h(self, T, p):
         """Return the distances between each of the n components of the trace points contained in T and any point p"""
+        # print "Punto p en get_h: ", p
         h = [[None] * len(T) for i in range(len(T[0]))]
         for i in range(len(T[0])):
             for j in range(len(T)):
                 h[i][j] = abs(p[i] - T[j][i])
-
         return h
 
     def getHlim(self, MinDistancesMap, percentile, T, n_traces):
@@ -163,7 +165,7 @@ class DistancesCertainty(object):
             for j in range(len(hn[0])):
                 norm_value.append(hn[i][j] / (self.Lsup[j] - self.Linf[j]))
                 norm_value_aux.append(h[j][i] / (self.Lsup[j] - self.Linf[j]))
-            W.append(max(0, 1 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + 1 / self.epsilon))
+            W.append(max(0, 1.0 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + self.epsilon))
 
         return W
 
@@ -252,7 +254,7 @@ class DistancesCertainty(object):
         # self.DrawCertaintyMap()
         # self.DrawTrace('p', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'p')
+        # self.SaveTraceDraw(newTrace, 'p')
 
     def addWeakTraces(self, newTrace):
 
@@ -268,7 +270,7 @@ class DistancesCertainty(object):
         # self.DrawCertaintyMap()
         # self.DrawTrace('w', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'w')
+        # self.SaveTraceDraw(newTrace, 'w')
 
     def addAntiTraces(self, newTrace):
 
@@ -285,7 +287,7 @@ class DistancesCertainty(object):
         # self.DrawPoints()
         # self.DrawTrace('n', newTrace)
 
-        self.SaveTraceDraw(newTrace, 'n')
+        # self.SaveTraceDraw(newTrace, 'n')
 
     def getNumberOfGoalslWithoutAntiTraces(self):
         return self.numberOfGoalsWithoutAntiTraces

@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import rospy
 import tf, rospkg, yaml, math
 from baxter_arm import *
 from baxter_display import *

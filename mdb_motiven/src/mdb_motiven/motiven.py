@@ -32,12 +32,12 @@ class MOTIVEN(object):
     def __init__(self):
         # Object initialization
         self.memory_vf = TracesBuffer()
-        self.memory_vf.setMaxSize(100)
+        self.memory_vf.setMaxSize(50) # 100
         self.traces_memory_vf = TracesMemory()
         # self.StateSpace = StateSpace()
         # self.simulator = Sim()
         self.traces_buffer = TracesBuffer()
-        self.traces_buffer.setMaxSize(50)  # 15
+        self.traces_buffer.setMaxSize(20)  # 15 50
         self.intrinsic_memory = EpisodicBuffer()
         self.intrinsic_memory.setMaxSize(20)  # 50
         self.episode = Episode()
@@ -62,6 +62,7 @@ class MOTIVEN(object):
         self.graph_exec = []
         self.graphx = []
         self.reward = 0
+        self.reset = True # May be this is not really necessary and we can use self.reward. Confirm.
         self.ball_gripper = False
         self.ball_robobo = False
         # Set minimum distances for the ball to be inside the box or grasped by a robot
@@ -72,7 +73,7 @@ class MOTIVEN(object):
         self.load_data_file = 0  # Variable to decide if load data from file
         self.ltm = False  # Variable to decide if MotivEn is executed alone or integrated with the LTM
         # Sensors LTM
-        sensors_list = [
+        self.sensors_list = [
             'ball_dist',
             'ball_ang',
             'ball_size',
@@ -83,18 +84,18 @@ class MOTIVEN(object):
             'ball_in_right_hand',
             'ball_in_box',
             'ball_with_robot']
-        self.perceptions = dict.fromkeys(sensors_list)
-        self.sens_t = dict.fromkeys(sensors_list)
-        self.sens_t1 = dict.fromkeys(sensors_list)
-        self.first_reading = True
-        self.run_memory_manager = threading.Event()
-        self.run_motivation_manager = threading.Event()
+        self.perceptions = dict.fromkeys(self.sensors_list)
+        self.sens_t = dict.fromkeys(self.sensors_list)
+        self.sens_t1 = dict.fromkeys(self.sensors_list)
+        self.sensor_semaphore = threading.Semaphore()
+        self.run_executed_policy_cb = threading.Event()
+        self.run_sensor_cb = threading.Event()
         # Policies LTM
         self.n_policies_exec = 0
         self.max_policies_exec = 8
         # Goals LTM
         # Establezco lista de goals
-        self.goals_list = ['Intrinsic', 'ball_in_box', 'ball_in_robot']
+        self.goals_list = ['intrinsic', 'ball_in_box', 'ball_in_robot']
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
         self.active_goal = self.goals_list[1]
@@ -112,6 +113,13 @@ class MOTIVEN(object):
         self.robobo_pick_srv = None
         self.robobo_drop_srv = None
         self.robobo_mov_back_srv = None
+
+    def order_dict_as_keys_list(self, dict, keys_list):
+        """Returns the values of a dictionary sorted according to the keys of a list"""
+        dict_values = []
+        for key in keys_list:
+            dict_values.append(dict[key])
+        return dict_values
 
     def init_ros_staff(self, log_level):
         rospy.init_node('motiven', log_level=getattr(rospy, log_level))
@@ -148,7 +156,7 @@ class MOTIVEN(object):
         self.robobo_drop_srv = rospy.ServiceProxy('/robobo_drop', BaxChange)
         self.robobo_mov_back_srv = rospy.ServiceProxy('robobo_move_backwards', BaxChange)
         # ROS subscribers # Integration LTM
-        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_topic_cb)
+        rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
         rospy.Subscriber("/mdb/baxter/sensor/ball_dist", Float64, self.sensor_cb, 'ball_dist')
         rospy.Subscriber("/mdb/baxter/sensor/ball_ang", Float64, self.sensor_cb, 'ball_ang')
         rospy.Subscriber("/mdb/baxter/sensor/ball_size", Float64, self.sensor_cb, 'ball_size')
@@ -171,7 +179,7 @@ class MOTIVEN(object):
         self.it_blind = 0
         self.n_execution += 1
         self.graph_exec = []
-        self.save_data()
+        #self.save_data()
         self.memory_vf.removeAll()
         self.perceptions = dict.fromkeys(self.perceptions, None)  # Esto no tengo claro si es necesario
         self.sens_t = self.sens_t1  # y yo esto tampoco :-)
@@ -180,8 +188,47 @@ class MOTIVEN(object):
         # Choose active goal
         self.select_goal()
 
-    def executed_policy_topic_cb(self, policy_id):
+    def sensor_cb(self, sens_value, sensor_id):
+        self.sensor_semaphore.acquire()
+        if all(perception is None for perception in self.perceptions.values()):
+            if self.reset:
+                rospy.loginfo('MOTIVEN STAGE 0: begin reading sensors after reset')
+            else:
+                rospy.loginfo('MOTIVEN STAGE 2: begin reading sensors after policy execution')
+        self.perceptions[sensor_id] = sens_value.data
+        rospy.logdebug('Reading ' + sensor_id + ' = ' + str(sens_value.data))
+        # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
+        if not None in self.perceptions.values():
+            self.sens_t = self.sens_t1
+            self.sens_t1 = self.perceptions
+            self.perceptions = dict.fromkeys(self.perceptions, None)
+            if self.reset:
+                rospy.loginfo('MOTIVEN STAGE 0: end reading sensors after reset')
+                self.reset = False
+            else:
+                rospy.loginfo('MOTIVEN STAGE 2: end reading sensors after policy execution')
+                self.run_executed_policy_cb.set()
+                # Now, policy callback will be executed and self.reset could change there, so be ware
+                # and don't combine 'if's!
+                self.run_sensor_cb.wait()
+                self.run_sensor_cb.clear()
+            if not self.reset:
+                rospy.loginfo('MOTIVEN STAGE 1: begin calculating and publishing goal activations')
+                self.select_goal()
+                # Calculate the goal relevance for the current state
+                # pdb.set_trace()
+                self.motivation_manager_ltm()
+                # Set goal activations in Goal Manager and publish in topics for LTM
+                self.publish_goal_activations()
+                rospy.loginfo('MOTIVEN STAGE 1: end calculating and publishing goal activations')
+        self.sensor_semaphore.release()
+
+    def executed_policy_cb(self, policy_id):
         """Second part of integration with LTM (a policiy has been executed)."""
+        # This is to be sure that we have the new perceptions after the policy has been executed.
+        self.run_executed_policy_cb.wait()
+        self.run_executed_policy_cb.clear()
+        rospy.loginfo('MOTIVEN STAGE 3: begin calculating and publishing goal success values')
         # Check if a new correlation is needed or established
         self.correlations_manager.newSUR(self.active_goal)
         if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
@@ -189,29 +236,33 @@ class MOTIVEN(object):
                 self.active_corr,
                 self.episode.getSensorialStateT1(),
                 self.active_goal)
-        # This is to be sure that we have the new perceptions after the policy has been executed.
-        self.run_memory_manager.wait()
-        self.run_memory_manager.clear()
-        pdb.set_trace()
         # Como conozco el reward???
         if self.sens_t1[self.active_goal]:
             self.reward = 1
+            self.reset = True
             rospy.logdebug('Reward obtained for ' + self.active_goal)
         else:
             self.reward = 0
-        self.episode.setEpisode(self.sens_t.values(), policy_id.data, self.sens_t1.values(), self.reward)
+        # self.episode.setEpisode(self.sens_t.values(), policy_id.data, self.sens_t1.values(), self.reward)
+        self.episode.setEpisode(
+            self.order_dict_as_keys_list(self.sens_t, self.sensors_list),  # sens_t properly sorted
+            policy_id.data,
+            self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),  # sens_t1 properly sorted
+            self.reward)
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.memory_manager_ltm()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
         for goal in self.goal_manager.goals:
             if self.active_goal == goal.goal_id:
                 if self.episode.getReward():
-                    self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=1.0)
+                    goal_ok = 1.0
                 else:
-                    self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=self.is_improving_behavior())
+                    goal_ok = self.is_improving_behavior()
             else:
-                self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=0.0)
-        #############
+                goal_ok = 0.0
+            self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=goal_ok)
+            rospy.logdebug('Publishing goal success for ' + goal.goal_id + ' = ' + str(goal_ok))
+        # pdb.set_trace()
         # Pongo las percepciones en None para asi controlar cuando debe empezar el nuevo ciclo, es decir,
         # cuando se hayan leido todas las percepciones
         self.iter_min += 1
@@ -219,25 +270,28 @@ class MOTIVEN(object):
         self.it_reward += 1
         # self.stop_condition()
         self.episode.cleanEpisode()
-        self.run_motivation_manager.set()
+        rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
+        self.run_sensor_cb.set()
 
     def is_improving_behavior(self, um_type='SUR'):
         """MOTIVEN decides if the agent is improving its behavior, that is, if if follows the active UM correctly."""
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
-                sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
-                sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
-                dif = sens_t1 - sens_t
+                if len(self.traces_buffer.getTrace()) < 2:
+                    dif = 0
+                else:
+                    sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
+                    sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
+                    dif = sens_t1 - sens_t
                 if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
                     goal_ok_response = 0
                 else:
-                    goal_ok_response = 1
+                    goal_ok_response = 0.5
             else:  # self.active_mot == 'Int'
                 goal_ok_response = 0
         else:  # um_type == 'VF'
             goal_ok_response = 0
-
         return goal_ok_response
 
     def publish_goal_activations(self):
@@ -248,42 +302,15 @@ class MOTIVEN(object):
                     goal.activation = 1.0
                 else:
                     goal.activation = 0.0
-        else:  # self.active_mot == 'Ext'
+        else:
             for goal in self.goal_manager.goals:
-                # if i == 0:
-                #     self.goal_manager.goals[i].activation = 0.0
-                # else:
                 if goal.goal_id == self.active_goal:
                     goal.activation = 1.0
                 else:
                     goal.activation = 0.0
-        # Publish
         for goal in self.goal_manager.goals:
+            rospy.logdebug('Publishing goal activation for ' + goal.goal_id + ' = ' + str(goal.activation))
             self.goal_activation_topic_pb.publish(id=goal.goal_id, activation=goal.activation)
-
-    def sensor_cb(self, sens_value, sensor_id):  # Integration LTM
-        self.perceptions[sensor_id] = sens_value.data
-        rospy.logdebug('Reading ' + sensor_id + ' = ' + str(sens_value.data))
-        # pdb.set_trace()
-        # This is to be sure that we don't use perceptions UNTIL we have receive ALL OF THEM.
-        if not None in self.perceptions.values():
-            ############## PARTE 1: PARA CUANDO LEO LAS PERCEPCIONES
-            self.sens_t = self.sens_t1
-            self.sens_t1 = self.perceptions
-            self.perceptions = dict.fromkeys(self.perceptions, None)
-            if self.first_reading:
-                self.first_reading = False
-            else:
-                self.run_memory_manager.set()
-                self.run_motivation_manager.wait()
-                self.run_motivation_manager.clear()
-            self.select_goal()
-            # MOTIVATION MANAGER
-            # MOTIVEN calculates the goal relevance for the current state
-            self.motivation_manager_ltm()
-            # Set goal activations in Goal Manager and publish in topics for LTM
-            self.publish_goal_activations()
-            #############
 
     def select_goal(self):
         """Select the current goal (ad-hoc at the moment)."""
@@ -454,15 +481,6 @@ class MOTIVEN(object):
         rospy.logdebug('Active correlation: ' +  self.active_corr)
         rospy.logdebug('Active motivation: ' + self.active_mot)
         rospy.logdebug('Correlated sensor: ' + self.corr_sensor + ', ' + self.corr_type)
-        rospy.logdebug(
-            'Trazas consecutivas S3 neg Reestructuracion: ' +
-            str(self.correlations_manager.correlations[0].S3_neg.numberOfGoalsWithoutAntiTraces))
-        rospy.logdebug(
-            'Trazas consecutivas S2 neg: ' +
-            str(self.correlations_manager.correlations[1].S2_neg.numberOfGoalsWithoutAntiTraces))
-        rospy.logdebug(
-            'Trazas consecutivas S1 neg: ' +
-            str(self.correlations_manager.correlations[2].S1_neg.numberOfGoalsWithoutAntiTraces))
         rospy.logdebug('Sensorization: ' + str(tuple(self.episode.getSensorialStateT1())))
 
     def reinitialize_memories(self):
@@ -489,13 +507,21 @@ class MOTIVEN(object):
                 self.active_mot = 'Ext'
 
     def motivation_manager_ltm(self):
+        # pdb.set_trace()
         if self.use_motiv_manager:
             if self.correlations_manager.correlations[self.active_corr].goal != self.active_goal:  # If the goal changes
+                # self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
+                #     self.sens_t1.values(),
+                #     self.active_goal)
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
+            # self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
+            #     tuple(self.sens_t1.values()),
+            #     self.active_corr,
+            #     self.active_goal)
             self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
-                tuple(self.sens_t1.values()),
+                tuple(self.order_dict_as_keys_list(self.sens_t1, self.sensors_list)),
                 self.active_corr,
                 self.active_goal)
             if self.corr_sensor == 0:
@@ -629,6 +655,7 @@ class MOTIVEN(object):
             self.use_motiv_manager = 1
             # If there is a reward, make reward assignment and save trace in Traces Memory
             if self.episode.getReward():
+                # pdb.set_trace()
                 ###
                 if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
                     self.correlations_manager.assignRewardAssigner(
@@ -640,11 +667,15 @@ class MOTIVEN(object):
                 self.reward = 0
                 self.correlations_manager.correlations[self.active_corr].correlationEvaluator(
                     self.traces_buffer.getTrace())
+                # self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
+                #     self.sens_t1.values(),
+                #     self.active_goal)
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
+                # pdb.set_trace()
+                self.reinitialize_memories()
                 self.it_reward = 0
                 self.it_blind = 0
                 self.n_execution += 1
@@ -666,17 +697,22 @@ class MOTIVEN(object):
         elif self.active_mot == 'Ext':
             self.use_motiv_manager = 0
             if self.episode.getReward():  # GOAL MANAGER - Encargado de asignar la recompensa?
+                # pdb.set_trace()
                 self.reward = 0
                 # Save as trace in TracesMemory of the correlated sensor
                 self.correlations_manager.correlations[self.active_corr].addTrace(
                     self.traces_buffer.getTrace(),
                     self.corr_sensor,
                     self.corr_type)
+                # self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
+                #     self.sens_t1.values(),
+                #     self.active_goal)
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                     self.active_goal)
-                self.reinitialize_memories()
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
+                # pdb.set_trace()
+                self.reinitialize_memories()
                 self.use_motiv_manager = 1
                 self.it_reward = 0
                 self.it_blind = 0
@@ -714,10 +750,13 @@ class MOTIVEN(object):
                                 self.traces_buffer.getTrace(),
                                 self.corr_sensor,
                                 self.corr_type)
+                            # self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
+                            #     self.sens_t1.values(),
+                            #     self.active_goal)
                             self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                                self.sens_t1.values(),
+                                self.order_dict_as_keys_list(self.sens_t1, self.sensors_list),
                                 self.active_goal)
-                            self.reinitialize_memories()
+                            # self.reinitialize_memories()
                             rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                             self.use_motiv_manager = 1
@@ -870,7 +909,7 @@ class MOTIVEN(object):
         return list(empty_list + sub_result)
 
     def save_data(self):  # , action, seed):
-        f = open('SimulationDataRealFinal' + str(self.n_execution) + '.pckl', 'wb')
+        f = open('SimulationDataMotiven' + str(self.n_execution) + '.pckl', 'wb')
         pickle.dump(len(self.correlations_manager.correlations), f)
         for correlation in self.correlations_manager.correlations:
             pickle.dump(correlation.S1_pos, f)

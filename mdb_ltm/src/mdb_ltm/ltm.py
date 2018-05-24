@@ -75,6 +75,7 @@ class LTM(object):
         self.policies_to_test = []
         self.iteration = 0
         self.trial = 0
+        self.iterations = None
         self.period = None
         self.trials = None
         self.worlds = None
@@ -293,6 +294,7 @@ class LTM(object):
                 message = self.__class_from_classname(rospy.get_param(configuration['Control']['ros_name_prefix'] + '_msg'))
                 self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=None)
                 # Load experiment configuration
+                self.iterations = configuration['Experiment']['iterations']
                 self.period = configuration['Experiment']['period']
                 self.trials = configuration['Experiment']['trials']
                 self.worlds = configuration['Experiment']['worlds']
@@ -305,12 +307,10 @@ class LTM(object):
         """Update the value of every perception."""
         rospy.loginfo('Reading perceptions...')
         sensing = []
-        text = 'Perceptions: '
         for perception in self.perceptions.itervalues():
+            rospy.logdebug('Reading ' + perception.ident + ' = ' + str(perception.raw))
             perception.read()
             sensing.append(perception.value)
-            text += perception.ident + ' = ' + str(perception.value) + ', '
-        rospy.logdebug(text)
         return sensing
 
     def __update_activations(self, perception):
@@ -344,8 +344,10 @@ class LTM(object):
 
     def __select_goal(self):
         """Find the active goal."""
-        goal = max(self.goals, key=attrgetter('activation'))
-        rospy.loginfo('Selecting a goal => ' + goal.ident)
+        for goal in self.goals:
+            goal.update_reward()
+        goal = max(self.goals, key=attrgetter('reward'))
+        rospy.loginfo('Selecting goal => ' + goal.ident)
         return goal
 
     def __add_antipoint(self, perception):
@@ -370,7 +372,7 @@ class LTM(object):
             pnode.add_perception(perception, 1.0)
             rospy.loginfo('Added point in p-node ' + pnode.ident)
             forward_model = max(self.forward_models, key=attrgetter('activation'))
-            goal = max(self.goals, key=attrgetter('activation'))
+            goal = max(self.goals, key=attrgetter('reward'))
             neighbors = [pnode, forward_model, goal, self.current_policy]
             cnode = self.__add_node('CNode', 'mdb_ltm.cnode.CNode', neighbors=neighbors, weight=1.0)
             rospy.logdebug('New c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
@@ -439,7 +441,7 @@ class LTM(object):
         networkx.draw_networkx_edges(
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5)
         networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
-        goal = max(self.goals, key=attrgetter('activation'))
+        goal = max(self.goals, key=attrgetter('reward'))
         pyplot.title(
             'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
             str(self.iteration) + ' REWARD: ' + str(self.current_reward) + '\nPOLICY: ' + self.current_policy.ident,
@@ -478,13 +480,13 @@ class LTM(object):
             self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
-    def run(self, seed=None, iterations=1000, log_level='INFO', plot=False):
+    def run(self, seed=None, log_level='INFO', plot=False):
         """Start the LTM part of the brain."""
         try:
             self.__init(log_level, seed)
             rospy.loginfo('Running LTM...')
             sensing = self.__read_perceptions()
-            while (not rospy.is_shutdown()) and (self.iteration <= iterations):
+            while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo('*** ITERATION: ' + str(self.iteration) + ' ***')
                 if not self.goals:
                     self.there_are_goals.wait()
@@ -494,7 +496,7 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                self.current_reward = self.current_goal.get_reward()
+                self.current_reward = self.current_goal.reward
                 if self.current_reward < self.current_goal.threshold:
                     self.__add_antipoint(previous_sensing)
                 else:

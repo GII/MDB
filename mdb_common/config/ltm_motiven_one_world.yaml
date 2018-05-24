@@ -1,4 +1,5 @@
 Experiment:
+    iterations: 30000
     period: 3000
     trials: 3000
     worlds: ['gripper_and_low_friction']
