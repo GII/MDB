@@ -101,22 +101,11 @@ class exp_track:
 		return imageros
 
 	def initialize_objects(self):
-		#self.objects.append(['cilindro', np.array([47, 133, 70], dtype='float')/255])
-		#self.objects.append(['cilindro', np.array([55, 140, 118], dtype='float')/255])
-		self.objects.append(['cilindro', np.array([75, 157, 143], dtype='float')/255])
+		self.objects.append(['cilindro', np.array(rospy.get_param("~c_rgb"), dtype='float')/255])
 		if self.exp_rec == "mot":
-			#self.objects.append(['cesta',   np.array([57, 35, 90],  dtype='float')/255])
-			###
-			self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])	
-			#self.objects.append(['cesta', np.array([88, 119, 127], dtype='float')/255])
-			#self.objects.append(['cesta',   np.array([129, 98, 120],  dtype='float')/255])				
-			#self.objects.append(['cesta',   np.array([184, 119, 98],  dtype='float')/255])
-			#self.objects.append(['cesta',   np.array([178, 50, 0],  dtype='float')/255])
-			#self.objects.append(['robobo',   np.array([19, 67, 125],  dtype='float')/255])
+			self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
 		else:
-			#self.objects.append(['cesta',   np.array([70, 0, 105],  dtype='float')/255])
-			self.objects.append(['cesta',   np.array([66, 55, 127],  dtype='float')/255])
-			#self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])
+			self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
 		###
 		#self.objects.append(['robobo',   np.array([19, 67, 125],  dtype='float')/255])
 		#self.objects.append(['robobo',   np.array([34, 86, 130],  dtype='float')/255])
@@ -305,6 +294,7 @@ class exp_track:
 		img_cv = self.image_ros2cv(img)
 		#img_cv = cv2.imread('/home/baxter/Descargas/photo6039835045067336906.jpg')
 		#img_cv = cv2.imread('/home/baxter/Descargas/photo6023781007070703177.jpg')
+		#img_cv = cv2.imread('/home/baxter/Descargas/photo5776302972840553965.jpg')
 		if self.head_camera:
 			im_cv = img_cv[:, :, ::-1]
 			img_float = img_as_float(im_cv)

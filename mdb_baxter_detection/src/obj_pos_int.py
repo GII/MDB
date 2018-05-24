@@ -26,7 +26,24 @@ class obj_pos_int:
 	
 		#print self.complete_uv, '\n\n\n', self.complete_xy, '\n\n\n'
 
-		self.fu, self.fv = self.obtain_interpolation_rbf("linear")
+		'''self.left_uv = []
+		self.left_xy = []
+
+		for ite in range (0, len(self.complete_xy)):
+			if self.complete_xy[ite][1] > 0.0:
+				self.left_uv.append(self.complete_uv[ite])
+				self.left_xy.append(self.complete_xy[ite])
+
+		print self.left_uv, '\n\n\n', self.left_xy, '\n\n\n'
+		self.complete_uv = self.left_uv
+		self.complete_xy = self.left_xy'''
+
+		self.fu, self.fv = self.obtain_interpolation_rbf(rospy.get_param("~function_type"))
+		#self.fu, self.fv = self.obtain_interpolation_int2d("cubic")
+
+		#print [197, 276]
+		#print self.fu(197, 276), self.fv(197, 276)
+
 
 	def read_grid_data_file(self):
 		custom_configuration_file = self.rospack.get_path('mdb_baxter_detection')+"/config/"+rospy.get_param("~overhead_camera_file") 
@@ -35,7 +52,7 @@ class obj_pos_int:
 			if k == 'data':
 				for pose in config[k]:
 					if pose[1] != 'non_reachable' and pose[1][0][0] != "None":
-						self.complete_uv.append([pose[1][0][0][1], pose[1][0][0][0]]) 
+						self.complete_uv.append(pose[1][0][0]) 
 						self.complete_xy.append(pose[0])
 
 	def obtain_interpolation_rbf(self, f_type):
@@ -45,13 +62,24 @@ class obj_pos_int:
 		x = np.array(self.complete_xy)[:,0]
 		y = np.array(self.complete_xy)[:,1]
 
-		rbf_x = scipy.interpolate.Rbf (u, v, x, function=f_type, smooth=0) 
+		rbf_x = scipy.interpolate.Rbf (u, v, x, function=f_type, smooth=0)
 		rbf_y = scipy.interpolate.Rbf (u, v, y, function=f_type, smooth=0)
 
 		return rbf_x, rbf_y
 
+	def obtain_interpolation_int2d(self, f_type):
+		u = np.array(self.complete_uv)[:,0]
+		v = np.array(self.complete_uv)[:,1]
+
+		x = np.array(self.complete_xy)[:,0]
+		y = np.array(self.complete_xy)[:,1]
+
+		fx = scipy.interpolate.interp2d(u, v, x, kind=f_type)
+		fy = scipy.interpolate.interp2d(u, v, y, kind=f_type)
+		return fx, fy
+
 	def track_cb(self, coor):
-		self.manage_depth(coor.v.data, coor.u.data)
+		self.manage_depth(coor.u.data, coor.v.data)
 
 	def sensorization_conversion(self, x, y, z):
 		dist = np.sqrt((x**2)+(y**2))
