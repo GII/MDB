@@ -2,16 +2,14 @@
 <launch> 
    <arg name="decimation" default="1"/> <!-- 1 -->
    <!--arg name="obj_type" default="ball"/-->
-   <arg name="rate" default="30"/>
-   <arg name="stype" default="single"/>
-   <arg name="use_beacons" default="false"/>
    <arg name="debug" default="false"/>
    <arg name="exp_rec" default="ltm"/>
    <arg name="tag" default="false"/>
+   <arg name="detect_obj" default="true"/>
+   <arg name="detect_box" default="true" />
    <arg name="head_camera" default="false"/>
 
    <arg name="overhead_camera_file" default="exp_sense_int.yml" />
-
    <arg name="table_segmentation_threshold" default="0.05"/>
 
    <arg name="camera_frame" default="camera_rgb_optical_frame"/>
@@ -34,6 +32,10 @@
        <param name="exp_rec" type="str" value="$(arg exp_rec)" />
        <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
        <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
+
+	   <rosparam param="c_rgb">[75, 157, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
+
    </node>
 
    <node name="exp_track" pkg="mdb_baxter_detection" type="exp_track.py" required="true" output="screen" if="$(arg debug)" launch-prefix="xterm -e python -m pdb">
@@ -41,15 +43,18 @@
        <param name="exp_rec" type="str" value="$(arg exp_rec)" />
        <param name="head_camera" type="bool" value="$(arg head_camera)"/>
        <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
+
+	   <rosparam param="c_rgb">[75, 157, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
    </node>
 
-   <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen">
+   <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_obj)">
        <param name="obj_type" type="str" value="ball"/>
 	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
 	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
    </node>
 
-	<node name="box_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen">
+	<node name="box_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_box)">
        <param name="obj_type" type="str" value="box"/>
 	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
 	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />

@@ -18,19 +18,19 @@
 
 #!/usr/bin/env python
 import rospy, sys, copy, moveit_commander, rospkg
-from baxter_core_msgs.msg import EndpointState, EndEffectorState
-from geometry_msgs.msg import Pose, Point, Quaternion
+from baxter_core_msgs.msg import EndpointState, EndEffectorState, JointCommand
+from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
 from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest, GetPositionIK, GetPositionIKRequest
 from mdb_baxter_policies.srv import GetJS, GetES, GetHS
 from baxter_interface.gripper import Gripper
-from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint
+from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, Grasp, RobotTrajectory
 from shape_msgs.msg import SolidPrimitive
-
 from moveit_commander import PlanningSceneInterface
-from geometry_msgs.msg import PoseStamped
-from moveit_msgs.msg import Grasp
+
+from trajectory_msgs.msg import JointTrajectoryPoint
+from baxter_interface.limb import Limb
 
 class baxter_arm():
 	def __init__(self):
@@ -70,6 +70,12 @@ class baxter_arm():
 		self.rgripper_instate = EndEffectorState()
 		self.lgripper_instate_sub = rospy.Subscriber("/robot/end_effector/left_gripper/state", EndEffectorState, self.lgripper_in_cb)
 		self.rgripper_instate_sub = rospy.Subscriber("/robot/end_effector/right_gripper/state", EndEffectorState, self.rgripper_in_cb)
+
+		self.left_joint_command_pub = rospy.Publisher("/robot/limb/left/joint_command", JointCommand, queue_size = 1)
+		self.right_joint_command_pub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 1)
+
+		self.left_limb = Limb('left')
+		self.right_limb = Limb('right')
 
 		###################
 		###		TEST	###
@@ -194,6 +200,14 @@ class baxter_arm():
 		}
 		return options[arg]
 
+	# Choose between baxter's natural arm joints order and the moveit one (joint command).
+	def choose_joint_command_order(self, arg):
+		options = {
+			'baxter':[4,5,6,0,1,2,3],
+			'moveit':[4,5,6,2,3,0,1],
+		}
+		return options[arg]
+
 	def choose_arm_group(self, arg):
 		options = {
 			'right':self.rarm_group,
@@ -227,6 +241,20 @@ class baxter_arm():
 		options = {
 			'right':self.rgripper_state,
 			'left':self.lgripper_state,
+		}
+		return options[arg]
+
+	def choose_joint_command_pub (self, arg):
+		options = {
+			'right':self.right_joint_command_pub,
+			'left':self.left_joint_command_pub,  
+		}
+		return options[arg]
+
+	def choose_limb (self, arg):
+		options = {
+			'right':self.right_limb,
+			'left':self.left_limb,
 		}
 		return options[arg]
 	
@@ -359,11 +387,61 @@ class baxter_arm():
 			return True
 		except rospy.ServiceException as exc:
 			print ("Service did not process request: " + str(exc))
-			return False		
+			return False
 
-	##########################
-	### Arm joint movement ###
-	##########################
+	#############################################
+	###	Arm joint movement (baxter interface) ###
+	#############################################
+
+	def move_joints_interface (self, side, positions, ratio, source):
+		arranged_joint_names = self.arrange_joint_command(self.select_joint_names(side), 'moveit')
+		arranged_positions = self.arrange_joint_command(positions, source)
+
+		dic = dict(zip(arranged_joint_names, arranged_positions))
+
+		self.choose_limb(side).set_joint_position_speed(ratio)
+		rospy.sleep(2)
+		
+		control_rate = rospy.Rate(100)
+		while not rospy.is_shutdown():
+			self.choose_limb(side).set_joint_positions(dic, False)
+			control_rate.sleep()
+
+	##########################################
+	###	Arm joint movement (joint command) ###
+	##########################################
+
+	def arrange_joint_command (self, command, source):
+		arranged_command_values = list(range(len(command)))
+		order = self.choose_joint_command_order(source)
+		for ite in range(0, len(arranged_command_values)):
+			arranged_command_values[ite] = command[order[ite]]
+		return arranged_command_values
+
+	def move_joints_command (self, mode, command, side, source):
+		joint_command = JointCommand()
+
+		joint_command.mode = mode
+		joint_command.command = self.arrange_joint_command(command, source)
+		joint_command.names = self.arrange_joint_command(self.select_joint_names(side), 'moveit')
+
+		
+		self.choose_joint_command_pub(side).publish(joint_command)
+
+	###################################
+	### Arm joint movement (moveit) ###
+	###################################
+
+	def arrange_angles (self, angles, side, way):
+		group_variable_values = None
+		if (side=="both"):
+			group_variable_values = angles
+		else:
+			group_variable_values = list(range(7))
+			order = self.choose_joints_order(way)
+			for ite in range(0, len(group_variable_values)):
+				group_variable_values[ite] = angles[order[ite]]
+		return group_variable_values
 
 	def change_velocity(self, plan, scale):
 		for point in plan.joint_trajectory.points:
@@ -395,31 +473,18 @@ class baxter_arm():
 	#Moves the arm to a specific target of joints angles
 	def move_joints_directly (self, angles, way, side, wait, scale):
 		self.choose_arm_group(side).clear_pose_targets()
-		group_variable_values = None
-		if (side=="both"):
-			group_variable_values = angles
-		else:
-			group_variable_values = list(range(7))
-			order = self.choose_joints_order(way)
-			for ite in range(0, len(group_variable_values)):
-				group_variable_values[ite] = angles[order[ite]]
-		
+		group_variable_values = self.arrange_angles(angles, side, way)
+
 		self.choose_arm_group(side).set_joint_value_target(group_variable_values)
 		plan = self.choose_arm_group(side).plan()
+		#print plan
 		self.change_velocity(plan, scale)
 		self.execute_kp(plan, wait)
 
 	def move_joints_plan(self, angles, way, side):
 		self.choose_arm_group(side).clear_pose_targets()
-		group_variable_values = None
-		if (side=="both"):
-			group_variable_values = angles
-		else:
-			group_variable_values = list(range(7))
-			order = self.choose_joints_order(way)
-			for ite in range(0, len(group_variable_values)):
-				group_variable_values[ite] = angles[order[ite]]
-		
+		group_variable_values = self.arrange_angles(angles, side, way)
+	
 		self.choose_arm_group(side).set_joint_value_target(group_variable_values)
 		plan = self.choose_arm_group(side).plan()
 		return plan
@@ -445,20 +510,70 @@ class baxter_arm():
 			group_joint_values[ite] = joints.position[order[ite]]
 		return group_joint_values
 
-	#Restores the pose of the arm to its initial state
-	def restore_arm_pose(self, side):
-		self.wait_to_move()
+	def manage_group_joints(self, side):
 		group_joint_values = None
 		if (side=="both"):
 			group_joint_values = self.create_group_joints("left") + self.create_group_joints("right")
 		else:
 			group_joint_values = self.create_group_joints(side)
+		return group_joint_values
+
+	#Restores the pose of the arm to its initial state
+	def restore_arm_pose(self, side):
+		self.wait_to_move()
+		group_joint_values = self.manage_group_joints(side)
 		rospy.sleep(1)
 		self.choose_arm_group(side).clear_pose_targets()
 		self.choose_arm_group(side).set_start_state_to_current_state()
 		self.choose_arm_group(side).set_joint_value_target(group_joint_values)
 		plan = self.choose_arm_group(side).plan()
+		#print plan
+		#for pit in range (0, len(plan.joint_trajectory.points)):
+			#print plan.joint_trajectory.points[pit].positions
 		self.execute_kp(plan, True)
+
+	def select_joint_names (self, side):
+		options = {
+			'left':['left_s0', 'left_s1', 'left_e0', 'left_e1', 'left_w0', 'left_w1', 'left_w2'],
+			'right':['right_s0', 'right_s1', 'right_e0', 'right_e1', 'right_w0', 'right_w1', 'right_w2'], 
+			'both':['left_s0', 'left_s1', 'left_e0', 'left_e1', 'left_w0', 'left_w1', 'left_w2', 'right_s0', 'right_s1', 'right_e0', 'right_e1', 'right_w0', 'right_w1', 'right_w2'], 
+		}
+		return options[side]
+
+	def create_joint_trajectory_point(self, positions, velocities, accelerations, time):
+		point = JointTrajectoryPoint()
+		point.positions = positions
+		point.velocities = velocities
+		point.accelerations = accelerations
+		#point.effort
+		point.time_from_start = rospy.Duration(time)
+
+		return point
+
+	def create_first_joint_trajectory_point(self, side):
+		point = JointTrajectoryPoint()
+		point.positions = self.manage_group_joints(side)
+		point.velocities = [0.0] * len(point.positions)
+		point.accelerations = [0.0] * len(point.positions)
+		#point.effort
+		point.time_from_start = rospy.Duration(0)
+		
+		return point	
+
+	def create_joint_trajectory (self, positions, velocities, accelerations, side, time):
+		robot_trajectory = RobotTrajectory()
+		robot_trajectory.joint_trajectory.header = self.create_header('base')
+		robot_trajectory.joint_trajectory.joint_names = self.select_joint_names(side)
+
+		robot_trajectory.joint_trajectory.points.append(self.create_first_joint_trajectory_point(side))		
+		robot_trajectory.joint_trajectory.points.append(self.create_joint_trajectory_point(positions, velocities, accelerations, time))
+	
+		return robot_trajectory
+
+	def move_joints_raw_position (self, angles, speed, acceleration, way, side, wait, time):
+		group_variable_values = self.arrange_angles(angles, side, way)
+		plan = self.create_joint_trajectory (group_variable_values, speed, acceleration, side, time)
+		self.execute_kp(plan, wait)
 
 	##############################
 	### Arm cartesian movement ###
