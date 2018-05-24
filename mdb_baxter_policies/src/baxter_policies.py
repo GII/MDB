@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import rospy
 import tf, rospkg, yaml, math
 from baxter_arm import *
 from baxter_display import *
@@ -1765,6 +1766,7 @@ class baxter_policies():
 			else:
 				real_position = self.select_calibration_move(self.translate_move_flag(dist, far))(req.height.data, arm, dx, dy)
 				if real_position != False:
+					rospy.sleep(1)
 					pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
 					calibration_data.append([real_position, pos_data])
 					return True
@@ -1775,6 +1777,7 @@ class baxter_policies():
 					return False
 			
 		else:
+			rospy.sleep(1)
 			pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
 			calibration_data.append([[dx, dy], pos_data])
 			self.baxter_arm.restore_arm_pose("both")
