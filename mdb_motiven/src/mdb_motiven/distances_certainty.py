@@ -96,7 +96,7 @@ class DistancesCertainty(object):
 
     def get_h(self, T, p):
         """Return the distances between each of the n components of the trace points contained in T and any point p."""
-        return np.absolute(np.array(T), np.array(p)).T.tolist()
+        return np.absolute(np.array(T) - np.array(p)).T.tolist()
 
     def getHlim(self, MinDistancesMap, percentile, T, n_traces):
         """Return Hlim. the limit distances in the m dimensions from
