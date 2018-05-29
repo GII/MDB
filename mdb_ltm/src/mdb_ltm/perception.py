@@ -34,6 +34,13 @@ class Perception(Node):
         rospy.logdebug('Subscribing to %s...', topic)
         rospy.Subscriber(topic, message, callback=self.read_callback)
 
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state['sensor_semaphore']
+        del state['new_value']
+        return state
+
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""
         self.sensor_semaphore.acquire()

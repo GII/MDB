@@ -89,6 +89,14 @@ class LTM(object):
         self.graph_node_position = {}
         super(LTM, self).__init__()
 
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state['files']
+        del state['control_publisher']
+        del state['there_are_goals']
+        return state
+
     @property
     def perceptions(self):
         """Return the list of perceptions."""

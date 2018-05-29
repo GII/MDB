@@ -26,6 +26,12 @@ class File(object):
         self.ltm = kwargs['ltm']
         super(File, self).__init__()
 
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state['file_object']
+        return state
+
     def write_header(self):
         """Write the header of the file."""
         self.file_object = open(self.file_name, 'a')
@@ -92,20 +98,10 @@ class FileLTMDump(File):
 
     def write(self):
         """Do the LTM dump."""
-        iteration = self.ltm.iteration
-        files = self.ltm.files
-        control_publisher = self.ltm.control_publisher
-        there_are_goals = self.ltm.there_are_goals
         self.ltm.iteration += 1
-        self.ltm.files = None
-        self.ltm.control_publisher = None
-        self.ltm.there_are_goals = None
-        file_name = self.file_name + '_' + str(iteration) + '.yaml'
+        file_name = self.file_name + '_' + str(self.ltm.iteration) + '.yaml'
         yaml.dump(self.ltm, open(file_name, 'w'), Dumper=yaml.CDumper)
-        self.ltm.iteration = iteration
-        self.ltm.files = files
-        self.ltm.control_publisher = control_publisher
-        self.ltm.there_are_goals = there_are_goals
+        self.ltm.iteration -= 1
 
     def close(self):
         """Close de underlying file."""
