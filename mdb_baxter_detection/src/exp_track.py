@@ -28,7 +28,6 @@ class exp_track:
 		self.bg_rec = 20
 
 		self.mask_table = None
-
 		self.do_sense = False
 
 		self.exp_rec = rospy.get_param("~exp_rec")
@@ -357,7 +356,7 @@ class exp_track:
 						im_out[idx[:,0],idx[:,1]] = obj[1]*255
 						centro_i =  np.sum(idx[:,0])/idx.shape[0]
 						centro_j =  np.sum(idx[:,1])/idx.shape[0]
-						l = 2
+						l = 1
 						bbox_centro = np.round([centro_i-l, centro_j-l, centro_i+l, centro_j+l])
 
 						if obj[0]== "robobo" and not robobo:
@@ -365,7 +364,7 @@ class exp_track:
 						else:					
 							if (obj[0] == "cilindro" and not cylinder) or (obj[0] == "cesta" and not box):
 								im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=False, color=obj[1])
-								im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=True, color=[1, 1, 1])
+								#im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=True, color=[1, 1, 1])
 								#print 'Objeto: ' + obj[0] + ', ' + np.str([int(centro_i), int(centro_j)])
 	
 								obj_det = ObjDet()
