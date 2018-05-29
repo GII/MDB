@@ -406,19 +406,21 @@ class baxter_policies():
 						if self.baxter_arm.move_xyz(x+dx, y+dy, srv.obj_sens.height.data, False, "current", srv.arm.data, srv.scale.data, 1.0):
 							rospy.sleep(0.5)
 							self.baxter_arm.move_xyz(x+dx, y+dy, srv.obj_sens.height.data+0.12, False, "current", srv.arm.data, srv.scale.data, 0.75)
+						
 							self.loop_tries = 5
 							self.grab_total_inc = 0.0
 
-							current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
+							'''current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
 							current_angles[0] = np.sign(self.select_sign(srv.arm.data))*0.35
 							self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 1.0)
+							self.baxter_arm.update_data()'''
 
-							self.baxter_arm.update_data()
-
+							self.adopt_oap()
 							rospy.set_param("/baxter_sense", True)
 							rospy.sleep(2)
 							rospy.delete_param("/baxter_sense")
 							rospy.sleep(2)
+							self.baxter_arm.restore_arm_pose(srv.arm.data)
 
 							return True
 						else:
@@ -729,7 +731,22 @@ class baxter_policies():
 
 					if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
 
-						current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
+						#current_l_angles = self.baxter_arm.choose_arm_group("left").get_current_joint_values()
+						#current_r_angles = self.baxter_arm.choose_arm_group("right").get_current_joint_values()
+
+						self.adopt_oap()
+						rospy.set_param("/baxter_sense", True)
+						rospy.sleep(2)
+						if self.exp_rec == "ltm":
+							rospy.delete_param("/baxter_sense")
+							rospy.sleep(2)
+
+						#self.baxter_arm.move_joints_directly(current_l_angles + current_r_angles, 'moveit', 'both', True, 1.0)
+						#self.baxter_arm.update_data()
+						self.baxter_arm.restore_arm_pose('both')
+
+						########
+						'''current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
 						current_angles[0] = np.sign(self.select_sign(srv.arm.data))*0.35
 						self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 1.0)
 
@@ -738,8 +755,8 @@ class baxter_policies():
 						if self.exp_rec == "ltm":
 							rospy.delete_param("/baxter_sense")
 							rospy.sleep(2)
-						self.baxter_arm.restore_arm_pose(srv.arm.data)
-						#normal_reach_grab
+						self.baxter_arm.restore_arm_pose(srv.arm.data)'''
+						########
 
 						xf, yf = self.translate_pos(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
 						if self.normal_reach_grab (xf, yf, srv, first):
@@ -1822,7 +1839,6 @@ class baxter_policies():
 		(init, end) = self.obtain_calibration_limits(req)
 
 		row_point_num = int(math.sqrt(req.point_num.data))
-
 		rospy.set_param("baxter_sense", True)
 
 		fail = True

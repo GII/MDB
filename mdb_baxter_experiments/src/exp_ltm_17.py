@@ -112,8 +112,8 @@ class exp_ltm_17():
 
 	def select_angle(self, arg):
 		options = {
-			'left': -0.3925,
-			'right': 0.3925,
+			'left': -0.3925-0.11,
+			'right': 0.3925+0.11,
 		}
 		return options[arg]
 
