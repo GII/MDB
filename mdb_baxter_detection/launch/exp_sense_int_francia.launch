@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<launch> 
+   <arg name="decimation" default="1"/> <!-- 1 -->
+   <!--arg name="obj_type" default="ball"/-->
+   <arg name="debug" default="false"/>
+   <arg name="exp_rec" default="ltm"/>
+   <arg name="tag" default="false"/>
+   <arg name="detect_obj" default="true"/>
+   <arg name="detect_box" default="true" />
+   <arg name="head_camera" default="false"/>
+
+   <arg name="overhead_camera_file" default="exp_sense_int.yml" />
+   <arg name="function_type" default="linear"/>
+
+   <arg name="table_segmentation_threshold" default="0.05"/>
+
+   <arg name="camera_frame" default="camera_rgb_optical_frame"/>
+   <!--arg name="camera_frame" default="headcamera_rgb_optical_frame"/-->
+   <arg name="original_image_topic" default="/camera/rgb/image_rect_color"/>
+   <arg name="image_topic" default="$(arg original_image_topic)_drop"/>
+   <!--arg name="image_topic" default="/pano_camera/image_color"/-->
+   <arg name="cloud_topic" default="/camera/depth_registered/points"/>
+   <!--arg name="cloud_topic" default="/example/pointcloud"/-->
+   <arg name="ref_frame" default="/base" />
+
+   <!--node pkg="tf" type="static_transform_publisher" name="camera_link_broadcaster" args="0.866 0.102 2.026 -0.007 0.708 0.003 0.706 base camera_link 100" required="true"/-->
+
+   <node name="drop_node" pkg="topic_tools" type="drop" args="$(arg original_image_topic) 3 4 $(arg image_topic)"/>
+
+   <include file="$(find mdb_baxter_detection)/launch/head_aruco_marker.launch" if="$(arg tag)"/> 
+
+   <node name="exp_track" pkg="mdb_baxter_detection" type="exp_track.py" required="true" output="screen" unless="$(arg debug)">
+       <remap from="/image_color" to="$(arg image_topic)" />
+       <param name="exp_rec" type="str" value="$(arg exp_rec)" />
+       <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
+       <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
+
+	   <rosparam param="c_rgb">[79, 148, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
+
+   </node>
+
+   <node name="exp_track" pkg="mdb_baxter_detection" type="exp_track.py" required="true" output="screen" if="$(arg debug)" launch-prefix="xterm -e python -m pdb">
+       <remap from="/image_color" to="$(arg image_topic)" />
+       <param name="exp_rec" type="str" value="$(arg exp_rec)" />
+       <param name="head_camera" type="bool" value="$(arg head_camera)"/>
+       <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
+
+	   <rosparam param="c_rgb">[75, 157, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
+   </node>
+
+   <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_obj)">
+       <param name="obj_type" type="str" value="ball"/>
+	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
+	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
+       <param name="function_type" type="str" value="$(arg function_type)"/>
+
+   </node>
+
+	<node name="box_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_box)">
+       <param name="obj_type" type="str" value="box"/>
+	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
+	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
+       <param name="function_type" type="str" value="$(arg function_type)"/>
+   </node>
+
+	<node name="robobo_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg tag)">
+       <param name="obj_type" type="str" value="robobo"/>
+	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
+	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
+       <param name="function_type" type="str" value="$(arg function_type)"/>
+	</node>
+
+</launch>
+
+

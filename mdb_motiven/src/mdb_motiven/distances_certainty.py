@@ -85,60 +85,35 @@ class DistancesCertainty(object):
 
         return D
 
-    def getPercentile(self, y, D):
-        """Return the percentile 'y' over the set 'D'"""
-        De = np.percentile(D, y, axis=1)
-        De = De.tolist()
-
-        return De
-
     def getDr(self, T):
-        """Return the minimum distances to the sensor limits (distance
-        from each of the n components of each episode contained in T)"""
-        Dr = []
-        for i in range(len(T[0])):
-            dist_sup = abs(self.Lsup[i] - self.Linf[i])
-            dist_inf = dist_sup
-
-            for j in range(len(T)):
-                dist_sup_tmp = abs(T[j][i] - self.Lsup[i])
-                dist_inf_tmp = abs(T[j][i] - self.Linf[i])
-
-                dist_sup = min(dist_sup, dist_sup_tmp)
-                dist_inf = min(dist_inf, dist_inf_tmp)
-
-            dist = max(dist_sup, dist_inf)
-            Dr.append(dist)
-
-        return Dr
+        """Returns the maximum of the minimum distances to the m-th sensor limits."""
+        np_T = np.array(T)
+        np_inf = np.array(self.Linf)
+        np_sup = np.array(self.Lsup)
+        np_inf_dist = np.amin(np.absolute(np_T - np_inf), axis=0)
+        np_sup_dist = np.amin(np.absolute(np_T - np_sup), axis=0)
+        return np.maximum(np_inf_dist, np_sup_dist).tolist()
 
     def get_h(self, T, p):
-        """Return the distances between each of the n components of the trace points contained in T and any point p"""
-        # print "Punto p en get_h: ", p
-        h = [[None] * len(T) for i in range(len(T[0]))]
-        for i in range(len(T[0])):
-            for j in range(len(T)):
-                h[i][j] = abs(p[i] - T[j][i])
-        return h
+        """Return the distances between each of the n components of the trace points contained in T and any point p."""
+        return np.absolute(np.array(T) - np.array(p)).T.tolist()
 
     def getHlim(self, MinDistancesMap, percentile, T, n_traces):
         """Return Hlim. the limit distances in the m dimensions from
         which traces quickly decrease their effect on the state space"""
-        De = self.getPercentile(percentile, MinDistancesMap)
+        De = np.percentile(MinDistancesMap, percentile, axis=1).tolist()
         Dr = self.getDr(T)
-
         Hlim = []
         for i in range(len(Dr)):
             if Dr[i] > De[i]:
                 Hlim.append((De[i] + (Dr[i] - De[i]) * pow(self.K, n_traces - 1)) / 2.0)
             else:
                 Hlim.append(De[i] / 2.0)
-
         # print "Hlim: ", Hlim
         return Hlim
 
     def get_hn(self, MinDistancesMap, percentile, T, n_traces, p):
-        """Return the effective distances in the m dimensions between the trace points and any point p"""
+        """Return the effective distances in the m dimensions between the trace points and any point p."""
 
         h = self.get_h(T, p)
         Hlim = self.getHlim(MinDistancesMap, percentile, T, n_traces)
