@@ -95,14 +95,17 @@ class FileLTMDump(File):
         iteration = self.ltm.iteration
         files = self.ltm.files
         control_publisher = self.ltm.control_publisher
+        there_are_goals = self.ltm.there_are_goals
         self.ltm.iteration += 1
         self.ltm.files = None
         self.ltm.control_publisher = None
+        self.ltm.there_are_goals = None
         file_name = self.file_name + '_' + str(iteration) + '.yaml'
         yaml.dump(self.ltm, open(file_name, 'w'), Dumper=yaml.CDumper)
         self.ltm.iteration = iteration
         self.ltm.files = files
         self.ltm.control_publisher = control_publisher
+        self.ltm.there_are_goals = there_are_goals
 
     def close(self):
         """Close de underlying file."""
