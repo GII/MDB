@@ -47,6 +47,13 @@ class GoalMotiven(Goal):
         rospy.logdebug('Subscribing to %s...', topic)
         rospy.Subscriber(topic, message, callback=self.update_reward_callback)
 
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state['new_activation']
+        del state['new_reward']
+        return state
+
     def update_activation_callback(self, data):
         """Calculate the new activation value."""
         if self.ident == data.id:

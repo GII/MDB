@@ -1,13 +1,14 @@
-#!/usr/bin/env python
-import rospy, math
+r#!/usr/bin/env python
+import rospy, math, rospkg, yaml
 import numpy as np
-from std_msgs.msg import Bool, Int32
+from std_msgs.msg import Bool, Int32, Float64
 from com_mytechia_robobo_ros_msgs.srv import Command
 from com_mytechia_robobo_ros_msgs.msg import KeyValue
 from mdb_common.srv import BaxChange, BaxMC
 
 class robobo_policies():
 	def __init__(self, global_policies):
+		self.rospack = rospkg.RosPack()
 		self.global_policies = global_policies
 
 		self.angle_time_l = []
@@ -16,10 +17,14 @@ class robobo_policies():
 		self.distance_l = []
 		self.area_limit_l = []
 
+		self.readtcfile()
+
 		self.rob_poly = self.global_policies.obtain_poly(self.angle_l, self.angle_time_l, 2)
 		self.rob_dist_poly = self.global_policies.obtain_poly(self.distance_l, self.distance_time_l, 2)
 
 		self.robobo_mv_srver = rospy.Service('/robobo_mv', BaxMC, self.handle_rob_move)
+		#self.robobo_mv_f_srver = rospy.Service('/robobo_move_forward', Float64, self.handle_rob_move_forward)
+
 		self.robobo_pick_srver = rospy.Service('/robobo_pick', BaxChange, self.handle_rob_pick)
 		self.robobo_drop_srver = rospy.Service('/robobo_drop', BaxChange, self.handle_rob_drop)
 		self.robobo_mv_b_srver = rospy.Service('/robobo_move_backwards', BaxChange, self.handle_rob_move_backwards)
@@ -36,7 +41,7 @@ class robobo_policies():
 		for k in config.keys():
 			if k == 'angle_time':
 				for angle_time in config[k]:
-					self.angle_time_l(angle_time)
+					self.angle_time_l.append(angle_time)
 			if k == 'angle':
 				for angle in config[k]:
 					self.angle_l.append(angle)
@@ -99,6 +104,9 @@ class robobo_policies():
 		command_parameters.append(KeyValue('degrees', str(math.degress)))
 		self.robobo_command(command_name, 0, command_parameters)
 		rospy.sleep(time)
+
+	def handle_rob_move_forward(self, srv):
+		self.rob_move_straight(srv.
 
 	def handle_rob_move_backwards (self, srv):
 		self.rob_move_straight(1.0, -1)

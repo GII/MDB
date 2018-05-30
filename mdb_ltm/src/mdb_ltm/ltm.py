@@ -89,6 +89,14 @@ class LTM(object):
         self.graph_node_position = {}
         super(LTM, self).__init__()
 
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state['files']
+        del state['control_publisher']
+        del state['there_are_goals']
+        return state
+
     @property
     def perceptions(self):
         """Return the list of perceptions."""
@@ -122,11 +130,16 @@ class LTM(object):
     @classmethod
     def restore(cls, file_name):
         """Return a new LTM object after loading a previous LTM memory dump from a file."""
-        if os.path.isfile(file_name):
-            print 'Loading a previous LTM memory dump from ' + file_name + '...'
-            ltm = yaml.load(open(file_name, 'r'), Loader=yaml.CLoader)
+        if file_name != None:
+            if os.path.isfile(file_name):
+                print 'Loading a previous LTM memory dump from ' + file_name + '...'
+                ltm = yaml.load(open(file_name, 'r'), Loader=yaml.CLoader)
+            else:
+                print file_name + ' does not exist, the name will be used to store a new LTM...'
+                ltm = LTM()
         else:
-            print file_name + ' does not exist, the name will be used to store a new LTM...'
+            file_name = 'ltm_dump'
+            print 'Using ' + file_name + ' to store a new LTM dump...'
             ltm = LTM()
         ltm.file_name = file_name
         return ltm
@@ -361,7 +374,7 @@ class LTM(object):
 
     def __add_point(self, perception):
         """Add a point to the p-node that corresponds with the executed policy."""
-        cnodes = [node for node in self.current_policy.neighbors if node.type == 'CNode' and node.context_is_on()]
+        cnodes = [node for node in self.current_policy.neighbors if node.type == 'CNode' and (node.context_is_on() or node.context_has_reward())]
         for cnode in cnodes:
             pnodes = (node for node in cnode.neighbors if node.type == 'PNode')
             for pnode in pnodes:
