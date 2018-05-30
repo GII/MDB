@@ -1,6 +1,5 @@
 """
 The shiny, all new, MDB 3.0.
-
 Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
@@ -17,9 +16,7 @@ from mdb_motiven.traces_memory import TracesMemory
 class DistancesCertainty(object):
     """
     This class represents a mathematical model that defines the implementation used for the creation of certainty maps.
-
     Its aim is to obtain the certainty value for a point 'p' given.
-
     """
 
     def __init__(self):
@@ -96,7 +93,7 @@ class DistancesCertainty(object):
 
     def get_h(self, T, p):
         """Return the distances between each of the n components of the trace points contained in T and any point p."""
-        return np.absolute(np.array(T), np.array(p)).T.tolist()
+        return np.absolute(np.array(T) - np.array(p)).T.tolist()
 
     def getHlim(self, MinDistancesMap, percentile, T, n_traces):
         """Return Hlim. the limit distances in the m dimensions from
@@ -269,7 +266,6 @@ class DistancesCertainty(object):
 
     def TraceListToTuple(self, TraceList):
         """ Transform a list into a tuple
-
         :param TraceList: a list of traces containing episodes (tuples)
         :return: a tuple of traces containing episodes (tuples)
         """
@@ -314,7 +310,6 @@ class DistancesCertainty(object):
 
     def DrawTrace(self, type, Trace, subspace):
         """Draw a line that represents a trace and all its trace points
-
         :param type: a string that indicates if it is a p-trace (p), n-trace (n) or w-trace (w)
         :param Trace: A tuple of tuples that represents the trace with its episodes coordinates (x,y)
         """
@@ -343,7 +338,6 @@ class DistancesCertainty(object):
 
     def DrawPoints(self):
         """Draws n random (x,y) points and colours them according to they certainty value
-
         :param number: number of random points to generate (default 100 points)
         """
         plt.clf()
