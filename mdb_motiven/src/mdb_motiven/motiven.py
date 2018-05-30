@@ -51,6 +51,7 @@ class MOTIVEN(object):
         self.it_blind = 0  # Number of iterations the Intrinsic blind motivation is active
         self.n_execution = 1  # Number of the execution of the experiment
         self.active_mot = 'Int'  # Variable to control the active motivation: Intrinsic ('Int') or Extrinsic ('Ext')
+        self.active_mot_old = 'Int'
         self.active_corr = 0  # Variable to control the active correlation. It contains its index
         self.corr_sensor = 0  # 1 - Sensor 1, 2 - Sensor 2, ... n- sensor n, 0 - no hay correlacion
         self.corr_type = ''  # 'pos' - Positive correlation, 'neg' - Negative correlation, '' - no correlation
@@ -264,17 +265,20 @@ class MOTIVEN(object):
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
-                pdb.set_trace()
-                if len(self.traces_buffer.getTrace()) < 2:
-                    dif = 0
+                if self.active_mot_old == 'Int':
+                    goal_ok_response = 0.25
                 else:
-                    sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
-                    sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
-                    dif = sens_t1 - sens_t
-                if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
-                    goal_ok_response = 0
-                else:
-                    goal_ok_response = 0.5
+                    pdb.set_trace()
+                    if len(self.traces_buffer.getTrace()) < 2:
+                        dif = 0
+                    else:
+                        sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
+                        sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
+                        dif = sens_t1 - sens_t
+                    if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
+                        goal_ok_response = 0
+                    else:
+                        goal_ok_response = 0.5
             else:  # self.active_mot == 'Int'
                 goal_ok_response = 0
         else:  # um_type == 'VF'
@@ -505,10 +509,12 @@ class MOTIVEN(object):
                 self.active_corr,
                 self.active_goal)
             if self.corr_sensor == 0:
+                self.active_mot_old = self.active_mot
                 self.active_mot = 'Int'
             else:
                 if self.active_mot == 'Int':
                     self.iter_min = 0
+                self.active_mot_old = self.active_mot
                 self.active_mot = 'Ext'
 
     def memory_manager(self):
