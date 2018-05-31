@@ -17,12 +17,12 @@ LTM:
             id: pnodes
             class: mdb_ltm.file.FilePNodes
             file: pnodes.txt
-            data: 12000
+            data: 3000
         -
             id: ltm_dump
             class: mdb_ltm.file.FileLTMPeriodicDump
             file: ltm_dump
-            data: 12000
+            data: 3000
     Connectors:
         -
             data: PNode

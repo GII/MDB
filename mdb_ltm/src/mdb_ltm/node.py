@@ -17,7 +17,7 @@ class Node(object):
 
     """
 
-    def __init__(self, ident, node_type, threshold=0.1, ltm=None, topic=None, **kwargs):
+    def __init__(self, ident, node_type, threshold=0.1, ltm=None, **kwargs):
         """Constructor."""
         self.ident = ident
         self.type = node_type
@@ -43,6 +43,5 @@ class Node(object):
         """
         if self.activation < self.threshold:
             self.activation = 0.0
-        rospy.logdebug(self.type + ' ' + self.ident + ' ' + str(self.activation))
-        # voy aquí, publicar en topic la activación
+        rospy.logdebug(self.type + ' activation for ' + self.ident + ' = ' + str(self.activation))
         super(Node, self).__init__(**kwargs)
