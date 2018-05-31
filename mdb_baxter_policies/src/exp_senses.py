@@ -31,21 +31,21 @@ class exp_senses():
 		self.rob_ori_obj_sb = rospy.Subscriber("/tracking/robobo_ori_obj", Float64, self.rob_ori_obj_cb)
 		self.rob_ori_box_sb = rospy.Subscriber("/tracking/robobo_ori_box", Float64, self.rob_ori_box_cb)
 
-		self.obj_dist_pb = rospy.Publisher("/mdb3/baxter/sensor/ball_dist", Float64, queue_size = 1)
-		self.obj_ang_pb = rospy.Publisher("/mdb3/baxter/sensor/ball_ang", Float64, queue_size = 1)
-		self.obj_size_pb = rospy.Publisher("/mdb3/baxter/sensor/ball_size", Float64, queue_size = 1)
+		self.obj_dist_pb = rospy.Publisher("/mdb/baxter/sensor/ball_dist", Float64, queue_size = 1)
+		self.obj_ang_pb = rospy.Publisher("/mdb/baxter/sensor/ball_ang", Float64, queue_size = 1)
+		self.obj_size_pb = rospy.Publisher("/mdb/baxter/sensor/ball_size", Float64, queue_size = 1)
 
-		self.box_dist_pb = rospy.Publisher("/mdb3/baxter/sensor/box_dist", Float64, queue_size = 1)
-		self.box_ang_pb = rospy.Publisher("/mdb3/baxter/sensor/box_ang", Float64, queue_size = 1)
-		self.box_size_pb = rospy.Publisher("/mdb3/baxter/sensor/box_size", Float64, queue_size = 1)
+		self.box_dist_pb = rospy.Publisher("/mdb/baxter/sensor/box_dist", Float64, queue_size = 1)
+		self.box_ang_pb = rospy.Publisher("/mdb/baxter/sensor/box_ang", Float64, queue_size = 1)
+		self.box_size_pb = rospy.Publisher("/mdb/baxter/sensor/box_size", Float64, queue_size = 1)
 
 		self.lgrip_sense = Float64(0.0)
 		self.rgrip_sense = Float64(0.0)
 		#self.lgrip_sense_pb = rospy.Publisher("/baxter_exp/left_gripper", Float64, queue_size = 1)
 		#self.rgrip_sense_pb = rospy.Publisher("/baxter_exp/left_gripper", Float64, queue_size = 1)
 
-		self.lgrip_sense_pb = rospy.Publisher("/mdb3/baxter/sensor/ball_in_left_hand", Bool, queue_size = 1)
-		self.rgrip_sense_pb = rospy.Publisher("/mdb3/baxter/sensor/ball_in_right_hand", Bool, queue_size = 1)
+		self.lgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_left_hand", Bool, queue_size = 1)
+		self.rgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_right_hand", Bool, queue_size = 1)
 
 		self.gs_srver = rospy.Service('/baxter_sense', GetSense, self.handle_gs)
 		self.gs_motiv_srver = rospy.Service('/mdb3/baxter/sensors', GetSenseMotiv, self.handle_gs_motiv)
@@ -173,6 +173,7 @@ class exp_senses():
 		return -math.degrees(angle)
 		
 	def publish_current_senses (self, box_rad, obj_rad):
+		#rospy.loginfo("Publishing sensorization")
 		#print "\nSENSE: \nobj > ", self.obj_sense,"\nbox > ", self.box_sense, " \ngrippers > ", self.lgrip_sense, self.rgrip_sense 	
 
 		self.obj_dist_pb.publish(Float64(self.obj_sense.dist.data))

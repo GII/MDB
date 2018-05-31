@@ -263,6 +263,7 @@ class baxter_arm():
 	##########################
 
 	def move_to_pose_goal (self, pose, side, wait, scale):
+		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group(side).clear_pose_targets()
 		self.choose_arm_group(side).set_pose_target(pose)
@@ -292,6 +293,7 @@ class baxter_arm():
 	###	   Position Goal   ###
 	##########################
 	def move_to_position_goal (self, pos, side, wait, scale):
+		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group(side).clear_pose_targets()
 		pose_target = Pose()
@@ -309,6 +311,7 @@ class baxter_arm():
 		self.execute_kp(plan, wait)
 
 	def move_to_position_goal_both (self, pos, wait, scale):
+		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group('both').clear_pose_targets()
 		l_ori = self.choose_arm_state('left').current_es.pose.orientation
@@ -342,6 +345,7 @@ class baxter_arm():
 	###		 Ori Goal      ###
 	##########################
 	def move_to_ori_goal (self, ori, side, wait, scale):
+		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group(side).clear_pose_targets()
 		pos = self.choose_arm_state(side).current_es.pose.position
@@ -359,6 +363,7 @@ class baxter_arm():
 		self.execute_kp(plan, wait)
 
 	def move_to_ori_goal_both (self, ori, wait, scale):
+		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group("both").clear_pose_targets()
 		l_pos = self.choose_arm_state("left").current_es.pose.position
@@ -472,6 +477,7 @@ class baxter_arm():
 
 	#Moves the arm to a specific target of joints angles
 	def move_joints_directly (self, angles, way, side, wait, scale):
+		self.wait_to_move()
 		self.choose_arm_group(side).clear_pose_targets()
 		group_variable_values = self.arrange_angles(angles, side, way)
 
@@ -482,6 +488,7 @@ class baxter_arm():
 		self.execute_kp(plan, wait)
 
 	def move_joints_plan(self, angles, way, side):
+		self.wait_to_move()
 		self.choose_arm_group(side).clear_pose_targets()
 		group_variable_values = self.arrange_angles(angles, side, way)
 	
@@ -498,6 +505,7 @@ class baxter_arm():
 		return plan_l[0]
 
 	def move_joints_execute(self, plan, wait, scale):
+		self.wait_to_move()
 		self.change_velocity(plan, scale)
 		self.execute_kp(plan, wait)
 
@@ -571,6 +579,7 @@ class baxter_arm():
 		return robot_trajectory
 
 	def move_joints_raw_position (self, angles, speed, acceleration, way, side, wait, time):
+		self.wait_to_move()
 		group_variable_values = self.arrange_angles(angles, side, way)
 		plan = self.create_joint_trajectory (group_variable_values, speed, acceleration, side, time)
 		self.execute_kp(plan, wait)
@@ -790,6 +799,7 @@ class baxter_arm():
 		rospy.sleep(1)'''
 		
 	def move_xyz_execute(self, points, pick, code, scale, perc):
+		self.wait_to_move()
 		l_plan = self.move_xyz_plan(points[0], points[1], points[2], code, 'left', perc)
 		r_plan = self.move_xyz_plan(points[3], points[4], points[5], code, 'right', perc)
 
@@ -820,6 +830,7 @@ class baxter_arm():
 		rospy.sleep(1)
 
 	def move_xyz_both(self, points, pick, code, scale, perc):
+		self.wait_to_move()
 		l_plan = self.move_xyz_plan(points[0], points[1], points[2], code, 'left', perc)
 		r_plan = self.move_xyz_plan(points[3], points[4], points[5], code, 'right', perc)
 		b_plan = None

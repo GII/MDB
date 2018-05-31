@@ -11,4 +11,6 @@
 	<param name="config_time" type="int" value="$(arg config_time)" />
 	<param name="fixed_height" type="double" value="$(arg fixed_height)" />
   </node>
+
+  <node name="exp_ltm_helper" pkg="mdb_baxter_experiments" type="exp_ltm_helper.py" required="true" output="screen"/> 
 </launch>
