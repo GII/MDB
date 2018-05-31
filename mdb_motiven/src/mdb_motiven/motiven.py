@@ -1,6 +1,5 @@
 """
 The shiny, all new, MDB 3.0.
-
 Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
@@ -265,24 +264,15 @@ class MOTIVEN(object):
         # For now, only SURs are considered as possible utility models
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
-                if self.active_mot_old == 'Int':
-                    goal_ok_response = 0.25
+                # pdb.set_trace()
+                if self.correlations_manager.correlations[self.active_corr].established():
+                    goal_ok_response = 0.5
                 else:
-                    pdb.set_trace()
-                    if len(self.traces_buffer.getTrace()) < 2:
-                        dif = 0
-                    else:
-                        sens_t = self.traces_buffer.getTrace()[-2][self.corr_sensor - 1]
-                        sens_t1 = self.traces_buffer.getTrace()[-1][self.corr_sensor - 1]
-                        dif = sens_t1 - sens_t
-                    if (self.corr_type == 'pos' and dif <= 0) or (self.corr_type == 'neg' and dif >= 0):
-                        goal_ok_response = 0
-                    else:
-                        goal_ok_response = 0.5
+                    goal_ok_response = 0.0
             else:  # self.active_mot == 'Int'
-                goal_ok_response = 0
+                goal_ok_response = 0.0
         else:  # um_type == 'VF'
-            goal_ok_response = 0
+            goal_ok_response = 0.0
         return goal_ok_response
 
     def publish_goal_activations(self):
@@ -498,9 +488,9 @@ class MOTIVEN(object):
                 self.active_mot = 'Ext'
 
     def motivation_manager_ltm(self):
-        # pdb.set_trace()
+        self.active_mot_old = self.active_mot
         if self.use_motiv_manager:
-            if self.correlations_manager.correlations[self.active_corr].goal != self.active_goal:  # If the goal changes
+            if self.correlations_manager.correlations[self.active_corr].goal != self.active_goal:
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     self.sens_t1.values(),
                     self.active_goal)
@@ -509,12 +499,10 @@ class MOTIVEN(object):
                 self.active_corr,
                 self.active_goal)
             if self.corr_sensor == 0:
-                self.active_mot_old = self.active_mot
                 self.active_mot = 'Int'
             else:
                 if self.active_mot == 'Int':
                     self.iter_min = 0
-                self.active_mot_old = self.active_mot
                 self.active_mot = 'Ext'
 
     def memory_manager(self):
@@ -657,7 +645,7 @@ class MOTIVEN(object):
                     self.sens_t1.values(),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reinitialize_memories()
                 self.it_reward = 0
                 self.it_blind = 0
@@ -691,7 +679,7 @@ class MOTIVEN(object):
                     self.sens_t1.values(),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
-                pdb.set_trace()
+                # pdb.set_trace()
                 self.reinitialize_memories()
                 self.use_motiv_manager = 1
                 self.it_reward = 0
