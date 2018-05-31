@@ -57,14 +57,14 @@ class GoalMotiven(Goal):
     def update_activation_callback(self, data):
         """Calculate the new activation value."""
         if self.ident == data.id:
-            rospy.logdebug('Goal activation for ' + data.id + ' = ' + str(data.activation))
+            rospy.logdebug('Reading goal activation for ' + data.id + ' = ' + str(data.activation))
             self.activation = data.activation
             self.new_activation.set()
 
     def update_reward_callback(self, data):
         """Calculate the value for the current sensor values."""
         if self.ident == data.id:
-            rospy.logdebug('Goal success for ' + data.id + ' = ' + str(data.ok))
+            rospy.logdebug('Reading goal success for ' + data.id + ' = ' + str(data.ok))
             self.reward = data.ok
             self.new_reward.set()
 
@@ -102,7 +102,7 @@ class GoalBallInBox(Goal):
             if (
                     (abs(perceptions['ball_dist'].raw - perceptions['box_dist'].raw) < 0.05) and
                     (abs(perceptions['ball_ang'].raw - perceptions['box_ang'].raw) < 0.05)
-                ): # yapf: disable
+                ):
                 self.reward = 1.0
             elif perceptions['ball_in_left_hand'].raw or perceptions['ball_in_right_hand'].raw:
                 if perceptions['ball_in_left_hand'].raw and perceptions['ball_in_right_hand'].raw:
@@ -110,13 +110,13 @@ class GoalBallInBox(Goal):
                 elif (
                         (perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw > 0) or
                         (perceptions['ball_in_right_hand'].raw and perceptions['box_ang'].raw <= 0)
-                    ): # yapf: disable
+                    ):
                     self.reward = 0.6
                 elif perceptions['ball_in_left_hand'].raw and perceptions['box_ang'].raw <= 0:
                     if (
                             (not perceptions['ball_in_left_hand'].old_raw) and
                             (perceptions['ball_in_right_hand'].old_raw)
-                        ): # yapf: disable
+                        ):
                         self.reward = 0.0
                     else:
                         self.reward = 0.3
@@ -124,20 +124,21 @@ class GoalBallInBox(Goal):
                     if (
                             (perceptions['ball_in_left_hand'].old_raw) and
                             (not perceptions['ball_in_right_hand'].old_raw)
-                        ): # yapf: disable
+                        ):
                         self.reward = 0.0
                     else:
                         self.reward = 0.3
             elif (
-                    (abs(perceptions['ball_ang'].raw) < 0.05) and
                     (not perceptions['ball_in_left_hand'].old_raw) and
-                    (not perceptions['ball_in_right_hand'].old_raw)
-                ): # yapf: disable
+                    (not perceptions['ball_in_right_hand'].old_raw) and
+                    (abs(perceptions['ball_ang'].raw) < 0.05) and
+                    (LTMSim.object_pickable_withtwohands(perceptions['ball_dist'].raw, perceptions['ball_ang'].raw))
+                ):
                 self.reward = 0.3
             elif (
                     (not LTMSim.object_too_far(perceptions['ball_dist'].raw, perceptions['ball_ang'].raw)) and
                     (LTMSim.object_too_far(perceptions['ball_dist'].old_raw, perceptions['ball_ang'].old_raw))
-                ): # yapf: disable
+                ):
                 self.reward = 0.2
         rospy.loginfo('Obtaining reward from ' + self.ident + ' => ' + str(self.reward))
         return self.reward
@@ -168,25 +169,27 @@ class GoalBallWithRobot(Goal):
                     (perceptions['ball_ang'].raw - ang_near < 0.05) and
                     (not perceptions['ball_in_left_hand'].raw) and
                     (not perceptions['ball_in_right_hand'].raw)
-                ): # yapf: disable
+                ):
                 self.reward = 1.0
             elif (
                     (perceptions['ball_in_left_hand'].raw or perceptions['ball_in_right_hand'].raw) and
                     (not perceptions['ball_in_left_hand'].old_raw) and
                     (not perceptions['ball_in_right_hand'].old_raw)
-                ): # yapf: disable
+                ):
                 self.reward = 0.6
             elif (
-                    (abs(perceptions['ball_ang'].raw) < 0.05) and
-                    (abs(perceptions['ball_ang'].old_raw) >= 0.05) and
+                    (not perceptions['ball_in_left_hand'].old_raw) and
+                    (not perceptions['ball_in_right_hand'].old_raw) and
                     (not perceptions['ball_in_left_hand'].raw) and
-                    (not perceptions['ball_in_right_hand'].raw)
-                ): # yapf: disable
+                    (not perceptions['ball_in_right_hand'].raw) and
+                    (abs(perceptions['ball_ang'].raw) < 0.05) and
+                    (LTMSim.object_pickable_withtwohands(perceptions['ball_dist'].raw, perceptions['ball_ang'].raw))
+                ):
                 self.reward = 0.3
             elif (
                     (not LTMSim.object_too_far(perceptions['ball_dist'].raw, perceptions['ball_ang'].raw)) and
                     (LTMSim.object_too_far(perceptions['ball_dist'].old_raw, perceptions['ball_ang'].old_raw))
-                ): # yapf: disable
+                ):
                 self.reward = 0.2
         rospy.loginfo('Obtaining reward from ' + self.ident + ' => ' + str(self.reward))
         return self.reward
