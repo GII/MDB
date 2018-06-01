@@ -1048,7 +1048,7 @@ class baxter_policies():
 					if self.adjust_orientation():
 						#self.baxter_arm.gripper_manager("left")
 						#self.baxter_arm.gripper_manager("right")
-						if self.move_both_cartesian([0.0, -0.125, 0.0, 0.0, +0.125, 0.0]):
+						if self.move_both_cartesian([0.0, -0.125, +0.01, 0.0, +0.125, +0.01]):
 							#print self.choose_dual_checker(self.mode)()
 							while not self.choose_dual_checker(self.mode)():
 								self.move_both_cartesian([0.0, -0.02, 0.0, 0.0, +0.02, 0.0])
