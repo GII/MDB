@@ -26,7 +26,15 @@ from mdb_motiven.episodic_buffer import EpisodicBuffer
 from mdb_motiven.goal_manager import GoalManager
 from mdb_motiven.traces_buffer import TracesBuffer
 from mdb_motiven.traces_memory import TracesMemory
+#LTM
+from mdb_simulator.ltm import LTMSim
 
+#####MOTIVEN HIGH LEVEL
+class MeanReward(object):
+    def __init__(self):
+        self.mean_value = 0
+        self.n_values = 0
+#####
 
 class MOTIVEN(object):
     def __init__(self):
@@ -100,6 +108,18 @@ class MOTIVEN(object):
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
         self.active_goal = self.goals_list[1]
+        # MOTIVEN HIGH LEVEL
+        self.motiven_high_level = True
+        if self.motiven_high_level:
+            self.reward_vector = TracesMemory()
+            self.traces_buffer2 = TracesBuffer()
+            self.traces_buffer2.setMaxSize(4)
+            self.episode2 = Episode()
+            self.state_t = 'Unnamed'
+            self.state_t1 = 'Unnamed'
+            self.reward_dict = dict.fromkeys(['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'Unnamed'])
+            for key in self.reward_dict.keys():
+                self.reward_dict[key] = MeanReward()
         # ROS stuff
         self.motivation_pb = None
         self.goal_topic_pb = None
@@ -195,6 +215,12 @@ class MOTIVEN(object):
         if not None in self.perceptions.values():
             self.sens_t = self.sens_t1
             self.sens_t1 = self.perceptions
+            ####
+            if self.motiven_high_level:
+                self.state_t = self.state_t1
+                self.state_t1 = self.getFinalState(self.sens_t1, self.sens_t)
+                pdb.set_trace()
+            ####
             self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
             if self.reset:
                 rospy.loginfo('MOTIVEN STAGE 0: end reading sensors after reset')
@@ -235,6 +261,10 @@ class MOTIVEN(object):
         else:
             self.reward = 0
         self.episode.setEpisode(self.sens_t.values(), policy_id.data, self.sens_t1.values(), self.reward)
+        #####
+        if self.motiven_high_level:
+            self.episode2.setEpisode(self.state_t, policy_id.data, self.state_t1, self.reward)
+        #####
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.memory_manager_ltm()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
@@ -242,6 +272,8 @@ class MOTIVEN(object):
             if self.active_goal == goal.goal_id:
                 if self.episode.getReward():
                     goal_ok = 1.0
+                elif self.motiven_high_level:
+                    goal_ok = self.reward_dict[self.state_t1].mean_value
                 else:
                     goal_ok = self.is_improving_behavior()
             else:
@@ -256,6 +288,10 @@ class MOTIVEN(object):
         self.it_reward += 1
         # self.stop_condition()
         self.episode.cleanEpisode()
+        #####
+        if self.motiven_high_level:
+            self.episode2.cleanEpisode()
+        #####
         rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
         self.run_sensor_cb.set()
 
@@ -265,7 +301,7 @@ class MOTIVEN(object):
         if um_type == 'SUR':
             if self.active_mot == 'Ext':
                 # pdb.set_trace()
-                if self.correlations_manager.correlations[self.active_corr].established():
+                if self.correlations_manager.correlations[self.active_corr].established:
                     goal_ok_response = 0.5
                 else:
                     goal_ok_response = 0.0
@@ -621,6 +657,11 @@ class MOTIVEN(object):
     def memory_manager_ltm(self):
         # Save episode in the pertinent memories
         self.traces_buffer.addEpisode(self.episode.getEpisode())
+        #####
+        if self.motiven_high_level:
+            if self.episode2.getSensorialStateT1() != 'Unnamed':
+                self.traces_buffer2.addEpisode(self.episode2.getEpisode())
+        #####
         self.intrinsic_memory.addEpisode(self.episode.getSensorialStateT1())
         self.memory_vf.addEpisode(self.episode.getEpisode())
         # Memory Manager (Traces, weak traces and antitraces)
@@ -654,6 +695,13 @@ class MOTIVEN(object):
                 self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
+                #####
+                if self.motiven_high_level:
+                    self.reward_vector.addTraces(self.traces_buffer2.getTraceReward())
+                    self.update_reward_values(self.traces_buffer2.getTraceReward())
+                    self.traces_buffer2.removeAll()
+                    pdb.set_trace()
+                #####
             elif self.correlations_manager.getReward(
                     self.active_corr,
                     self.reward,
@@ -689,6 +737,13 @@ class MOTIVEN(object):
                 self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
+                #####
+                if self.motiven_high_level:
+                    self.reward_vector.addTraces(self.traces_buffer2.getTraceReward())
+                    self.update_reward_values(self.traces_buffer2.getTraceReward())
+                    self.traces_buffer2.removeAll()
+                    pdb.set_trace()
+                #####
             elif self.correlations_manager.getReward(
                     self.active_corr,
                     self.reward,
@@ -960,3 +1015,100 @@ class MOTIVEN(object):
         self.graphx = pickle.load(f)
         self.graph2 = pickle.load(f)
         f.close()
+
+    #####
+    def getFinalState(self, perceptions_t1, perceptions_t):
+        """Method to translate perceptions into final states"""
+        if (None in perceptions_t.values()) or (None in perceptions_t1.values()):
+            state = 'Unnamed'
+            rospy.logdebug('Found None value in Perceptions')
+        else:
+            if perceptions_t1['ball_in_box']:
+                state = 'E7'
+            elif perceptions_t1['ball_in_left_hand'] or perceptions_t1['ball_in_right_hand']:
+                if (
+                        perceptions_t1['ball_in_left_hand'] and
+                        perceptions_t1['ball_in_right_hand'] and
+                        (
+                            (not perceptions_t['ball_in_left_hand']) or
+                            (not perceptions_t['ball_in_right_hand'])
+                        )
+                ):
+                    state = 'E5'
+                elif (
+                        (
+                            perceptions_t1['ball_in_left_hand'] and
+                            perceptions_t1['box_ang'] > 0 and
+                            (
+                                (not perceptions_t['ball_in_left_hand']) or
+                                (not perceptions_t['box_ang'] > 0)
+                            )
+                        )
+                        or
+                        (
+                            perceptions_t1['ball_in_right_hand'] and
+                            perceptions_t1['box_ang'] <= 0 and
+                            (
+                                (not perceptions_t['ball_in_right_hand']) or
+                                (not perceptions_t['box_ang'] <= 0)
+                            )
+                        )
+                ):
+                    state = 'E6'
+                elif perceptions_t1['ball_in_left_hand'] and perceptions_t1['box_ang'] <= 0:
+                    if (
+                            (not perceptions_t['ball_in_left_hand']) and
+                            (perceptions_t['ball_in_right_hand'])
+                    ):
+                        state = 'Unnamed'
+                    elif (
+                            (not perceptions_t['ball_in_left_hand']) or
+                            (not perceptions_t['box_ang'] <= 0)
+                    ):
+                        state = 'E3'
+                    else:
+                        state = 'Unnamed'
+                elif perceptions_t1['ball_in_right_hand'] and perceptions_t1['box_ang'] > 0:
+                    if (
+                            (perceptions_t['ball_in_left_hand']) and
+                            (not perceptions_t['ball_in_right_hand'])
+                    ):
+                        state = 'Unnamed'
+                    elif (
+                            (not perceptions_t['ball_in_right_hand']) or
+                            (not perceptions_t['box_ang'] > 0)
+                    ):
+                        state = 'E3'
+                    else:
+                        state = 'Unnamed'
+                else:
+                    state = 'Unnamed'
+            elif (
+                    (not perceptions_t['ball_in_left_hand']) and
+                    (not perceptions_t['ball_in_right_hand']) and
+                    (abs(perceptions_t1['ball_ang']) < 0.05) and
+                    (LTMSim.object_pickable_withtwohands(perceptions_t1['ball_dist'], perceptions_t1['ball_ang'])) and
+                    (
+                        (not LTMSim.object_pickable_withtwohands(perceptions_t['ball_dist'], perceptions_t['ball_ang'])) or
+                        (not abs(perceptions_t['ball_ang']) < 0.05)
+                    )
+            ):
+                state = 'E2'
+            elif (
+                    (not LTMSim.object_too_far(perceptions_t1['ball_dist'], perceptions_t1['ball_ang'])) and
+                    (LTMSim.object_too_far(perceptions_t['ball_dist'], perceptions_t['ball_ang']))
+            ):
+                state = 'E1'
+            else:
+                state = 'Unnamed'
+        rospy.logdebug('Perceptions correspond to state => ' + str(state))
+        return state
+
+    def update_reward_values(self, Trace):
+        """Method to update the reward values according to the new traces.
+         For now, the method consists of an arithmetic mean of the rewards that are obtained."""
+        if type(Trace) is list:
+            Trace = (Trace,)  # Convert into tuple of len=1
+        for i in range(len(Trace)):
+            self.reward_dict[Trace[i][0]].mean_value = (self.reward_dict[Trace[i][0]].mean_value * self.reward_dict[Trace[i][0]].n_values + Trace[i][1]) / (self.reward_dict[Trace[i][0]].n_values + 1)
+            self.reward_dict[Trace[i][0]].n_values += 1
