@@ -29,7 +29,7 @@ class File(object):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['file_object']
+        state['file_object'] = None
         return state
 
     def write_header(self):

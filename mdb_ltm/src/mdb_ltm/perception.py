@@ -37,8 +37,8 @@ class Perception(Node):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['sensor_semaphore']
-        del state['new_value']
+        state['sensor_semaphore'] = None
+        state['new_value'] = None
         return state
 
     def read_callback(self, reading):
