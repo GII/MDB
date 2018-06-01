@@ -688,7 +688,7 @@ class exp_ltm_17():
 
 		#Standard face
 		self.adopt_expression("normal")
-		rospy.loginfo("\nSuccess? :", resp)
+		rospy.loginfo("Success? : %s", resp)
 		return resp
 
 	def pan_selection (self, arg):

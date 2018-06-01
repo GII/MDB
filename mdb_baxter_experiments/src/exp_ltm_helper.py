@@ -11,7 +11,7 @@ class exp_ltm_helper():
 
 	def executed_policy_cb (self, policy_code):
 		req = ExecPolicyRequest()
-		req.policy_code = policy_code
+		req.policy_code.data = policy_code.data
 		resp = self.exec_pol_clnt(req)		
 
 def main():
