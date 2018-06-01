@@ -50,8 +50,8 @@ class GoalMotiven(Goal):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['new_activation']
-        del state['new_reward']
+        state['new_activation'] = None
+        state['new_reward'] = None
         return state
 
     def update_activation_callback(self, data):

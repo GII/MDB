@@ -24,7 +24,7 @@ class Policy(Node):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['publisher']
+        state['publisher'] = None
         return state
 
     def update_activation(self, ros_name_prefix=None, **kwargs):
