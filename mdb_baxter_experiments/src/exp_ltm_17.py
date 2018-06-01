@@ -81,12 +81,12 @@ class exp_ltm_17():
 		### ROS Subscribers ###
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
 		self.control_sub = rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.control_cb)
-		self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
+		#self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
 	
 	def control_cb (self, control_msg):
 		self.world = control_msg.world
 		self.pan_to('front', 0.1)
-		if control_msgs.reward == True:
+		if control_msg.reward == True:
 			self.reward_sound()
 		else:
 			self.afile_r.play()
@@ -330,13 +330,13 @@ class exp_ltm_17():
 		}
 		return options[arg]
 
-	def choose_arm (self, arg):
+	'''def choose_arm (self, arg):
 		if arg>0:
 			return "left"
 		elif arg<0:
 			return "right"
 		else:
-			return "left" #TODO:Aqui necesitaria ver por el log realmente cual es el brazo a utilizar atendiendo al estado del gripper antes y despues, etc.
+			return "left" #TODO:Aqui necesitaria ver por el log realmente cual es el brazo a utilizar atendiendo al estado del gripper antes y despues, etc.'''
 
 	def adapt_sens(self, sens):
 		return [sens[0]/100.0, -math.radians(sens[1]), sens[2]]
@@ -490,17 +490,14 @@ class exp_ltm_17():
 				self.adopt_expression("focus")
 				#Execute policy
 				if self.gripper_sense_data(global_s, arm) > 0.0:
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 					resp = False
 				else:
 					resp = self.choose_policy(policy_code)(srv).result.data
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			else:
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				resp = False
 
 		if policy_code == 'grasp_with_two_hands':
-			if (global_s.obj_sens.angle.data < 0.3925) and (global_s.obj_sens.angle.data > -0.3925) and (global_s.obj_sens.dist.data > 0.47) and (global_s.obj_sens.dist.data < 0.75):
+			if (global_s.obj_sens.angle.data < 0.3925) and (global_s.obj_sens.angle.data > -0.3925) and (global_s.obj_sens.dist.data > 0.47) and (global_s.obj_sens.dist.data < 0.75) and (global_s.left_grip.data < 1.0 and global_s.right_grip.data < 1.0):
 				if self.obj_type == "exp_big_obj" and self.world == "gripper_and_low_friction":
 					#Object sensorization:
 					srv.sensorization.const_dist = global_s.obj_sens.dist
@@ -512,7 +509,6 @@ class exp_ltm_17():
 					self.adopt_expression("focus")
 					#Execute policy
 					resp = self.choose_policy(policy_code)(srv).result.data
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				elif self.world == "no_gripper_and_high_friction":
 					#Object sensorization:
 					srv.sensorization.const_dist = global_s.obj_sens.dist
@@ -527,12 +523,9 @@ class exp_ltm_17():
 					self.adopt_expression("focus")
 					#Execute policy
 					resp = self.choose_policy(policy_code)(srv).result.data
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				else:
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 					resp = False
 			else:
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				resp = False
 
 		if policy_code == 'change_hands':
@@ -545,18 +538,11 @@ class exp_ltm_17():
 				self.adopt_expression("focus")
 				#Execute policy
 				resp = self.choose_policy(policy_code)(srv).result.data
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			else:
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				resp = False
 
 		if policy_code == 'sweep_object':
 			#Object sensorization
-			'''srv.obj_sens.const_dist.data = global_s.obj_sens.dist.data + 0.01
-			if global_s.obj_sens.angle.data > 0.0:
-				srv.obj_sens.angle.data = global_s.obj_sens.angle.data + 0.02
-			elif global_s.obj_sens.angle.data < 0.0:
-				srv.obj_sens.angle.data = global_s.obj_sens.angle.data - 0.02'''
 			srv.obj_sens.const_dist = global_s.obj_sens.dist
 			srv.obj_sens.angle = global_s.obj_sens.angle
 			srv.obj_sens.height.data = self.fixed_height+0.005+self.choose_sweep_height(self.obj_type)
@@ -580,7 +566,6 @@ class exp_ltm_17():
 			#Execute policy
 			if arm == "both":
 				resp =  False
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))				
 			else:
 				resp = self.choose_policy(policy_code)(srv).result.data
 			if self.mode == "sim" and resp:
@@ -589,7 +574,6 @@ class exp_ltm_17():
 				rospy.set_param("/check_reward", True)
 				self.complete_pan()
 				rospy.delete_param("/check_reward")
-			self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 
 		if policy_code == 'put_object_in_box' or policy_code == 'put_object_in_robot': 
 			if (global_s.left_grip.data < 1.0 or global_s.right_grip.data < 1.0) and self.world == "gripper_and_low_friction": ###Single
@@ -611,12 +595,8 @@ class exp_ltm_17():
 				#Execute policy
 				if self.gripper_sense_data(global_s, arm) < 1.0 or (not self.same_side(arm, global_s.box_sens.angle.data) and policy_code == 'put_object_in_box'):
 					resp = False
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				else:
 					resp = self.choose_policy(policy_code)(srv).result.data
-				if resp == False:
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
-				print resp
 
 			elif (global_s.left_grip.data > 0.0 and global_s.right_grip.data > 0.0): ###Double
 				srv = BaxDBRequest()
@@ -633,16 +613,13 @@ class exp_ltm_17():
 				self.adopt_expression("focus")
 				#Execute policy
 				resp = self.bdb_clnt(srv).result.data
-				if resp == False:
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
+				
 			else:
 				resp = False
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			if self.mode=="real" and resp == True:
 				rospy.set_param("/check_reward", True)
 				self.complete_pan()
 				rospy.delete_param("/check_reward")
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 
 		if policy_code == 'throw': 
 			if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
@@ -654,11 +631,9 @@ class exp_ltm_17():
 							self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=Float64(global_s.box_sens.dist.data+0.35), angle=Float64(self.choose_throw_angle(arm, global_s.box_sens.angle.data)), height=Float64(0.0))))
 						rospy.sleep(1)
 						self.bsrg_clnt(Bool(True), Bool(True))
-						self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 						resp = True
 					else:
 						resp = False
-						self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				else:
 					#Destination
 					srv.sensorization.const_dist.data = self.choose_throw_distance(arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data)
@@ -669,39 +644,37 @@ class exp_ltm_17():
 					self.adopt_expression("focus")
 					#Execute policy
 					resp = self.choose_policy(policy_code)(srv).result.data
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 					if resp == True:
 						rospy.set_param("/check_reward", True)
 						self.complete_pan()
 						rospy.delete_param("/check_reward")
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			else:
 				resp = False
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			
 		if policy_code == 'ask_nicely': 
 			#Look to the front
 			self.pan_to('front', 0.1) 
 			if (self.gripper_sense_data(global_s,"left") > 0.0 or self.gripper_sense_data(global_s,"right") > 0.0):
 				resp = False
-				self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 			else:
 				#Service request
 				if self.mode=="real":
 					srv.request.data = True
 					#Execute policy
 					self.choose_policy(policy_code)(srv)
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				if self.mode=="sim":				
 					self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=Float64(global_s.obj_sens.dist.data-0.1), angle=global_s.obj_sens.angle, height=Float64(0.0))))
 					rospy.sleep(1)
-					self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 				#Standard face
 				self.adopt_expression("normal")	
 				#Complete pan
 				if self.mode=="real":
 					self.complete_pan()
 				resp = True
+
+		#Publish de next sensorization
+		rospy.loginfo("Publishing sensorization")
+		self.bes_clnt(Bool(True), Float64(self.choose_xd('exp_box')), Float64(self.choose_xd(self.obj_type)))
 
 		#If it failed
 		if not resp:
@@ -710,7 +683,7 @@ class exp_ltm_17():
 
 		#Standard face
 		self.adopt_expression("normal")
-		print "\nSuccess? :", resp
+		rospy.loginfo("Success? : %s", resp)
 		return resp
 
 	def pan_selection (self, arg):

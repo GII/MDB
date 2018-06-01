@@ -92,9 +92,9 @@ class LTM(object):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['files']
-        del state['control_publisher']
-        del state['there_are_goals']
+        state['files'] = None
+        state['control_publisher'] = None
+        state['there_are_goals'] = None
         return state
 
     @property

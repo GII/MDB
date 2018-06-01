@@ -1,4 +1,4 @@
-r#!/usr/bin/env python
+#!/usr/bin/env python
 import rospy, math, rospkg, yaml
 import numpy as np
 from std_msgs.msg import Bool, Int32, Float64
@@ -23,7 +23,6 @@ class robobo_policies():
 		self.rob_dist_poly = self.global_policies.obtain_poly(self.distance_l, self.distance_time_l, 2)
 
 		self.robobo_mv_srver = rospy.Service('/robobo_mv', BaxMC, self.handle_rob_move)
-		#self.robobo_mv_f_srver = rospy.Service('/robobo_move_forward', Float64, self.handle_rob_move_forward)
 
 		self.robobo_pick_srver = rospy.Service('/robobo_pick', BaxChange, self.handle_rob_pick)
 		self.robobo_drop_srver = rospy.Service('/robobo_drop', BaxChange, self.handle_rob_drop)
@@ -104,9 +103,6 @@ class robobo_policies():
 		command_parameters.append(KeyValue('degrees', str(math.degress)))
 		self.robobo_command(command_name, 0, command_parameters)
 		rospy.sleep(time)
-
-	def handle_rob_move_forward(self, srv):
-		self.rob_move_straight(srv.
 
 	def handle_rob_move_backwards (self, srv):
 		self.rob_move_straight(1.0, -1)
