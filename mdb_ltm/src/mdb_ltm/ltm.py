@@ -71,7 +71,9 @@ class LTM(object):
             'Policy': 'policy'}
         self.default_class = {}
         self.default_ros_name_prefix = {}
+        self.there_are_goals = threading.Event()
         self.control_publisher = None
+        self.restoring = False
         self.policies_to_test = []
         self.iteration = 0
         self.trial = 0
@@ -83,7 +85,6 @@ class LTM(object):
         self.current_policy = None
         self.current_world = 0
         self.current_reward = 0
-        self.there_are_goals = threading.Event()
         self.graph = networkx.Graph()
         self.graph_node_label = {}
         self.graph_node_position = {}
@@ -92,9 +93,9 @@ class LTM(object):
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        state['files'] = None
-        state['control_publisher'] = None
-        state['there_are_goals'] = None
+        del state['files']
+        del state['control_publisher']
+        del state['there_are_goals']
         return state
 
     @property
@@ -134,6 +135,22 @@ class LTM(object):
             if os.path.isfile(file_name):
                 print 'Loading a previous LTM memory dump from ' + file_name + '...'
                 ltm = yaml.load(open(file_name, 'r'), Loader=yaml.CLoader)
+                ltm.files = []
+                ltm.there_are_goals = threading.Event()
+                # Unfortunatly, implementing __setstate__ didn't work, so I was forced to do this by hand.
+                # I think construct_yaml_object is the guilty, because when __setstate__ exists,
+                # it calls construct_mapping with deep=True
+                for perception in ltm.nodes['Perception'].values():
+                    perception.init_threading()
+                    perception.init_ros()
+                for node_type, nodes in ltm.nodes.items():
+                    if node_type != 'Perception':
+                        for node in nodes:
+                            if callable(getattr(node, 'init_threading', None)):
+                                node.init_threading()
+                            if callable(getattr(node, 'init_ros', None)):
+                                node.init_ros()
+                ltm.restoring = True
             else:
                 print file_name + ' does not exist, the name will be used to store a new LTM...'
                 ltm = LTM()
@@ -260,7 +277,7 @@ class LTM(object):
         for file_object in self.files:
             file_object.close()
 
-    def __init(self, log_level, file_name):
+    def __setup(self, log_level, file_name):
         """Init LTM: read ROS parameters, init ROS subscribers and load initial nodes."""
         rospy.init_node('ltm', log_level=getattr(rospy, log_level))
         rospy.loginfo('Starting LTM at iteration ' + str(self.iteration) + '...')
@@ -301,6 +318,7 @@ class LTM(object):
                                 ident=ident,
                                 data=data,
                                 ros_name_prefix=ros_name_prefix)
+                if self.iteration == 0 or self.restoring:
                     self.__write_headers_in_files()
                 # Load simulator / robot configuration channel
                 topic = rospy.get_param(configuration['Control']['ros_name_prefix'] + '_topic')
@@ -485,9 +503,10 @@ class LTM(object):
         if self.trial == self.trials or self.current_reward >= 0.9:
             self.trial = 0
             changed = True
-        if (self.iteration % self.period) == 0:
+        if (self.iteration % self.period) == 0 or self.restoring:
             self.current_world = self.worlds[(self.iteration / self.period) % len(self.worlds)]
             self.trial = 0
+            self.restoring = False
             changed = True
         if changed:
             self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
@@ -496,7 +515,7 @@ class LTM(object):
     def run(self, seed=None, log_level='INFO', plot=False):
         """Start the LTM part of the brain."""
         try:
-            self.__init(log_level, seed)
+            self.__setup(log_level, seed)
             rospy.loginfo('Running LTM...')
             sensing = self.__read_perceptions()
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):

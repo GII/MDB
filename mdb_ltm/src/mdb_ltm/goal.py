@@ -36,23 +36,34 @@ class GoalMotiven(Goal):
     def __init__(self, ros_name_prefix=None, **kwargs):
         """Constructor."""
         super(GoalMotiven, self).__init__(**kwargs)
-        self.new_activation = threading.Event()
-        topic = rospy.get_param(ros_name_prefix + '_activation_topic')
-        message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_activation_msg'))
-        rospy.logdebug('Subscribing to %s...', topic)
-        rospy.Subscriber(topic, message, callback=self.update_activation_callback)
-        self.new_reward = threading.Event()
-        topic = rospy.get_param(ros_name_prefix + '_ok_topic')
-        message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_ok_msg'))
-        rospy.logdebug('Subscribing to %s...', topic)
-        rospy.Subscriber(topic, message, callback=self.update_reward_callback)
+        self.new_activation = None
+        self.new_reward = None
+        self.init_threading()
+        self.activation_topic = rospy.get_param(ros_name_prefix + '_activation_topic')
+        self.activation_message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_activation_msg'))
+        self.ok_topic = rospy.get_param(ros_name_prefix + '_ok_topic')
+        self.ok_message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_ok_msg'))
+        self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        state['new_activation'] = None
-        state['new_reward'] = None
+        del state['new_activation']
+        del state['new_reward']
         return state
+
+    def init_threading(self):
+        """Create needed stuff to synchronize threads."""
+        self.new_activation = threading.Event()
+        self.new_reward = threading.Event()
+
+    def init_ros(self):
+        """Create publishers and make subscriptions."""
+        rospy.logdebug('Subscribing to %s...', self.activation_topic)
+        rospy.Subscriber(self.activation_topic, self.activation_message, callback=self.update_activation_callback)
+        rospy.logdebug('Subscribing to %s...', self.ok_topic)
+        rospy.Subscriber(self.ok_topic, self.ok_message, callback=self.update_reward_callback)
+
 
     def update_activation_callback(self, data):
         """Calculate the new activation value."""

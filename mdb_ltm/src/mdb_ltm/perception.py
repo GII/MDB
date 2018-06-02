@@ -27,19 +27,29 @@ class Perception(Node):
         self.raw = 0.0
         self.old_value = 0.0
         self.value = 0.0
-        self.sensor_semaphore = threading.Semaphore()
-        self.new_value = threading.Event()
-        topic = rospy.get_param(ros_name_prefix + '_topic')
-        message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
-        rospy.logdebug('Subscribing to %s...', topic)
-        rospy.Subscriber(topic, message, callback=self.read_callback)
+        self.sensor_semaphore = None
+        self.new_value = None
+        self.init_threading()
+        self.topic = rospy.get_param(ros_name_prefix + '_topic')
+        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
+        self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        state['sensor_semaphore'] = None
-        state['new_value'] = None
+        del state['sensor_semaphore']
+        del state['new_value']
         return state
+
+    def init_threading(self):
+        """Create needed stuff to synchronize threads."""
+        self.sensor_semaphore = threading.Semaphore()
+        self.new_value = threading.Event()
+
+    def init_ros(self):
+        """Create publishers and make subscriptions."""
+        rospy.logdebug('Subscribing to %s...', self.topic)
+        rospy.Subscriber(self.topic, self.message, callback=self.read_callback)
 
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""

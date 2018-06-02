@@ -17,17 +17,22 @@ class Policy(Node):
     def __init__(self, ros_name_prefix=None, **kwargs):
         """Constructor."""
         super(Policy, self).__init__(**kwargs)
-        topic = rospy.get_param(ros_name_prefix + '_topic')
-        message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
-        self.publisher = rospy.Publisher(topic, message, latch=True, queue_size=None)
+        self.topic = rospy.get_param(ros_name_prefix + '_topic')
+        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
+        self.publisher = None
+        self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        state['publisher'] = None
+        del state['publisher']
         return state
 
-    def update_activation(self, ros_name_prefix=None, **kwargs):
+    def init_ros(self):
+        """Create publishers and make subscriptions."""
+        self.publisher = rospy.Publisher(self.topic, self.message, latch=True, queue_size=None)
+
+    def update_activation(self, **kwargs):
         """
         Calculate the new activation value.
 
