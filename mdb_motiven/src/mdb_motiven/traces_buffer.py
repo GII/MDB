@@ -13,10 +13,10 @@ class TracesBuffer(EpisodicBuffer):
     #     super(TracesBuffer, self).__init__()
 
     def rewardAssignment(self):
-        reward = 1
+        reward = 1.0
         for i in reversed(range(len(self.buffer))):
             self.buffer[i][-1] = reward
-            reward -= 1.0 / len(self.buffer)
+            reward -= 1.0 / self.maxSize  # reward -= 1.0 / len(self.buffer)
 
     def getTrace(self):
         """Return the trace values needed to use in the Correlations, the sensorization in t+1"""

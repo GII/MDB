@@ -330,13 +330,13 @@ class exp_ltm_17():
 		}
 		return options[arg]
 
-	def choose_arm (self, arg):
+	'''def choose_arm (self, arg):
 		if arg>0:
 			return "left"
 		elif arg<0:
 			return "right"
 		else:
-			return "left" #TODO:Aqui necesitaria ver por el log realmente cual es el brazo a utilizar atendiendo al estado del gripper antes y despues, etc.
+			return "left" #TODO:Aqui necesitaria ver por el log realmente cual es el brazo a utilizar atendiendo al estado del gripper antes y despues, etc.'''
 
 	def adapt_sens(self, sens):
 		return [sens[0]/100.0, -math.radians(sens[1]), sens[2]]
@@ -497,7 +497,7 @@ class exp_ltm_17():
 				resp = False
 
 		if policy_code == 'grasp_with_two_hands':
-			if (global_s.obj_sens.angle.data < 0.3925) and (global_s.obj_sens.angle.data > -0.3925) and (global_s.obj_sens.dist.data > 0.47) and (global_s.obj_sens.dist.data < 0.75):
+			if (global_s.obj_sens.angle.data < 0.3925) and (global_s.obj_sens.angle.data > -0.3925) and (global_s.obj_sens.dist.data > 0.47) and (global_s.obj_sens.dist.data < 0.75) and (global_s.left_grip.data < 1.0 and global_s.right_grip.data < 1.0):
 				if self.obj_type == "exp_big_obj" and self.world == "gripper_and_low_friction":
 					#Object sensorization:
 					srv.sensorization.const_dist = global_s.obj_sens.dist
@@ -543,11 +543,6 @@ class exp_ltm_17():
 
 		if policy_code == 'sweep_object':
 			#Object sensorization
-			'''srv.obj_sens.const_dist.data = global_s.obj_sens.dist.data + 0.01
-			if global_s.obj_sens.angle.data > 0.0:
-				srv.obj_sens.angle.data = global_s.obj_sens.angle.data + 0.02
-			elif global_s.obj_sens.angle.data < 0.0:
-				srv.obj_sens.angle.data = global_s.obj_sens.angle.data - 0.02'''
 			srv.obj_sens.const_dist = global_s.obj_sens.dist
 			srv.obj_sens.angle = global_s.obj_sens.angle
 			srv.obj_sens.height.data = self.fixed_height+0.005+self.choose_sweep_height(self.obj_type)
