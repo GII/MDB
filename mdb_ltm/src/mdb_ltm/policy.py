@@ -75,7 +75,9 @@ class SuperThrow(Policy):
         if self.real_robot:
             rospy.loginfo('Sending "set basket target position" to baxter_throwing' + self.ident)
             self.throw_publisher.publish(9)
+            rospy.sleep(4)
             rospy.loginfo('Sending "go to the initial posture" to baxter_throwing' + self.ident)
             self.throw_publisher.publish(4)
+            rospy.sleep(8)
             rospy.loginfo('Sending "throw the ball" to baxter_throwing' + self.ident)
             self.throw_publisher.publish(5)
