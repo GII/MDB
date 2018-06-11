@@ -341,7 +341,7 @@ class baxter_policies():
 	#TODO: Adapt the system to allow negative angles (right arm)
 	def handle_bt(self, srv):
 		#: s0 values -0.75, 0.75
-		if (-1.5<=srv.sensorization.angle.data<=1.5): #(0.0<=srv.scale.data<=4.0) and (0.5<=srv.grip.data<=1.5) and
+		'''if (-1.5<=srv.sensorization.angle.data<=1.5): #(0.0<=srv.scale.data<=4.0) and (0.5<=srv.grip.data<=1.5) and
 			rospy.sleep(0.5)
 			#########################################
 			### Needed to test the grab by itself ###
@@ -376,6 +376,15 @@ class baxter_policies():
 				return Bool(False)
 		else:
 			#self.exp_senses.publish_current_senses()
+			return Bool(False)'''
+		if self.baxter_arm.gripper_instate_open(srv.arm.data):
+			self.baxter_arm.restore_arm_pose(srv.arm.data)
+			self.baxter_arm.gripper_manager(srv.arm.data)
+			self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
+			return Bool(True)
+		else:
+			self.baxter_arm.gripper_manager(srv.arm.data)	
+			self.baxter_arm.restore_arm_pose(srv.arm.data)
 			return Bool(False)
 
 	####################

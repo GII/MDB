@@ -1,6 +1,6 @@
 Experiment:
-    iterations: 30000
-    period: 30000
+    iterations: 60000
+    period: 60000
     trials: 200
     worlds: ['gripper_and_low_friction']
 Control:
@@ -90,7 +90,7 @@ LTM:
             -
                 id: ball_in_box
                 class: mdb_ltm.goal.GoalBallInBox
-                data: [1.0, 30001]
+                data: [1.0, 60001]
         ForwardModel:
             -
                 id: gripper_and_low_friction

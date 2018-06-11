@@ -5,7 +5,7 @@ from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from sensor_msgs.msg import Image
 from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, GetSense, BCheckR, BCheckRRequest, BaxSense, PlanMng
 from mdb_baxter_policies.srv import BaxThrowRequest, BaxPRequest, BaxGBRequest, BaxDBRequest, BaxGRequest, PickAdjRequest, BaxRAPRequest, BaxCFRequest, GetSenseRequest, BaxSenseRequest, PlanMngRequest
-from std_msgs.msg import Bool, Float64, String
+from std_msgs.msg import Bool, Float64, String, Int16
 #from exp_scene import *
 from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment, BaxChangeRequest
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
@@ -77,6 +77,8 @@ class exp_ltm_17():
 
 		### ROS Publishers ###
 		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
+		self.super_throwing_pub = rospy.Publisher("/baxter_throwing/command", Int16, queue_size = 1)
+		
 
 		### ROS Subscribers ###
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
@@ -119,11 +121,20 @@ class exp_ltm_17():
 
 	def choose_xd(self, arg):
 		options = {
+			'exp_box':0.12,
+			'exp_small_obj':0.03, 
+			'exp_big_obj':0.07,
+		}
+		return options[arg]
+
+	def choose_push_dist(self, arg):
+		options = {
 			'exp_box':0.075,
 			'exp_small_obj':0.025, 
 			'exp_big_obj':0.0675,
 		}
 		return options[arg]
+
 
 	def choose_yd(self, arg):
 		options = {
@@ -554,7 +565,7 @@ class exp_ltm_17():
 				srv.dest_sens.angle.data = 0.0
 			srv.dest_sens.height.data = self.fixed_height+0.005+self.choose_sweep_height(self.obj_type)
 			#Rest of the service request
-			srv.radius.data = self.choose_xd(self.obj_type) + 0.02 #global_s.obj_sens.radius.data
+			srv.radius.data = self.choose_push_dist(self.obj_type) + 0.02 #global_s.obj_sens.radius.data
 			srv.arm.data = arm
 			srv.scale.data = self.velocity
 			print self.mode
@@ -622,7 +633,7 @@ class exp_ltm_17():
 				rospy.delete_param("/check_reward")
 
 		if policy_code == 'throw': 
-			if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
+			'''if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
 				if self.mode == 'sim':
 					if global_s.obj_sens.height.data > 0.0:
 						if not self.bfrc_clnt(BCheckRRequest(global_s.box_sens.dist, global_s.box_sens.angle, String(self.obj_type))).response.data and self.same_side(arm, global_s.box_sens.angle.data):
@@ -649,7 +660,21 @@ class exp_ltm_17():
 						self.complete_pan()
 						rospy.delete_param("/check_reward")
 			else:
-				resp = False
+				resp = False'''
+			srv.arm.data = 'right'					
+			self.adopt_expression("focus")
+			# self.super_throwing_pub.publish(9)
+			# rospy.sleep(10)
+			self.super_throwing_pub.publish(4)
+			rospy.sleep(10)
+			self.super_throwing_pub.publish(5)
+			rospy.sleep(20)
+			resp = self.choose_policy(policy_code)(srv).result.data
+			rospy.set_param("/check_reward", True)
+			self.complete_pan()
+			rospy.delete_param("/check_reward")
+
+			
 			
 		if policy_code == 'ask_nicely': 
 			#Look to the front

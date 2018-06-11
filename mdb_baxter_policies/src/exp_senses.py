@@ -5,6 +5,8 @@ from std_msgs.msg import Float64, Bool, String
 from mdb_common.msg import SensData
 from mdb_common.srv import GetSenseMotiv
 from mdb_baxter_policies.srv import GetES, GetSense, GetSenseFM
+from geometry_msgs.msg import PointStamped, PoseStamped
+
 
 class exp_senses():
 	def __init__(self):
@@ -26,6 +28,9 @@ class exp_senses():
 		self.bobj_sense_sb = rospy.Subscriber("/mdb_baxter/ball", SensData, self.obj_sense_cb)
 		self.box_sense_sb = rospy.Subscriber("/mdb_baxter/box", SensData, self.box_sense_cb)
 		self.rob_sense_sb = rospy.Subscriber("/mdb_baxter/robobo", SensData, self.rob_sense_cb)
+
+		self.mixed_box_sense_sb = rospy.Subscriber("/baxter_throwing/basket_pose", PoseStamped, self.mixed_box_cb)
+		self.mixed_ball_sense_sb = rospy.Subscriber("/baxter_throwing/ball_position", PoseStamped, self.mixed_ball_cb)
 
 		self.rob_ori_sb = rospy.Subscriber("/tracking/robobo_ori", Float64, self.rob_ori_cb)
 		self.rob_ori_obj_sb = rospy.Subscriber("/tracking/robobo_ori_obj", Float64, self.rob_ori_obj_cb)
@@ -60,7 +65,33 @@ class exp_senses():
 		except rospy.ServiceException as exc:
 			print ("Service did not process request: " + str(exc)) 
 
+
+	def sensorization_conversion(self, x, y, z):
+		dist = np.sqrt((x**2)+(y**2))
+		angle = np.arctan(y/x)
+		return dist, angle, z
+
   	### Callbacks ###
+	def mixed_box_cb(self, sense):
+		if rospy.has_param("/baxter_sense"):
+			do_sense = rospy.get_param("/baxter_sense")
+			if do_sense:
+				(dist, angle, height) = self.sensorization_conversion(sense.pose.position.x, sense.pose.position.y, -0.04)
+				self.box_sense.dist.data = dist-0.08
+				self.box_sense.angle.data = angle
+				self.box_sense.height.data = height
+				self.box_sense.radius.data = 0.0
+
+	def mixed_ball_cb(self, sense):
+		if rospy.has_param("/baxter_sense"):
+			do_sense = rospy.get_param("/baxter_sense")
+			if do_sense:
+				(dist, angle, height) = self.sensorization_conversion(sense.pose.position.x, sense.pose.position.y, -0.04)
+				self.obj_sense.dist.data = dist
+				self.obj_sense.angle.data = angle
+				self.obj_sense.height.data = height
+				self.obj_sense.radius.data = 0.0
+
 	def obj_sense_cb (self, sens):
 		if sens.height.data > -0.10:
 			self.obj_sense = sens

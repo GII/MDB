@@ -138,12 +138,12 @@ class exp_track:
 		im[rr, cc, :] = color
 		return im
 
-	def get_bg(self, im, margin=1.0/3, N=10):
+	def get_bg(self, im, margin=1.0/6, N=10):
 		#Limites malla
 		margin = margin
 
-		f_i=int(round((im.shape[0]/2)*margin))
-		f_f=int(round((im.shape[0]/2)*(1.0-margin)))
+		f_i=int(round((im.shape[0])*margin))
+		f_f=int(round((im.shape[0])*(1.0-4.0*margin)))
 		c_i=int(round((im.shape[1])*(margin)))
 		c_f=int(round((im.shape[1])*(1.0-(margin))))
 
@@ -224,6 +224,11 @@ class exp_track:
 			v1 = 0
 			v2 = im.shape[1]
 			h2 = im.shape[0]'''
+
+		v1 = 90
+		v2 = 571
+		h1 = 15			
+		h2 = 450
 
 		rr, cc = draw.polygon(np.array([h1, h1, h2, h2]), np.array([v1, v2, v2, v1]), shape=im.shape)
 		mask = np.zeros([im.shape[0],im.shape[1]], dtype='bool')
@@ -318,12 +323,17 @@ class exp_track:
 		return False
 
 	def track_objects(self, im, im_cv):
+		if rospy.has_param("/baxter_get_table_v"):
+			do_get_background_color = rospy.get_paramm("/baxter_get_table_v")
+			if do_get_background_color:
+				
+			
 		if rospy.has_param("/baxter_sense"):
 			self.do_sense = rospy.get_param("/baxter_sense")
 			if self.do_sense:
-				if self.bg_rec_check():
-					print "background refresh" 
-					self.table_v = self.get_bg(im) #color medio mesa, solo habria que calcularlo cada X iteraciones
+				#if self.bg_rec_check():
+					#print "background refresh" 
+				self.table_v = self.get_bg(im) #color medio mesa, solo habria que calcularlo cada X iteraciones
 				if self.first_iteration:
 					self.mask_table = self.segment_table(im, self.table_v)  #Se haria una vez, al comienzo del experimento
 					self.first_iteration = False	

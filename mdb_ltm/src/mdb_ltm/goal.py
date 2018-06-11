@@ -111,8 +111,8 @@ class GoalBallInBox(Goal):
             perceptions = self.ltm.perceptions
         if (self.ltm.sensorial_changes()) and (self.activation == 1.0):
             if (
-                    (abs(perceptions['ball_dist'].raw - perceptions['box_dist'].raw) < 0.05) and
-                    (abs(perceptions['ball_ang'].raw - perceptions['box_ang'].raw) < 0.05)
+                    (abs(perceptions['ball_dist'].raw - perceptions['box_dist'].raw) < 0.12) and
+                    (abs(perceptions['ball_ang'].raw - perceptions['box_ang'].raw) < 0.12)
                 ):
                 self.reward = 1.0
             elif perceptions['ball_in_left_hand'].raw or perceptions['ball_in_right_hand'].raw:
