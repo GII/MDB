@@ -122,8 +122,9 @@ LTM:
                 ros_name_prefix: /mdb/executed_policy
             -
                 id: throw
-                class: mdb_ltm.policy.Policy
+                class: mdb_ltm.policy.SuperThrow
                 ros_name_prefix: /mdb/executed_policy
+                data: False
             -
                 id: ask_nicely
                 class: mdb_ltm.policy.Policy

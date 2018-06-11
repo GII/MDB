@@ -46,3 +46,6 @@
 /mdb/baxter/sensor/ball_in_box_msg: std_msgs.msg.Bool
 /mdb/baxter/sensor/ball_with_robot_topic: /mdb/baxter/sensor/ball_with_robot
 /mdb/baxter/sensor/ball_with_robot_msg: std_msgs.msg.Bool
+# Topic for publishing commands to baxter_throwing policy
+/mdb/superthrow_topic: /baxter_throwing/command
+/mdb/superthrow_msg: std_msgs.msg.Int16

@@ -219,7 +219,7 @@ class MOTIVEN(object):
             if self.motiven_high_level:
                 self.state_t = self.state_t1
                 self.state_t1 = self.getFinalState(self.sens_t1, self.sens_t)
-                pdb.set_trace()
+                # pdb.set_trace()
             ####
             self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
             if self.reset:
@@ -700,7 +700,7 @@ class MOTIVEN(object):
                     self.reward_vector.addTraces(self.traces_buffer2.getTraceReward())
                     self.update_reward_values(self.traces_buffer2.getTraceReward())
                     self.traces_buffer2.removeAll()
-                    pdb.set_trace()
+                    # pdb.set_trace()
                 #####
             elif self.correlations_manager.getReward(
                     self.active_corr,
@@ -742,7 +742,7 @@ class MOTIVEN(object):
                     self.reward_vector.addTraces(self.traces_buffer2.getTraceReward())
                     self.update_reward_values(self.traces_buffer2.getTraceReward())
                     self.traces_buffer2.removeAll()
-                    pdb.set_trace()
+                    # pdb.set_trace()
                 #####
             elif self.correlations_manager.getReward(
                     self.active_corr,
