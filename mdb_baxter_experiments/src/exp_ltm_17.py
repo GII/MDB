@@ -29,6 +29,7 @@ class exp_ltm_17():
 		self.exp_type = rospy.get_param("~exp_type")
 		self.config_time = rospy.get_param("~config_time")
 		self.fixed_height = rospy.get_param("~fixed_height")
+		self.super_throw = rospy.get_param("~super_throw")
 
 		self.velocity = self.select_velocity()
 
@@ -633,48 +634,46 @@ class exp_ltm_17():
 				rospy.delete_param("/check_reward")
 
 		if policy_code == 'throw': 
-			'''if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
-				if self.mode == 'sim':
-					if global_s.obj_sens.height.data > 0.0:
-						if not self.bfrc_clnt(BCheckRRequest(global_s.box_sens.dist, global_s.box_sens.angle, String(self.obj_type))).response.data and self.same_side(arm, global_s.box_sens.angle.data):
-							self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=global_s.box_sens.dist, angle=global_s.box_sens.angle, height=Float64(0.005))))
-						else:
-							self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=Float64(global_s.box_sens.dist.data+0.35), angle=Float64(self.choose_throw_angle(arm, global_s.box_sens.angle.data)), height=Float64(0.0))))
-						rospy.sleep(1)
-						self.bsrg_clnt(Bool(True), Bool(True))
-						resp = True
-					else:
-						resp = False
-				else:
-					#Destination
-					srv.sensorization.const_dist.data = self.choose_throw_distance(arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data)
-					srv.sensorization.angle.data = self.choose_throw_angle(arm, global_s.box_sens.angle.data)
-					#Rest of the service request
-					srv.arm.data = arm
-					#Focused face
-					self.adopt_expression("focus")
-					#Execute policy
-					resp = self.choose_policy(policy_code)(srv).result.data
-					if resp == True:
-						rospy.set_param("/check_reward", True)
-						self.complete_pan()
-						rospy.delete_param("/check_reward")
+			if self.super_throw:
+				srv.arm.data = 'right'					
+				self.adopt_expression("focus")
+				self.super_throwing_pub.publish(4)
+				rospy.sleep(10)
+				self.super_throwing_pub.publish(5)
+				rospy.sleep(20)
+				resp = self.choose_policy(policy_code)(srv).result.data
+				rospy.set_param("/check_reward", True)
+				self.complete_pan()
+				rospy.delete_param("/check_reward")
 			else:
-				resp = False'''
-			srv.arm.data = 'right'					
-			self.adopt_expression("focus")
-			# self.super_throwing_pub.publish(9)
-			# rospy.sleep(10)
-			self.super_throwing_pub.publish(4)
-			rospy.sleep(10)
-			self.super_throwing_pub.publish(5)
-			rospy.sleep(20)
-			resp = self.choose_policy(policy_code)(srv).result.data
-			rospy.set_param("/check_reward", True)
-			self.complete_pan()
-			rospy.delete_param("/check_reward")
-
-			
+				if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
+					if self.mode == 'sim':
+						if global_s.obj_sens.height.data > 0.0:
+							if not self.bfrc_clnt(BCheckRRequest(global_s.box_sens.dist, global_s.box_sens.angle, String(self.obj_type))).response.data and self.same_side(arm, global_s.box_sens.angle.data):
+								self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=global_s.box_sens.dist, angle=global_s.box_sens.angle, height=Float64(0.005))))
+							else:
+								self.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=Float64(global_s.box_sens.dist.data+0.35), angle=Float64(self.choose_throw_angle(arm, global_s.box_sens.angle.data)), height=Float64(0.0))))
+							rospy.sleep(1)
+							self.bsrg_clnt(Bool(True), Bool(True))
+							resp = True
+						else:
+							resp = False
+					else:
+						#Destination
+						srv.sensorization.const_dist.data = self.choose_throw_distance(arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data)
+						srv.sensorization.angle.data = self.choose_throw_angle(arm, global_s.box_sens.angle.data)
+						#Rest of the service request
+						srv.arm.data = arm
+						#Focused face
+						self.adopt_expression("focus")
+						#Execute policy
+						resp = self.choose_policy(policy_code)(srv).result.data
+						if resp == True:
+							rospy.set_param("/check_reward", True)
+							self.complete_pan()
+							rospy.delete_param("/check_reward")
+				else:
+					resp = False
 			
 		if policy_code == 'ask_nicely': 
 			#Look to the front
