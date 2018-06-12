@@ -117,7 +117,8 @@ class MOTIVEN(object):
             self.episode2 = Episode()
             self.state_t = 'Unnamed'
             self.state_t1 = 'Unnamed'
-            self.reward_dict = dict.fromkeys(['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'Unnamed'])
+            goal_states = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'Unnamed']
+            self.reward_dict = dict.fromkeys(goal_states)
             for key in self.reward_dict.keys():
                 self.reward_dict[key] = MeanReward()
         # ROS stuff
@@ -219,7 +220,7 @@ class MOTIVEN(object):
             if self.motiven_high_level:
                 self.state_t = self.state_t1
                 self.state_t1 = self.getFinalState(self.sens_t1, self.sens_t)
-                # pdb.set_trace()
+                pdb.set_trace()
             ####
             self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
             if self.reset:
@@ -273,7 +274,16 @@ class MOTIVEN(object):
                 if self.episode.getReward():
                     goal_ok = 1.0
                 elif self.motiven_high_level:
+                    # if self.state_t1 == 'Unnamed':
+                    #     goal_ok = 0.0
+                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(0))
+                    # else:
+                    #     goal_ok = 1.0
+                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
+                    #             self.reward_dict[self.state_t1].mean_value))
                     goal_ok = self.reward_dict[self.state_t1].mean_value
+                    rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
+                                self.reward_dict[self.state_t1].mean_value))
                 else:
                     goal_ok = self.is_improving_behavior()
             else:
@@ -313,18 +323,25 @@ class MOTIVEN(object):
 
     def publish_goal_activations(self):
         """Set goal activations in Goal Manager and publish them in the corresponding ROS topic."""
-        if self.active_mot == 'Int':
-            for idx, goal in enumerate(self.goal_manager.goals):
-                if idx == 0:
-                    goal.activation = 1.0
+        if self.motiven_high_level:
+            for goal in self.goal_manager.goals:
+                if goal.goal_id == self.active_goal:
+                    goal.activation = self.reward_dict[self.state_t1].mean_value
                 else:
                     goal.activation = 0.0
         else:
-            for goal in self.goal_manager.goals:
-                if goal.goal_id == self.active_goal:
-                    goal.activation = 1.0
-                else:
-                    goal.activation = 0.0
+            if self.active_mot == 'Int':
+                for idx, goal in enumerate(self.goal_manager.goals):
+                    if idx == 0:
+                        goal.activation = 1.0
+                    else:
+                        goal.activation = 0.0
+            else:
+                for goal in self.goal_manager.goals:
+                    if goal.goal_id == self.active_goal:
+                        goal.activation = 1.0
+                    else:
+                        goal.activation = 0.0
         for goal in self.goal_manager.goals:
             rospy.logdebug('Publishing goal activation for ' + goal.goal_id + ' = ' + str(goal.activation))
             self.goal_activation_topic_pb.publish(id=goal.goal_id, activation=goal.activation)
@@ -1023,8 +1040,10 @@ class MOTIVEN(object):
             state = 'Unnamed'
             rospy.logdebug('Found None value in Perceptions')
         else:
-            if perceptions_t1['ball_in_box']:
+            if perceptions_t1['ball_in_box'] and (not perceptions_t['ball_in_box']):
                 state = 'E7'
+            elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
+                state = 'E6'
             elif perceptions_t1['ball_in_left_hand'] or perceptions_t1['ball_in_right_hand']:
                 if (
                         perceptions_t1['ball_in_left_hand'] and
@@ -1054,7 +1073,7 @@ class MOTIVEN(object):
                             )
                         )
                 ):
-                    state = 'E6'
+                    state = 'E4'
                 elif perceptions_t1['ball_in_left_hand'] and perceptions_t1['box_ang'] <= 0:
                     if (
                             (not perceptions_t['ball_in_left_hand']) and
