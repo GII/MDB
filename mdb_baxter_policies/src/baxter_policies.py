@@ -50,6 +50,7 @@ class baxter_policies():
 
 		self.mode = rospy.get_param("~mode")
 		self.exp_rec = rospy.get_param("~exp_rec")
+		self.super_throw = rospy.get_param("~super_throw")
 
 		# Baxter low_level movements
 		self.baxter_arm = baxter_arm()
@@ -341,51 +342,53 @@ class baxter_policies():
 	#TODO: Adapt the system to allow negative angles (right arm)
 	def handle_bt(self, srv):
 		#: s0 values -0.75, 0.75
-		'''if (-1.5<=srv.sensorization.angle.data<=1.5): #(0.0<=srv.scale.data<=4.0) and (0.5<=srv.grip.data<=1.5) and
-			rospy.sleep(0.5)
-			#########################################
-			### Needed to test the grab by itself ###
-			#rospy.sleep(4)
-			#self.baxter_arm.gripper_manager(srv.arm.data)
-			#rospy.sleep(1)
-			#########################################
-			if self.baxter_arm.gripper_instate_close(srv.arm.data):
-				sign = self.select_sign(srv.arm.data)
+		if not self.super_throw:
+			if (-1.5<=srv.sensorization.angle.data<=1.5): #(0.0<=srv.scale.data<=4.0) and (0.5<=srv.grip.data<=1.5) and
 				rospy.sleep(0.5)
-				shoulder_pos = (0.064, sign*0.259)
-				dx, dy = self.translate_pos(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
-				angle = self.obtain_angle(shoulder_pos, dx, dy)
-				grip = self.obtain_grip(srv.sensorization.const_dist.data)
-				self.pose_du(angle, sign, srv.arm.data)
-				self.retract_du(self.fixed_speed, srv.arm.data)
-				self.launch_du(self.fixed_speed, grip, srv.arm.data)
-				rospy.sleep(1)
-				if self.baxter_arm.gripper_instate_open(srv.arm.data):
-					self.baxter_arm.restore_arm_pose(srv.arm.data)
-					self.baxter_arm.gripper_manager(srv.arm.data)
-					self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
-					#self.exp_senses.publish_current_senses()
-					return Bool(True)
+				#########################################
+				### Needed to test the grab by itself ###
+				#rospy.sleep(4)
+				#self.baxter_arm.gripper_manager(srv.arm.data)
+				#rospy.sleep(1)
+				#########################################
+				if self.baxter_arm.gripper_instate_close(srv.arm.data):
+					sign = self.select_sign(srv.arm.data)
+					rospy.sleep(0.5)
+					shoulder_pos = (0.064, sign*0.259)
+					dx, dy = self.translate_pos(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
+					angle = self.obtain_angle(shoulder_pos, dx, dy)
+					grip = self.obtain_grip(srv.sensorization.const_dist.data)
+					self.pose_du(angle, sign, srv.arm.data)
+					self.retract_du(self.fixed_speed, srv.arm.data)
+					self.launch_du(self.fixed_speed, grip, srv.arm.data)
+					rospy.sleep(1)
+					if self.baxter_arm.gripper_instate_open(srv.arm.data):
+						self.baxter_arm.restore_arm_pose(srv.arm.data)
+						self.baxter_arm.gripper_manager(srv.arm.data)
+						self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
+						#self.exp_senses.publish_current_senses()
+						return Bool(True)
+					else:
+						self.baxter_arm.gripper_manager(srv.arm.data)
+						self.baxter_arm.restore_arm_pose(srv.arm.data)
+						#self.exp_senses.publish_current_senses()
+						return Bool(False)
 				else:
-					self.baxter_arm.gripper_manager(srv.arm.data)
-					self.baxter_arm.restore_arm_pose(srv.arm.data)
 					#self.exp_senses.publish_current_senses()
 					return Bool(False)
 			else:
 				#self.exp_senses.publish_current_senses()
 				return Bool(False)
 		else:
-			#self.exp_senses.publish_current_senses()
-			return Bool(False)'''
-		if self.baxter_arm.gripper_instate_open(srv.arm.data):
-			self.baxter_arm.restore_arm_pose(srv.arm.data)
-			self.baxter_arm.gripper_manager(srv.arm.data)
-			self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
-			return Bool(True)
-		else:
-			self.baxter_arm.gripper_manager(srv.arm.data)	
-			self.baxter_arm.restore_arm_pose(srv.arm.data)
-			return Bool(False)
+			if self.baxter_arm.gripper_instate_open(srv.arm.data):
+				self.baxter_arm.restore_arm_pose(srv.arm.data)
+				self.baxter_arm.gripper_manager(srv.arm.data)
+				self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
+				return Bool(True)
+			else:
+				self.baxter_arm.gripper_manager(srv.arm.data)	
+				self.baxter_arm.restore_arm_pose(srv.arm.data)
+				return Bool(False)
 
 	####################
 	##      Push      ##

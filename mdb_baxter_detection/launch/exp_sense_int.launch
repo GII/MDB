@@ -35,8 +35,8 @@
        <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
        <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
 
-	   <rosparam param="c_rgb">[89, 146, 139]</rosparam>
-	   <rosparam param="b_rgb">[74, 48, 109]</rosparam>
+	   <rosparam param="c_rgb">[75, 157, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
 
    </node>
 
@@ -46,8 +46,8 @@
        <param name="head_camera" type="bool" value="$(arg head_camera)"/>
        <param name="table_segmentation_threshold" type="double" value="$(arg table_segmentation_threshold)"/>
 
-	   <rosparam param="c_rgb">[89, 146, 139]</rosparam>
-	   <rosparam param="b_rgb">[74, 48, 109]</rosparam>
+	   <rosparam param="c_rgb">[75, 157, 143]</rosparam>
+	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
    </node>
 
    <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_obj)">

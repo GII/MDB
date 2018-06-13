@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
    <arg name="mode" default="real"/> <!--sim/real-->
-   <arg name="exp_type" default="regular"/>
+   <arg name="exp_type" default="small" /> <!--regular/big-->
    <arg name="config_time" default="20" />
    <arg name="fixed_height" default="-0.04" />
    <arg name="super_throw" default="false" />
