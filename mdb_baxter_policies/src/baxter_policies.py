@@ -5,6 +5,7 @@ import tf, rospkg, yaml, math
 from baxter_arm import *
 from baxter_display import *
 from exp_senses import *
+from calibration_policies import calibration_policies
 from robobo_policies import robobo_policies
 from dynamic_reconfigure import client
 import numpy as np
@@ -12,9 +13,9 @@ from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from moveit_msgs.msg import OrientationConstraint, Constraints
-from mdb_common.msg import OpenGripReq, Candidates, ObjDet
+from mdb_common.msg import OpenGripReq, Candidates
 from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CheckAct, Calib, BaxFMCM, GridCalib, PlanMng
+from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CheckAct, BaxFMCM, PlanMng
 from dynamic_reconfigure.srv import Reconfigure
 from gazebo_msgs.srv import GetModelState
 
@@ -22,9 +23,7 @@ class baxter_policies():
 	def __init__(self):
 		rospy.init_node("baxter_policies_server")
 		rospy.on_shutdown(node_shutdown)
-
 		# Variables
-		self.head_state = None
 		self.rospack = rospkg.RosPack()
 
 		self.safe_operation_height = 0.2
@@ -35,8 +34,6 @@ class baxter_policies():
 		self.failed_iterations = 0
 
 		self.robobo_status = False
-		self.aruco_cent = None
-		self.calib_obj_flag = False
 
 		self.speed_l = []
 		self.grip_l = []
@@ -61,6 +58,9 @@ class baxter_policies():
 		# Experiment sensorization
 		self.exp_senses = exp_senses()
 
+		# Experiment calibration
+		self.exp_calibration = calibration_policies(self)
+
 		# Robobo control
 		if self.exp_rec!="ltm": self.robobo_policies = robobo_policies(self)
 
@@ -68,16 +68,11 @@ class baxter_policies():
 		self.baxter_arm.update_init_data()
 		self.baxter_arm.update_data()
 
-		# ROS Subscribers
+		# ROS Subscribers		
 		self.rob_loc_sb = rospy.Subscriber("/aruco_single_head/tag_detection", Bool, self.rob_loc_cb)
-		self.aruco_cent_sb = rospy.Subscriber("/aruco_single_head/pixel", PointStamped, self.aruco_cent_cb)
-		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
-		self.track_sub = rospy.Subscriber("/tracking/ball", ObjDet, self.track_cb)
-		self.calib_obj_flag_sub = rospy.Subscriber("/tracking/ball_flag", Bool, self.calib_obj_flag_cb)
 
 		# ROS Publishers
 		self.grip_pub = rospy.Publisher('/open_grip', OpenGripReq, queue_size = 1)
-		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
 
 		# ROS Service Servers
 		self.bt_srver = rospy.Service('/baxter_throw', BaxThrow, self.handle_bt)  
@@ -95,6 +90,7 @@ class baxter_policies():
 		self.borap_srver = rospy.Service('/baxter_orap', BaxChange, self.handle_orap)
 		self.bes_srver = rospy.Service('/baxter_bes', BaxSense, self.handle_bes)
 		self.bd_srver = rospy.Service('/baxter_bd', BaxG, self.handle_bd)
+		self.baxter_flexsim_srver = rospy.Service('/baxter_flexsim', BaxChange, self.handle_flexsim) 
 
 		self.bg_srver = rospy.Service('/baxter_grab_reach', BaxG, self.handle_bg_reach)
 
@@ -103,9 +99,6 @@ class baxter_policies():
 		self.candidate_actions_srver = rospy.Service ("/candidate_actions", CandAct, self.handle_cand_act)
 		self.check_action_validity_srver = rospy.Service("/check_action_val", CheckAct, self.handle_check_action_validity)
 		self.baxter_sa_srver = rospy.Service('/baxter_sa', BaxChange, self.handle_sa)
-
-		self.baxter_calib_srver = rospy.Service('/baxter_calib', Calib, self.matrix_movement)
-		self.baxter_int_calib_srver = rospy.Service('/baxter_int_calib', GridCalib, self.interpolation_calibration)
 
 		# ROS Simulation Service Servers
 		self.bsrg_srver = rospy.Service('/baxter_reset_gippers', BaxChange, self.handle_bsrg)
@@ -139,7 +132,6 @@ class baxter_policies():
 		self.g_lowpoly = self.obtain_poly(self.g_angle_l, self.g_low_d_l, 3)
 		# Obtain grab high polinomial model for the small object
 		self.g_highpoly = self.obtain_poly(self.g_angle_l, self.g_high_d_l, 3)
-
 		# Obtain grab low polinomial model for the big object
 		self.g_lowfatpoly = self.obtain_poly(self.g_angle_fat_l, self.g_low_fat_d_l, 2)
 		# Obtain grab high polinomial model for the big object
@@ -155,24 +147,6 @@ class baxter_policies():
 		self.initialize_wrist("left")
 		self.baxter_arm.update_init_data()
 		self.baxter_arm.update_data()
-
-		###################
-		###		TEST	###
-		###################
-
-		'''self.baxter_arm.AddElements()
-		self.baxter_arm.GraspCreation()
-		self.baxter_arm.pickup("small_obj", self.baxter_arm.grasps)'''
-
-		left_test_angles = [1.7000342081740099, -0.9986214929134043, -1.1876846250202815, 1.9378012302962488, 0.6680486331240977, 1.0339030510347689, -0.49777676566881673] #moveit
-		left_test_angles_2 = [0.5565567001634442, 1.9541028505160654, 1.3091857254483799, -0.9385845547335236, -0.6373815959474021, 2.0937221905141428, 1.5304675427922119] #baxter
-
-		#left_test_speed = [2.0, 6.0, 2.0, 4.0, 4.0, 0.0, 0.0]
-		#left_test_acceleration = [0.3, 0.3, 0.3, 0.7, 0.7, 0.7, 0.7]
-		#self.baxter_arm.move_joints_raw_position(left_test_angles_2, left_test_speed, left_test_acceleration, 'baxter', 'left', True, 5)
-
-		#self.baxter_arm.move_joints_command(4, left_test_angles_2, 'left', 'baxter')
-		#self.baxter_arm.move_joints_interface('left', left_test_angles, 0.05, 'moveit')
 		
 				
 	##########################
@@ -181,23 +155,6 @@ class baxter_policies():
 
 	def rob_loc_cb(self, loc):
 		self.robobo_status = loc.data
-
-	def aruco_cent_cb(self, Pose):
-		if self.robobo_status:
-			self.aruco_cent = [Pose.point.x, Pose.point.y]
-		else:
-			self.aruco_cent = 'None'
-
-	def track_cb(self, objsens):
-		if self.calib_obj_flag:
-			self.aruco_cent = [objsens.u.data, objsens.v.data]
-
-	def head_state_cb(self, state):
-		self.head_state = state
-
-	def calib_obj_flag_cb(self, flag):
-		self.calib_obj_flag = flag.data
-
 
 	####################
 	##     COMMON     ##
@@ -1558,334 +1515,28 @@ class baxter_policies():
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				return Bool(False)
 
-	#####################################
-	##   Camera position calibration   ##
-	#####################################
+	def handle_flexsim (self, srv):
+		angles_1 = [0.368922379486442, 1.3894030986272135, 0.298359263243713, -1.2686021115812371, 0.32635441262262177, 0.2001844928190465, -0.38809713933500967]
+		angles_2 = [-0.2044029399857314, 1.376747757127159, 0.8739855538977145, -0.9844321706254643, 0.09894176081860918, 1.2471263805508415, -0.14687866044002837]
+		rospy.loginfo(self.baxter_arm.rarm_state)
+		self.baxter_arm.move_joints_directly(angles_1, 'baxter', 'right', True, 1.0)
+		self.baxter_arm.update_data()
+		rospy.loginfo(self.baxter_arm.rarm_state)
+		self.baxter_arm.move_joints_directly(angles_2, 'baxter', 'right', True, 1.0)
+		self.baxter_arm.update_data()
+		rospy.loginfo(self.baxter_arm.rarm_state)
+		self.baxter_arm.update_data()
+		self.baxter_arm.move_xyz(0.710313470302, -0.290793390638, -0.03, True, "current", 'right', 1.0, 1.0)
+		self.baxter_arm.update_data()
+		rospy.loginfo(self.baxter_arm.rarm_state)
+		self.baxter_arm.move_xyz(0.710313470302, -0.290793390638, 0.1256, False, "current", 'right', 1.0, 1.0)
+		rospy.loginfo("")
+		self.baxter_arm.move_joints_directly(angles_1, 'baxter', 'right', True, 1.0)
+		rospy.loginfo("")
+		self.baxter_arm.move_joints_directly(angles_2, 'baxter', 'right', True, 1.0)
+		self.baxter_arm.move_xyz(0.710313470302, -0.290793390638, -0.03, True, "current", 'right', 1.0, 1.0)
 
-	def quadrilateral_grid_points (self, vertex, grid_points, side):
-
-		points = int(math.sqrt(grid_points) - 1)
-		w2_inc = [0.785, -0.3925]
-		grid = [] 
 	
-		cont = 0
-		for j in range (0, points+1):
-			for i in range (0, points+1):
-				a0 = float ((points-i)*(points-j))/float(points**2)
-				a1 = float ((i)*(points-j))/float(points**2)
-				a2 = float ((i)*(j))/float(points**2)
-				a3 = float ((points-i)*(j))/float(points**2)
-
-				grid.append(
-				[[a0*vertex[0][0] + a1*vertex[1][0] + a2*vertex[2][0] + a3*vertex[3][0],
-				a0*vertex[0][1] +a1*vertex[1][1] + a2*vertex[2][1] + a3*vertex[3][1]],
-				math.atan2(i,j)*side,
-				w2_inc[cont%2]]
-				)
-				print j, i, cont, w2_inc[cont%2]
-				cont+=1
-			w2_inc[:] = reversed(w2_inc[:])
-
-		side_points = points+1
-		for it in xrange(1,side_points,2):
-			grid[side_points*it:side_points*it+side_points] = reversed(grid[side_points*it:side_points*it+side_points])
-
-		return grid
-
-	def select_vertex (self, arg):
-		options = {
-			'left':[[0.211943,0.610663],[0.5841,0.0742],[1.0156, 0.3568],[0.4137, 1.0421]],
-			'hleft':[[0.33,0.48],[0.57,-0.14],[1.05,-0.03],[0.89,0.87]],
-			'front':[[0.47,0.32],[0.47,-0.27],[1.0,-0.37],[1.0,0.42]],
-			'right':[[0.53,-0.04],[0.351943,-0.6],[0.43,-1.0],[1.1,-0.25]],
-		}
-		return options[arg]
-
-	def select_offset (self, arg):
-		options = {
-			'left':-0.785,
-			'hleft':-0.3925,
-			'front':0.0,
-			'right':+0.785,
-		}
-		return options[arg]
-
-	def select_arm_to_calibrate (self, arg):
-		options = {
-			'left':'left',
-			'hleft':'left',
-			'front':'left',
-			'right':'right',
-		}
-		return options[arg]
-
-	def obtain_roll_list (self, side, t_points):
-		points_l = int(math.sqrt(t_points))
-		roll_list = []
-		for j in range (0, points_l):
-			for i in range (0, points_l):
-				roll_list.append(math.atan2(i,j)*side)
-		for it in xrange(1,points_l,2):
-			roll_list[points_l*it:points_l*it+points_l] = reversed(roll_list[points_l*it:points_l*it+points_l])
-		return roll_list
-		
-	def matrix_movement (self, req):
-		hleft = False
-		if req.arm.data == "hleft":
-			req.arm.data = "left"
-			hleft = True
-			
-		self.adopt_oap()				
-		self.baxter_arm.restore_arm_pose(self.select_arm_to_calibrate(req.arm.data))
-
-		if not hleft:
-			vertex = self.select_vertex(req.arm.data)
-			offset = self.select_offset(req.arm.data)
-		else:
-			vertex = self.select_vertex('hleft')
-			offset = self.select_offset('hleft')			
-
-		grid_points = self.quadrilateral_grid_points(vertex, req.point_number.data, self.select_sign(req.arm.data))
-		grid_points[0][1]=1.57*self.select_sign(req.arm.data)
-
-		if req.arm.data == "right":
-			side_points = int(math.sqrt(req.point_number.data))
-			roll_l =  self.obtain_roll_list(self.select_sign(req.arm.data), req.point_number.data)
-			roll_l[0] = 1.57*self.select_sign(req.arm.data)
-			for it in xrange(0,side_points,1):
-				grid_points[side_points*it:side_points*it+side_points] = reversed(grid_points[side_points*it:side_points*it+side_points])
-			for it in range (0, len(grid_points)):
-				grid_points[it][1] = roll_l[it]
-
-		pose_target = Pose()
-		pose_target.position.z = 0.15 
-
-		self.scene_clnt(String('table'),String('add'),Float64(0.0), Float64(0.0), Float64(0.0))
-
-		for pose in grid_points:
-			pose_target.position.x = pose[0][0]
-			pose_target.position.y = pose[0][1]
-			roll = pose[1]+offset
-			(xf, yf, zf, wf) = tf.transformations.quaternion_from_euler(roll, 1.57, 1.57)	
-			pose_target.orientation.w = wf
-			pose_target.orientation.x = xf
-			pose_target.orientation.y = yf 
-			pose_target.orientation.z = zf
-
-			print pose_target
-
-			self.baxter_arm.move_to_pose_goal(pose_target, self.select_arm_to_calibrate(req.arm.data), True, 1.0)
-
-			raw_input("Press Enter to continue")
-
-		self.scene_clnt(String('table'),String('remove'),Float64(0.0), Float64(0.0), Float64(0.0))
-
-		self.baxter_arm.restore_arm_pose("both")
-		return Bool(True)
-
-	#####################################
-	###   Interpolation calibration   ###
-	#####################################
-
-	def lineal_quadrilateral_grid_points (self, vertex, grid_points):
-		points = int(math.sqrt(grid_points) - 1)
-		grid = [] 
-	
-		cont = 0
-		for j in range (0, points+1):
-			for i in range (0, points+1):
-				a0 = float ((points-i)*(points-j))/float(points**2)
-				a1 = float ((i)*(points-j))/float(points**2)
-				a2 = float ((i)*(j))/float(points**2)
-				a3 = float ((points-i)*(j))/float(points**2)
-
-				grid.append([a0*vertex[0][0] + a1*vertex[1][0] + a2*vertex[2][0] + a3*vertex[3][0], a0*vertex[0][1] +a1*vertex[1][1] + a2*vertex[2][1] + a3*vertex[3][1]])
-		return grid
-
-	def select_arm_to_move(self, y_c):
-		if y_c >= 0.0:
-			return "left"
-		else:
-			return "right"
-
-	def pan_to_sp (self, pos, speed):
-		self.pan_pub.publish(HeadPanCommand(pos, speed, 0.0))
-		rospy.sleep(0.5)
-		while self.head_state.isTurning:
-			pass
-
-	def calibration_move_loop(self, height_data, side, dx, dy):			
-		result = False
-		if self.loop_tries > 0:
-			if self.adjust_w1(side, dx, dy):
-				if self.baxter_arm.move_xyz(dx, dy, height_data + self.safe_operation_height, False, 'current', side, 1.0, 1.0):
-					if self.baxter_arm.move_xyz(dx, dy, height_data, False, 'current', side, 1.0, 1.0):
-						raw_input("Place the object to detect in the gripper position")
-						pos = self.baxter_arm.choose_arm_state(side).current_es.pose.position
-						real_position = [pos.x, pos.y]
-						if self.baxter_arm.move_xyz(dx, dy, height_data + self.safe_operation_height, False, 'current', side, 1.0, 1.0):
-							self.loop_tries = 5
-							result = real_position
-				else:
-					print "Adjusting"
-					self.loop_tries -= 1
-					self.calibration_move_loop(height_data, side, dx, dy)
-		return result
-
-	def calibration_move_close(self, height_data, side, dx, dy):
-		result = False
-		if self.baxter_arm.move_xyz(dx, dy, height_data + self.safe_operation_height, False, "current", side, 1.0, 1.0):
-			if self.baxter_arm.move_xyz(dx, dy, height_data, False, "current", side, 1.0, 1.0):
-				raw_input("Place the object to detect in the gripper position")
-				pos = self.baxter_arm.choose_arm_state(side).current_es.pose.position
-				real_position = [pos.x, pos.y]
-				if self.baxter_arm.move_xyz(dx, dy, height_data + self.safe_operation_height, False, "current", side, 1.0, 1.0):
-					return real_position
-		return result
-
-	def angle_generator (self, number_of_angles, angle_seed):
-		list_of_ang = []
-
-		if number_of_angles > 1:
-			list_of_ang.append(angle_seed)
-			inc = angle_seed*2/(number_of_angles-1)
-			for it in range (0, number_of_angles-1):
-				angle_seed-=inc
-				list_of_ang.append(angle_seed)
-		
-		return list_of_ang
-
-	def translate_flag (self, use_tag):
-		if use_tag: return "tag"
-		else: return "cylinder"
-
-	def select_calibration_flag(self, flag):
-		options = {
-			"tag":self.robobo_status, 
-			"cylinder":self.calib_obj_flag,
-		}
-		return options[flag]
-
-	def pan_data_adquisition (self, pan_angles, use_tag):
-		self.adopt_oap()
-		pos_data = []
-		if len(pan_angles)>1:
-			for pan in pan_angles:
-				self.pan_to_sp(pan, 0.05)
-				rospy.sleep(1.0)
-				if not self.select_calibration_flag(self.translate_flag(use_tag)): self.aruco_cent = 'None'
-				pos_data.append([self.head_state.pan, self.aruco_cent])
-		else:
-			if not self.select_calibration_flag(self.translate_flag(use_tag)): self.aruco_cent = 'None'
-			print self.aruco_cent
-			pos_data.append([self.aruco_cent])
-		self.pan_to_sp(0.0, 0.05)
-		return pos_data
-
-	def calibration_move_far(self, height_data, arm, dx, dy):
-		self.pose_grab_far(arm, dx, dy)
-		real_position = self.calibration_move_loop(height_data, arm, dx, dy)
-		return real_position
-
-	def translate_move_flag(self, dist, far):
-		if dist <= far:	return "close"
-		else: return "far"
-
-	def select_calibration_move (self, flag):
-		options = {
-			"close":self.calibration_move_close,
-			"far":self.calibration_move_far, 
-		}
-		return options[flag]
-
-	def calibration_cycle (self, dist, far, pan_angles, req, calibration_data, dx, dy, arm, non_reach):
-		if req.use_arm.data:
-			if non_reach:
-				calibration_data.append([[dx, dy], 'non_reachable'])
-				return True
-			else:
-				real_position = self.select_calibration_move(self.translate_move_flag(dist, far))(req.height.data, arm, dx, dy)
-				if real_position != False:
-					rospy.sleep(1)
-					pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
-					calibration_data.append([real_position, pos_data])
-					return True
-				else:
-					self.loop_tries = 5
-					self.adopt_oap()
-					calibration_data.append([[dx, dy], 'non_reachable'])
-					return False
-			
-		else:
-			rospy.sleep(1)
-			pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
-			calibration_data.append([[dx, dy], pos_data])
-			self.baxter_arm.restore_arm_pose("both")
-			return True
-
-	def obtain_calibration_limits (self, req):
-		if req.row_to_calibrate.data == -1:
-			return 0, req.point_num.data
-		else:
-			side = int(math.sqrt(req.point_num.data))
-			return side*req.row_to_calibrate.data, (side*req.row_to_calibrate.data)+side
-			
-	def interpolation_calibration (self, req):
-		x_min = rospy.get_param("~cal_xmin")
-		x_max = rospy.get_param("~cal_xmax")
-		y_min = rospy.get_param("~cal_ymin")
-		y_max = rospy.get_param("~cal_ymax")
-
-		seed_angle = rospy.get_param("~cal_ang")
-
-		height_data = req.height.data		
-		table_vertex = [[x_min,y_max],[x_min,y_min],[x_max,y_min],[x_max,y_max]]
-		
-		pan_angles = self.angle_generator(req.angle_num.data, seed_angle)
-		
-		self.adopt_oap()				
-		grid_points = self.lineal_quadrilateral_grid_points(table_vertex, req.point_num.data)
-
-		calibration_data = []
-
-		(init, end) = self.obtain_calibration_limits(req)
-
-		row_point_num = int(math.sqrt(req.point_num.data))
-		rospy.set_param("baxter_sense", True)
-
-		fail = True
-		non_reach = False
-		for pose in range(init, end):		
-
-			if (pose%row_point_num ) == 0:
-				fail = True
-
-			dx = grid_points[pose][0]
-			dy = grid_points[pose][1]
-
-			#Check the arm to use based on the y coordinate:
-			arm = self.select_arm_to_move(dy)
-
-			#Translate position in terms of angle and distance
-			dist = self.obtain_dist(dx,dy)
-			ang = math.atan2(dy,dx)
-		
-			far = self.g_highpoly(abs(ang))
-			self.baxter_arm.restore_arm_pose(arm)
-
-			result = self.calibration_cycle(dist, far, pan_angles, req, calibration_data, dx, dy, arm, non_reach)
-			
-			fail = fail and not result 
-			if ((pose+1)%row_point_num) == 0 and fail:
-				non_reach = True
-
-			raw_input("\nPosition "+str(pose)+": information obtained. Press the button to calibrate the next position")
-
-		rospy.delete_param("baxter_sense")
-		self.baxter_arm.restore_arm_pose("both")
-		rospy.loginfo(calibration_data)
-		return Bool(True)
-
 ############################################
 ############################################
 ############################################    		

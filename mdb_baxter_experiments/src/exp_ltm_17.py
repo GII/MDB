@@ -326,6 +326,7 @@ class exp_ltm_17():
 			'put_object_in_robot':self.bg_clnt,
 			'throw':self.bt_clnt,
 			'ask_nicely':self.bgm_clnt,
+			'flexsim':self.bg_clnt, 
 		}
 		return options[arg]
 
@@ -339,6 +340,7 @@ class exp_ltm_17():
 			'put_object_in_robot':BaxGRequest(),
 			'throw':BaxThrowRequest(),
 			'ask_nicely':BaxChangeRequest(),
+			'flexsim':BaxGRequest(),
 		}
 		return options[arg]
 
@@ -695,6 +697,33 @@ class exp_ltm_17():
 				if self.mode=="real":
 					self.complete_pan()
 				resp = True
+
+		if policy_code == 'flexsim':
+			self.adopt_open_pose()
+			self.brap_clnt(String('left'))
+
+			srv = self.choose_policy_req('grasp_object')
+			srv.object_position.const_dist.data = 0.6
+			srv.object_position.angle.data = 1.2
+			srv.object_position.height.data = -0.02
+			srv.orientation.data = "current"
+			srv.arm.data = "left"
+			srv.scale.data = self.velocity
+			#Focused face
+			self.adopt_expression("focus")
+			#Execute policy
+			resp = self.choose_policy(policy_code)(srv).result.data
+
+			srv = self.choose_policy_req('put_object_in_robot')
+			srv.object_position.const_dist = 0.7
+			srv.object_position.angle.data = 0.0
+			srv.object_position.height.data = -0.02
+			srv.orientation.data = "current"
+			srv.arm.data = 'left'
+			srv.scale.data = self.velocity
+			#Focused face
+			self.adopt_expression("focus")
+			resp = self.choose_policy(policy_code)(srv).result.data
 
 		#Publish de next sensorization
 		rospy.loginfo("Publishing sensorization")
