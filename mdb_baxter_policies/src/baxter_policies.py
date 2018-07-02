@@ -30,7 +30,6 @@ class baxter_policies():
 		self.loop_tries = 5
 
 		self.fixed_speed = 2.5
-		self.grab_total_inc = 0.0
 		self.failed_iterations = 0
 
 		self.robobo_status = False
@@ -80,7 +79,7 @@ class baxter_policies():
 		self.bc_srver = rospy.Service('/baxter_change', BaxChange, self.handle_bc) 
 		self.bgb_srver = rospy.Service('/baxter_grab_both', BaxGB, self.handle_bgb) 
 		self.bdb_srver = rospy.Service('/baxter_drop_both', BaxDB, self.handle_bdb) 
-		self.bg_srver = rospy.Service('/baxter_grab', BaxG, self.handle_bg_prev) 
+		self.bg_srver = rospy.Service('/baxter_grab', BaxG, self.handle_bg) 
 		self.bgm_srver = rospy.Service('/baxter_giveme', BaxChange, self.handle_bgm)
 		self.brap_srver = rospy.Service('/baxter_restore', BaxRAP, self.handle_brap)
 		self.bcf_srver = rospy.Service('/baxter_changeface', BaxCF, self.handle_bcf)
@@ -124,7 +123,7 @@ class baxter_policies():
 		# Read throw configuration
 		self.readtcfile()
 		# Obtain throw polinomial model
-		self.t_poly = self.obtain_t_poly()
+		self.t_poly = self.obtain_poly(self.grip_l, self.impact_l, 4)
 
 		# Read grab configuration
 		self.readgcfile()
@@ -186,7 +185,6 @@ class baxter_policies():
 		}
 		return options[arg]
 
-
 	def select_sign(self, arg):
 		options = {
 			'left': 1.0,
@@ -202,12 +200,17 @@ class baxter_policies():
 		}
 		return options[arg]
 
-	def translate_pos (self, angle, dist):
+	def polar_to_cartesian (self, angle, dist):
 		dx = dist*np.cos(angle)
 		dy = dist*np.sin(angle)
 		return dx, dy
 
-	def obtain_wrist_correction(self, side):
+	def cartesian_to_polar(self, co, cc):
+		angle = np.arctan(co/cc)
+		dist = self.obtain_dist(co, cc)
+		return angle, dist
+
+	def obtain_wrist_offset(self, side):
 		self.baxter_arm.update_data()
 		ori = self.baxter_arm.choose_arm_state(side).current_es.pose.orientation
 		quat_in = (ori.x,ori.y,ori.z,ori.w)
@@ -220,13 +223,25 @@ class baxter_policies():
 			front = -3.14
 
 		angle_inc = front - y
-
-		#print angle_inc, " ", front, " ", y
 		return angle_inc
 
 	####################
 	##      Throw     ##
 	####################
+
+	def readtcfile(self):
+		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~throw_param_file")
+		config = yaml.load(open(custom_configuration_file))
+		for k in config.keys():
+			if k == 'speed':
+				for speed in config[k]:
+					self.speed_l.append(speed)
+			if k == 'grip':
+				for grip in config[k]:
+					self.grip_l.append(grip)
+			if k == 'impact':
+				for matrix in config[k]:
+					self.impact_l.append(self.obtain_dist(matrix[0], matrix[1]))
 
 	def search_candidate(self, y_l, c_l, d):
 		for i in range(0, len(y_l)):
@@ -251,23 +266,6 @@ class baxter_policies():
 	def obtain_dist(self, x, y):
 		return np.sqrt((x**2)+(y**2))
 
-	def readtcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~throw_param_file")
-		config = yaml.load(open(custom_configuration_file))
-		for k in config.keys():
-			if k == 'speed':
-				for speed in config[k]:
-					self.speed_l.append(speed)
-			if k == 'grip':
-				for grip in config[k]:
-					self.grip_l.append(grip)
-			if k == 'impact':
-				for matrix in config[k]:
-					self.impact_l.append(self.obtain_dist(matrix[0], matrix[1]))
-
-	def obtain_t_poly (self):
-		return np.poly1d(np.polyfit(self.grip_l, self.impact_l, 4))
-
 	def pose_du (self, s0, sign, arm):
 		angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 		angles = [self.select_offset(arm)+s0, -0.9, sign*0.0, 1.0, sign*0.0, 1.27, sign*0.0]
@@ -289,18 +287,9 @@ class baxter_policies():
 		angles[5] -= 1.57
 		self.baxter_arm.move_joints_directly(angles, 'moveit', arm, True, scale)
 
-	def obtain_angle(self, pos, x, y):
-		cc = pos[0] - x
-		co = pos[1] - y
-		#print pos[0], x, cc, pos[1], y, co
-		angle_ori = np.arctan(co/cc)
-		return angle_ori
-
-	#TODO: Adapt the system to allow negative angles (right arm)
 	def handle_bt(self, srv):
-		#: s0 values -0.75, 0.75
 		if not self.super_throw:
-			if (-1.5<=srv.sensorization.angle.data<=1.5): #(0.0<=srv.scale.data<=4.0) and (0.5<=srv.grip.data<=1.5) and
+			if (-1.5<=srv.sensorization.angle.data<=1.5):
 				rospy.sleep(0.5)
 				#########################################
 				### Needed to test the grab by itself ###
@@ -312,8 +301,8 @@ class baxter_policies():
 					sign = self.select_sign(srv.arm.data)
 					rospy.sleep(0.5)
 					shoulder_pos = (0.064, sign*0.259)
-					dx, dy = self.translate_pos(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
-					angle = self.obtain_angle(shoulder_pos, dx, dy)
+					dx, dy = self.polar_to_cartesian(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
+					(angle, _) = self.cartesian_to_polar(shoulder_pos[1]-dy, shoulder_pos[0]-dx)
 					grip = self.obtain_grip(srv.sensorization.const_dist.data)
 					self.pose_du(angle, sign, srv.arm.data)
 					self.retract_du(self.fixed_speed, srv.arm.data)
@@ -323,19 +312,11 @@ class baxter_policies():
 						self.baxter_arm.restore_arm_pose(srv.arm.data)
 						self.baxter_arm.gripper_manager(srv.arm.data)
 						self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
-						#self.exp_senses.publish_current_senses()
 						return Bool(True)
 					else:
 						self.baxter_arm.gripper_manager(srv.arm.data)
 						self.baxter_arm.restore_arm_pose(srv.arm.data)
-						#self.exp_senses.publish_current_senses()
-						return Bool(False)
-				else:
-					#self.exp_senses.publish_current_senses()
-					return Bool(False)
-			else:
-				#self.exp_senses.publish_current_senses()
-				return Bool(False)
+			return Bool(False)
 		else:
 			if self.baxter_arm.gripper_instate_open(srv.arm.data):
 				self.baxter_arm.restore_arm_pose(srv.arm.data)
@@ -351,19 +332,22 @@ class baxter_policies():
 	##      Push      ##
 	####################
 
-	def limit_correction (self, angle):
+	def fix_w2 (self, angle):
+		w2 = angle
+		if (angle > 3.059):
+			w2 = 3.05
+		if (angle < -3.059):
+			w2 = -3.05
+		return w2
+
+	def translate_into_threshold (self, angle):
 		new_angle = angle
 		if (angle<-3.14):
-			#print "wipe-"
 			new_angle = angle + 6.28
 		if (angle>3.14):
-			#print "wipe+"
 			new_angle = angle - 6.38
 
-		if (new_angle>3.059):
-			new_angle = 3.05
-		if (new_angle < -3.059):
-			new_angle = -3.05
+		new_angle = self.fix_w2(new_angle)
 		return new_angle
 
 	def push_loop(self, srv, x, y, dx, dy):
@@ -375,49 +359,28 @@ class baxter_policies():
 						if self.baxter_arm.move_xyz(x+dx, y+dy, srv.obj_sens.height.data, False, "current", srv.arm.data, srv.scale.data, 1.0):
 							rospy.sleep(0.5)
 							self.baxter_arm.move_xyz(x+dx, y+dy, srv.obj_sens.height.data+0.12, False, "current", srv.arm.data, srv.scale.data, 0.75)
-						
 							self.loop_tries = 5
-							self.grab_total_inc = 0.0
-
-							'''current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-							current_angles[0] = np.sign(self.select_sign(srv.arm.data))*0.35
-							self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 1.0)
-							self.baxter_arm.update_data()'''
-
 							self.adopt_oap()
 							rospy.set_param("/baxter_sense", True)
 							rospy.sleep(2)
 							rospy.delete_param("/baxter_sense")
 							rospy.sleep(2)
 							self.baxter_arm.restore_arm_pose(srv.arm.data)
-
 							return True
-						else:
-							return False
-					else:
-						return False
+					return False
 				else:
 					print "Adjusting"
 					self.loop_tries -= 1
 					self.push_loop(srv, x, y, dx, dy)
-			else:
-				return False
-		else:
-			return False
-
+		return False
 
 	def cartesian_to_push (self, d_angle, d_dist, o_angle, o_dist):
-		dx = d_dist*np.cos(d_angle)
-		dy = d_dist*np.sin(d_angle)
-		ox = o_dist*np.cos(o_angle)
-		oy = o_dist*np.sin(o_angle)
-
+		(dx, dy) = self.polar_to_cartesian(d_angle, d_dist)
+		(ox, oy) = self.polar_to_cartesian(o_angle, o_dist)
 		return dx - ox, dy - oy
 
 	def polar_to_push (self, co, cc):
-		angle = np.arctan(co/cc)
-		dist = np.sqrt((co**2)+(cc**2))
-
+		(angle, dist) = self.cartesian_to_polar(co, cc)
 		if cc < 0.0 and co < 0.0:
 			angle += -3.1416
 		if cc < 0.0 and co > 0.0:
@@ -425,11 +388,10 @@ class baxter_policies():
 		return angle, dist
 
 	def second_push(self, srv, o_dist, new_angle):
-		obx, oby = self.translate_pos(new_angle, o_dist)
-		dx, dy = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
-		d_angle, d_dist = self.polar_to_push(dy, dx)
-		far = self.g_highpoly(abs(new_angle))
-		odx, ody = self.translate_pos(d_angle, -srv.radius.data-0.02)
+		(obx, oby) = self.polar_to_cartesian(new_angle, o_dist)
+		(dx, dy) = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
+		(d_angle, d_dist) = self.polar_to_push(dy, dx)
+		(odx, ody) = self.polar_to_cartesian(d_angle, -srv.radius.data-0.02)
 
  		if self.regular_push (obx+odx, oby+ody, dx, dy, srv, d_angle):
 			return True
@@ -437,13 +399,7 @@ class baxter_policies():
 
 	def regular_push (self, fx, fy, dx, dy, srv, d_angle):
 		if self.baxter_arm.move_xyz(fx, fy, srv.obj_sens.height.data+self.safe_operation_height, False, "current", srv.arm.data, srv.scale.data, 0.95):
-			#Orient the gripper towards the object
-			angle_correction = self.obtain_wrist_correction(srv.arm.data)
-			current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-			angle = -d_angle+current_angles[6]-angle_correction
-			final_angle = self.limit_correction(angle)
-			current_angles[6] = final_angle
-			self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 2.0)
+			self.orient_gripper(srv.arm.data, d_angle)
 			self.baxter_arm.update_data()
 
 			if self.baxter_arm.move_xyz(fx, fy, srv.obj_sens.height.data, False, "current", srv.arm.data, srv.scale.data, 1.0):
@@ -462,16 +418,10 @@ class baxter_policies():
 		fx, fy = self.cartesian_to_push(new_angle, dist, srv.obj_sens.angle.data, srv.obj_sens.const_dist.data)
 		f_angle, f_dist = self.polar_to_push(fy, fx)
 
-		odx, ody = self.translate_pos(f_angle, -srv.radius.data)
+		odx, ody = self.polar_to_cartesian(f_angle, -srv.radius.data)
 		self.pose_grab_far(srv.arm.data, obx + odx, oby + ody)
 
-		#Orient the gripper towards the object
-		angle_correction = self.obtain_wrist_correction(srv.arm.data)
-		current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-		angle = -f_angle+current_angles[6]-angle_correction
-		final_angle = self.limit_correction(angle)
-		print "final_angle: ", final_angle
-		self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 2.0)
+		self.orient_gripper(srv.arm.data, f_angle)
 		self.baxter_arm.update_data()
 
 		if self.push_loop(srv, obx + odx, oby + ody, fx, fy):
@@ -484,43 +434,38 @@ class baxter_policies():
 	def handle_bp(self, srv):
 		self.baxter_arm.update_data()
 
-		print "radius: ", srv.radius.data
-
 		if self.baxter_arm.gripper_instate_close("left") or self.baxter_arm.gripper_instate_close("right"):
-			#self.exp_senses.publish_current_senses()
 			return Bool(False)
 
 		#Close the gripper
-		print "grip_data:", srv.grip.data
 		if self.baxter_arm.gripper_instate_open(srv.arm.data) and srv.grip.data:
 			self.baxter_arm.gripper_manager(srv.arm.data)
 			rospy.sleep(0.5)
 
-		obx, oby = self.translate_pos(srv.obj_sens.angle.data, srv.obj_sens.const_dist.data)
-		dx, dy = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, srv.obj_sens.angle.data, srv.obj_sens.const_dist.data)
-		d_angle, d_dist = self.polar_to_push(dy, dx)
-		far = self.g_highpoly(abs(srv.obj_sens.angle.data))
-
+		#Move the opposite arm away from the scene
 		op = self.select_opposite(srv.arm.data)
 		current_angles = self.baxter_arm.choose_arm_group(op).get_current_joint_values()
 		current_angles[0] = np.sign(self.select_sign(op))*0.55
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', op, True, 1.0)
 		self.baxter_arm.update_data()
 
+		(obx, oby) = self.polar_to_cartesian(srv.obj_sens.angle.data, srv.obj_sens.const_dist.data)
+		(dx, dy) = self.cartesian_to_push(srv.dest_sens.angle.data, srv.dest_sens.const_dist.data, srv.obj_sens.angle.data, srv.obj_sens.const_dist.data)
+		(d_angle, d_dist) = self.polar_to_push(dy, dx)
+
+		far = self.g_highpoly(abs(srv.obj_sens.angle.data))
 		if srv.obj_sens.const_dist.data < far:
 			print "push close"
-			odx, ody = self.translate_pos(d_angle, -srv.radius.data)
+			odx, ody = self.polar_to_cartesian(d_angle, -srv.radius.data)
 			if self.regular_push (obx+odx, oby+ody, dx, dy, srv, d_angle):
 				self.baxter_arm.restore_arm_pose('both')
 				if srv.grip.data:
 					self.baxter_arm.gripper_manager(srv.arm.data)
-				#self.exp_senses.publish_current_senses()
 				return Bool(True)
 			else:
 				self.baxter_arm.restore_arm_pose('both')
 				if srv.grip.data:
 					self.baxter_arm.gripper_manager(srv.arm.data)
-				#self.exp_senses.publish_current_senses()
 				return Bool(False)
 		else:
 			print "push far"
@@ -529,16 +474,13 @@ class baxter_policies():
 				if srv.grip.data:
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				self.loop_tries = 5
-				#self.exp_senses.publish_current_senses()
 				return Bool(True)
 			else:
 				self.baxter_arm.restore_arm_pose('both')
 				if srv.grip.data:
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				self.loop_tries = 5
-				#self.exp_senses.publish_current_senses()
 				return Bool(False)
-
 
 	##################
 	##     Grab     ##
@@ -572,42 +514,29 @@ class baxter_policies():
 
 	def obtain_object_orientation(self, srv, x, y):
 		pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
-		cc = x - pos.x
-		co = y - pos.y
-		angle_ori = np.arctan(co/cc)
-		return angle_ori
+		(angle, dist) = self.cartesian_to_polar(y-pos.y, x-pos.x)
+		return angle
 
 	def adjust_w2(self, srv, x, y):
-		angle_correction = self.obtain_wrist_correction(srv.arm.data)
+		angle_correction = self.obtain_wrist_offset(srv.arm.data)
 		current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-		angle = current_angles[6]-angle_correction
-		current_angles[6] = angle
+		current_angles[6] -= angle_correction
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 1.0)
 
 	def adjust_w1(self, arm, x, y):
-		#Stretch arm through w1
 		current_p = self.baxter_arm.choose_arm_group(arm).get_current_pose().pose.position
-
 		#2D distance between object and effector
-		dist_oe = np.sqrt((x-current_p.x)**2 + (y-current_p.y)**2)
-
+		(_, dist_oe) = self.cartesian_to_polar(y-current_p.y, x-current_p.x)
 		#Angle increment
-		angle_inc = np.arctan(dist_oe/(current_p.z-(-0.03)))
+		(angle_inc, _) = self.cartesian_to_polar(dist_oe, current_p.z-(-0.03))
 
 		#Adjust w1 joint
 		current_ang = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
-
-		#print "angle_increment: ", angle_inc
 		current_ang[5] += -angle_inc
 
-		###Check if angles within limits
-		#TODO: Check this when changing the angle initially
 		if current_ang[5] > -1.5:
-			if current_ang[6] < -3.059:
-				current_ang[6] = -3.05
-			elif current_ang[6] > 3.059:
-				current_ang[6] = 3.05
-
+			###Check if angles within limits
+			current_ang[6] = self.fix_w2(current_ang[6])
 			self.baxter_arm.move_joints_directly(current_ang, 'moveit', arm, True, 2.5)
 			self.baxter_arm.update_data()
 			return True
@@ -617,12 +546,8 @@ class baxter_policies():
 	def adjust_s0(self, srv, x, y):
 		shoulder_pos = (0.064, self.select_sign(srv.arm.data)*0.259)
 		pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
-		co_grip = pos.x - shoulder_pos[0]
-		cc_grip = pos.y - shoulder_pos[1]
-		co_obj = x - shoulder_pos[0]
-		cc_obj = y - shoulder_pos[1]
-		grip_ang = np.arctan(co_grip/cc_grip)
-		obj_ang = np.arctan(co_obj/cc_obj)
+		(grip_angle, _) = self.cartesian_to_polar(pos.x-shoulder_pos[0], pos.y-shoulder_pos[1])
+		(obj_angle, _) = self.cartesian_to_polar(x-shoulder_pos[0], y-shoulder_pos[1])
 
 		#Adjust s0 joint
 		current_ang = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
@@ -636,25 +561,18 @@ class baxter_policies():
 					if self.baxter_arm.move_xyz(x, y, srv.object_position.height.data, True, 'current', srv.arm.data, srv.scale.data, 1.0):
 						if self.baxter_arm.move_xyz(x, y, srv.object_position.height.data + self.safe_operation_height, False, 'current', srv.arm.data, srv.scale.data, 1.0):
 							self.loop_tries = 5
-							self.grab_total_inc = 0.0
 							return True
-						else:
-							return False
-					else:
-						return False
+					return False
 				else:
 					print "Adjusting"
 					self.loop_tries -= 1
 					self.grab_loop(srv, x, y, first)
-			else:
-				return False
-		else:
-			return False
+		return False
 
 	def pose_grab_far (self, arm, x, y):
 		sign = self.select_sign(arm)
 		shoulder_pos = (0.064, sign*0.259)
-		s0 = self.obtain_angle(shoulder_pos, x, y)
+		(s0, _) = self.cartesian_to_polar(shoulder_pos[1]-y, shoulder_pos[0]-x)
 		angles = [self.select_offset(arm)+s0, -0.9, sign*0.0, 1.0, sign*0.0, 1.27, sign*0.0]
 		self.baxter_arm.move_joints_directly(angles, 'moveit', arm, True, 1.0)
 		self.baxter_arm.update_data()
@@ -687,21 +605,10 @@ class baxter_policies():
 				new_angle = sens.angle.data
 				if 0.35 > new_angle > -0.35:
 					new_angle = np.sign(new_angle)*0.35
-				xf, yf = self.translate_pos(new_angle, far-0.01)
-				xf_r, yf_r = self.translate_pos(new_angle, far+0.10)
+				xf, yf = self.polar_to_cartesian(new_angle, far-0.01)
+				xf_r, yf_r = self.polar_to_cartesian(new_angle, far+0.10)
 				if self.baxter_arm.move_xyz(xf, yf, srv.object_position.height.data, True, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
-					pose = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose
-					(rl, pl, yl) = tf.transformations.euler_from_quaternion([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
-					(xo, yo, zo, wo) = tf.transformations.quaternion_from_euler(rl, 0.0, yl)
-					pose.orientation.x = xo
-					pose.orientation.y = yo
-					pose.orientation.z = zo
-					pose.orientation.w = wo
-
 					if self.baxter_arm.move_xyz(xf_r, yf_r, srv.object_position.height.data + 0.18, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
-
-						#current_l_angles = self.baxter_arm.choose_arm_group("left").get_current_joint_values()
-						#current_r_angles = self.baxter_arm.choose_arm_group("right").get_current_joint_values()
 
 						self.adopt_oap()
 						rospy.set_param("/baxter_sense", True)
@@ -709,25 +616,9 @@ class baxter_policies():
 						if self.exp_rec == "ltm":
 							rospy.delete_param("/baxter_sense")
 							rospy.sleep(2)
-
-						#self.baxter_arm.move_joints_directly(current_l_angles + current_r_angles, 'moveit', 'both', True, 1.0)
-						#self.baxter_arm.update_data()
 						self.baxter_arm.restore_arm_pose('both')
 
-						########
-						'''current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
-						current_angles[0] = np.sign(self.select_sign(srv.arm.data))*0.35
-						self.baxter_arm.move_joints_directly(current_angles, 'moveit', srv.arm.data, True, 1.0)
-
-						rospy.set_param("/baxter_sense", True)
-						rospy.sleep(2)
-						if self.exp_rec == "ltm":
-							rospy.delete_param("/baxter_sense")
-							rospy.sleep(2)
-						self.baxter_arm.restore_arm_pose(srv.arm.data)'''
-						########
-
-						xf, yf = self.translate_pos(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
+						xf, yf = self.polar_to_cartesian(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
 						if self.normal_reach_grab (xf, yf, srv, first):
 							print "far->normal_grab"
 							result = True
@@ -741,17 +632,13 @@ class baxter_policies():
 		else:
 			self.exp_senses.assign_gripper_sense(side, 1.0)
 
-	def handle_bg_prev(self, srv):
-		#self.initialize_wrist(srv.arm.data)
+	def handle_bg(self, srv):
 		self.baxter_arm.update_data()
+
 		sens = srv.object_position
-		head_state = self.baxter_arm.get_hs(Bool(True))
-		dx, dy = self.translate_pos(sens.angle.data, sens.const_dist.data)
+		dx, dy = self.polar_to_cartesian(sens.angle.data, sens.const_dist.data)
 		far = self.g_highpoly(abs(sens.angle.data))
-
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
-		print "first: ", first
-
 		current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
 
 		if sens.const_dist.data < far:
@@ -765,13 +652,11 @@ class baxter_policies():
 					rospy.sleep(1)
 					self.exp_senses.rob_grip = 0.0
 					rospy.set_param("/baxter_sense", True)
-				#self.exp_senses.publish_current_senses()
 				return Bool(True)
 			else:
 				self.baxter_arm.restore_arm_pose(srv.arm.data)
 				if first != self.baxter_arm.choose_gripper_state(srv.arm.data):
 					self.baxter_arm.gripper_manager(srv.arm.data)
-				#self.exp_senses.publish_current_senses()
 				return Bool(False)
 
 		elif sens.const_dist.data > far:
@@ -780,7 +665,6 @@ class baxter_policies():
 				if self.exp_rec == "ltm":
 					self.baxter_arm.restore_arm_pose(srv.arm.data)
 				self.assign_grab_grip(srv.arm.data, first)
-				#self.exp_senses.publish_current_senses()
 				self.loop_tries = 5
 				if self.exp_rec == "mot":
 					self.baxter_arm.move_joints_directly(current_angles, 'moveit', 'right', True, 1.0)
@@ -792,9 +676,12 @@ class baxter_policies():
 				self.baxter_arm.restore_arm_pose(srv.arm.data)
 				if first != self.baxter_arm.choose_gripper_state(srv.arm.data):
 					self.baxter_arm.gripper_manager(srv.arm.data)
-				#self.exp_senses.publish_current_senses()
 				self.loop_tries = 5
 				return Bool(False)
+
+	####################################
+	##     Close grab measurement     ##
+	####################################	
 
 	def normal_reach_grab_measurement (self, dx, dy, srv, first):
 		result = False
@@ -807,7 +694,7 @@ class baxter_policies():
 	def handle_bg_reach(self, srv):
 		self.baxter_arm.update_data()
 		sens = srv.object_position
-		dx, dy = self.translate_pos(sens.angle.data, sens.const_dist.data)
+		dx, dy = self.polar_to_cartesian(sens.angle.data, sens.const_dist.data)
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
 
 		if self.normal_reach_grab_measurement (dx, dy, srv, first):
@@ -825,13 +712,11 @@ class baxter_policies():
 	####################
 
 	def first_pose_both_arms (self, pos):
-		#print pos
 		angles = [0.2401, -0.9491, -0.6957, 2.074, -1.022, 1.4841, 0.9211, -0.2401, -0.9491, +0.6957, 2.074, +1.022, 1.4841, -0.9211]
 		angles[pos]+=1.57
-		#angles[pos]-=1.57
 		self.baxter_arm.move_joints_directly(angles, 'moveit', 'both', True, 1.0)
 
-	def approach_arm (self, side, sign):
+	def approach_one_arm (self, side, sign):
 		self.baxter_arm.update_data()
 		pos = self.baxter_arm.choose_arm_state(side).current_es.pose.position
 		if self.baxter_arm.move_xyz(pos.x, pos.y+sign, pos.z, False, "current", side, 0.75, 1.0):
@@ -867,32 +752,23 @@ class baxter_policies():
 	#NOTE: Removed the message's success variable management
 	def handle_bc(self, srv):
 		if (srv.request.data == True):
-			approach_dist = 0.22 #0.235
-
-			### Testing code ###
-			#rospy.sleep(4.0)
-			#self.baxter_arm.gripper_manager("left")
-			#rospy.sleep(0.5)
-			####################
-
+			approach_dist = 0.22
 			if self.baxter_arm.gripper_instate_close("left") or self.baxter_arm.gripper_instate_close("right"):
 				order = self.select_order()
 				if order:
 					self.first_pose_both_arms(self.select_wrist_angle(order[0]))
-					if self.approach_arm(order[1], self.select_sign(order[0])*approach_dist):
+					if self.approach_one_arm(order[1], self.select_sign(order[0])*approach_dist):
 						self.baxter_arm.gripper_manager(order[1])
 						rospy.sleep(0.4)
 						self.baxter_arm.gripper_manager(order[0])
 						rospy.sleep(0.25)
 						#if self.mode == "real" and self.baxter_arm.gripper_is_grip(order[0]) and not self.baxter_arm.gripper_is_grip(order[1]):
 							#self.baxter_arm.restore_arm_pose("both")
-							#self.exp_senses.publish_current_senses()
 							#return Bool(False)
-						if self.approach_arm(order[1], self.select_sign(order[1])*approach_dist):
+						if self.approach_one_arm(order[1], self.select_sign(order[1])*approach_dist):
 							self.baxter_arm.restore_arm_pose("both")
 							self.exp_senses.assign_gripper_sense(order[0], 0.0)
 							self.exp_senses.assign_gripper_sense(order[1], 1.0)
-							#self.exp_senses.publish_current_senses()
 							### Mirror the object angle sensorization
 							self.exp_senses.obj_sense.angle.data = -self.exp_senses.obj_sense.angle.data
 							return Bool(True)
@@ -906,21 +782,10 @@ class baxter_policies():
 								return Bool(True)
 							else:
 								self.baxter_arm.restore_arm_pose("both")
-							#self.exp_senses.publish_current_senses()
 							return Bool(False)
 					else:
 						self.baxter_arm.restore_arm_pose("both")
-						#self.exp_senses.publish_current_senses()
-						return Bool(False)
-				else:
-					#self.exp_senses.publish_current_senses()
-					return Bool(False)
-			else:
-				#self.exp_senses.publish_current_senses()
-				return Bool(False)
-		else:
-			#self.exp_senses.publish_current_senses()
-			return Bool(False)
+		return Bool(False)
 
 	#################################
 	##     Grab with both arms     ##
@@ -943,7 +808,6 @@ class baxter_policies():
 		except rospy.ServiceException, e:
 			rospy.loginfo("Get Model State service call failed: {0}".format(e))
 
-
 	def check_dual_grab (self):
 		self.baxter_arm.update_data()
 		if self.baxter_arm.choose_arm_state('left').current_es.wrench.force.y < -4.5 and self.baxter_arm.choose_arm_state('right').current_es.wrench.force.y > 4.5:
@@ -951,22 +815,12 @@ class baxter_policies():
 		else:
 			return False
 
-	def grab_configuration(self):
-		#joints_fst = [-0.4019029664259784, -0.58603403895642884, -0.7662234035487642, 1.0085923680346596, 0.6658399083517928, 1.3422865673839378, 1.2785729867024924, 0.4019029664259784, -0.58603403895642884, 0.7662234035487642, 1.0085923680346596, -0.6658399083517928, 1.3422865673839378, -1.2785729867024924]
+	def adquire_dual_grab_configuration(self):
 		joints_fst = [-0.4019029664259784, -0.58603403895642884, -1.0662234035487642, 1.0085923680346596, 0.8658399083517928, 1.5422865673839378, 1.0785729867024924, 0.4019029664259784, -0.58603403895642884, 1.0662234035487642, 1.0085923680346596, -0.8658399083517928, 1.5422865673839378, -1.0785729867024924]
 		self.baxter_arm.move_joints_directly(joints_fst, 'moveit', 'both', True, 1.0)
 		self.baxter_arm.update_data()
 
-	def adjust_position2(self, x, y, z, size):
-		self.baxter_arm.update_data()
-		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
-		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
-		points = [cles.x, cles.y, z, cres.x, cres.y, z]
-		if self.baxter_arm.move_to_position_goal_both(points, True, 1.0):
-			return True
-		return False
-
-	def adjust_position1(self, x, y, z, size):
+	def dual_grab_first_step(self, x, y, z, size):
 		self.baxter_arm.update_data()
 		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
 		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
@@ -975,7 +829,17 @@ class baxter_policies():
 			return True
 		return False
 
-	def adjust_orientation (self):
+	def dual_grab_second_step(self, x, y, z, size):
+		self.baxter_arm.update_data()
+		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
+		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
+		points = [cles.x, cles.y, z, cres.x, cres.y, z]
+		if self.baxter_arm.move_to_position_goal_both(points, True, 1.0):
+			return True
+		return False
+
+
+	def adjust_dual_grab_orientation (self):
 		ori_l_act = self.baxter_arm.choose_arm_state('left').current_es.pose.orientation
 		ori_r_act = self.baxter_arm.choose_arm_state('right').current_es.pose.orientation
 
@@ -995,7 +859,7 @@ class baxter_policies():
 			return True
 		return False
 
-	def move_both_cartesian (self, inc):
+	def both_arms_cartesian_move (self, inc):
 		self.baxter_arm.update_data()
 		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
 		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
@@ -1005,41 +869,32 @@ class baxter_policies():
 			return True
 		return False
 
-	#NOTE: Removed the message's success variable management
 	def handle_bgb(self, srv):
 		if not (self.baxter_arm.choose_gripper_state("left") and self.baxter_arm.choose_gripper_state("right")) and not self.choose_dual_checker(self.mode)():
-			obx, oby = self.translate_pos(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
+			obx, oby = self.polar_to_cartesian(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
 			obz = srv.sensorization.height.data
-			self.grab_configuration()
+			self.adquire_dual_grab_configuration()
 			self.baxter_arm.update_data()
-			if self.adjust_position1(obx, oby, obz, srv.size.data):
-				if self.adjust_position2(obx, oby, obz, srv.size.data):
-					if self.adjust_orientation():
+			if self.dual_grab_first_step(obx, oby, obz, srv.size.data):
+				if self.dual_grab_second_step(obx, oby, obz, srv.size.data):
+					if self.adjust_dual_grab_orientation():
 						#self.baxter_arm.gripper_manager("left")
 						#self.baxter_arm.gripper_manager("right")
-						if self.move_both_cartesian([0.0, -0.125, +0.01, 0.0, +0.125, +0.01]):
-							#print self.choose_dual_checker(self.mode)()
+						if self.both_arms_cartesian_move([0.0, -0.125, +0.01, 0.0, +0.125, +0.01]):
 							while not self.choose_dual_checker(self.mode)():
-								self.move_both_cartesian([0.0, -0.02, 0.0, 0.0, +0.02, 0.0])
-							if self.move_both_cartesian([0.0, 0.0, 0.10, 0.0, 0.0, 0.10]):
-								#while not self.choose_dual_checker(self.mode)():
-									#self.move_both_cartesian([0.0, -0.02, 0.0, 0.0, +0.02, 0.0])
+								self.both_arms_cartesian_move([0.0, -0.02, 0.0, 0.0, +0.02, 0.0])
+							if self.both_arms_cartesian_move([0.0, 0.0, 0.10, 0.0, 0.0, 0.10]):
 								#if self.choose_dual_checker(self.mode)():
 								self.exp_senses.assign_gripper_sense('both', 1.0)
-									#self.exp_senses.publish_current_senses()
 								return Bool(True)
 			self.baxter_arm.restore_arm_pose("both")
-			#self.exp_senses.publish_current_senses()
-			return Bool(False)
-		else:
-			#self.exp_senses.publish_current_senses()
-			return Bool(False)
+		return Bool(False)
 
 	#################################
 	##     Drop with both arms     ##
 	#################################
 
-	def adquire_drop_pos (self, dx, dy, z, size):
+	def adquire_dual_drop_configuration (self, dx, dy, z, size):
 		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
 		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
 
@@ -1053,9 +908,6 @@ class baxter_policies():
 
 		incx = (dx-initx)/iterations
 		incy = (dy-inity)/iterations
-
-		#remx = (dx-initx)%iterations
-		#remy = (dy-inity)%iterations
 
 		cposx = initx+incx
 		cposy = inity+incy
@@ -1074,7 +926,6 @@ class baxter_policies():
 			else:
 				keep=False
 
-
 		if keep and self.move_object(dx, dy, z, size):
 			print "last_step"
 			self.baxter_arm.update_data()
@@ -1082,18 +933,7 @@ class baxter_policies():
 		else:
 			return False
 
-
-	def move_object(self, dx, dy, z, size):
-		self.baxter_arm.update_data()
-		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
-		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
-		d = cles.y - cres.y
-		points_f = [dx, dy+(d/2.0), cles.z, dx, dy-(d/2.0), cres.z]
-		if self.baxter_arm.move_to_position_goal_both(points_f, True, 1.0):
-			return True
-		return False
-
-	def drop_object(self, dx, dy, z, size):
+	def dual_drop_first_step(self, dx, dy, z, size):
 		self.baxter_arm.update_data()
 		cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
 		cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
@@ -1104,28 +944,24 @@ class baxter_policies():
 
 	def handle_bdb(self, srv):
 		#if self.choose_dual_checker(self.mode)():
-		dx, dy = self.translate_pos(srv.destination.angle.data, srv.destination.const_dist.data)
-		#if self.move_object(dx, dy, srv.destination.height.data, srv.size.data):
-		if self.adquire_drop_pos(dx, dy, srv.destination.height.data, srv.size.data):
-			print "adquire_drop_pos"
-			if self.drop_object(dx, dy, srv.destination.height.data, srv.size.data):
-				print "drop_object"
-				if self.move_both_cartesian([0.0, 0.10, 0.0, 0.0, -0.10, 0.0]):
+		dx, dy = self.polar_to_cartesian(srv.destination.angle.data, srv.destination.const_dist.data)
+		if self.adquire_dual_drop_configuration(dx, dy, srv.destination.height.data, srv.size.data):
+			print "adquire_dual_drop_configuration"
+			if self.dual_drop_first_step(dx, dy, srv.destination.height.data, srv.size.data):
+				print "dual_drop_first_step"
+				if self.both_arms_cartesian_move([0.0, 0.10, 0.0, 0.0, -0.10, 0.0]):
 					print "separate arms"
-					if self.move_both_cartesian([0.0, 0.0, 0.2, 0.0, 0.0, 0.2]):
+					if self.both_arms_cartesian_move([0.0, 0.0, 0.2, 0.0, 0.0, 0.2]):
 						print "up arms"
 						if self.move_object(dx, 0.0, 0.25, srv.size.data):
 							if not self.choose_dual_checker(self.mode)():
 								self.baxter_arm.restore_arm_pose('both')
 								self.exp_senses.assign_gripper_sense('both', 0.0)
-								#self.exp_senses.publish_current_senses()
 				return Bool(True)
 
 		self.baxter_arm.restore_arm_pose('both')
-		#self.exp_senses.publish_current_senses()
 		return Bool(False)
 		#else:
-			#self.exp_senses.publish_current_senses()
 			#return Bool(False)
 
 	##################
@@ -1136,7 +972,6 @@ class baxter_policies():
 		if (srv.request.data == True):
 			self.baxter_display.changeDisplay("giveme")
 			rospy.sleep(10)
-			#self.exp_senses.publish_current_senses()
 			return Bool(True)
 		return Bool(False)
 
@@ -1165,47 +1000,14 @@ class baxter_policies():
 	def handle_oap(self, srv):
 		if srv.request.data:
 			self.adopt_oap()
-			#self.baxter_arm.both_group.clear_path_constraints()
 			return Bool(True)
 		return Bool(False)
-
-	def test_position_constraint(self):
-		position_constraints = []
-		# print "End effector position: ", self.baxter_arm.larm_group.get_current_pose('left_gripper')
-
-		pos = self.baxter_arm.larm_state.current_es.pose.position
-		ori = self.baxter_arm.larm_state.current_es.pose.orientation
-		pcr = self.baxter_arm.position_constraint_region(SolidPrimitive.BOX, [1.22 + 0.22 + 1.0, 2.442, 0.20])
-		pcp = self.baxter_arm.position_constraint_pose([1.0, 0.83, 0.0, -0.05 + 0.0095 + pos.z])
-		# pcp = self.baxter_arm.position_constraint_pose([ori.w, pos.x, pos.y, pos.z])
-		print pos, ori
-
-		pc = self.baxter_arm.position_constraints([pcr],[pcp], 1.0,'left')
-		self.baxter_arm.add_position_constraints([pc], 'left')
-
-		# print self.baxter_arm.larm_group.get_current_joint_values()
-
-		# self.baxter_arm.move_joints_directly(pose, 'moveit', 'left', True, 1.0)
-		self.baxter_arm.larm_group.set_start_state_to_current_state()
-		self.baxter_arm.larm_group.set_planning_time(100.0)
-
-	def test_orientation_constraint(self):
-		ori = self.baxter_arm.rarm_group.get_current_rpy()
-		quat = tf.transformations.quaternion_from_euler(ori[0], ori[1], ori[2])
-
-		oc = self.baxter_arm.orientation_constraint([3.14, 3.14, 3.14], quat, 1.0, 'left')
-		self.baxter_arm.add_orientation_constraints([oc],'left')
-
-		self.baxter_arm.larm_group.set_planning_time(120.0)
 
 	def handle_olap(self, srv):
 		pose = [1.7000342081740099, -0.9986214929134043, -1.1876846250202815, 1.9378012302962488, 0.6680486331240977, 1.0339030510347689, -0.49777676566881673]
 		if srv.request.data:
-			#self.test_orientation_constraint()
 			self.baxter_arm.move_joints_directly(pose, 'moveit', 'left', True, 1.0)
 			self.baxter_arm.update_data()
-			#self.baxter_arm.remove_path_constraints('left')
-
 			return Bool(True)
 		return Bool(False)
 
@@ -1221,7 +1023,6 @@ class baxter_policies():
 	##    Operation pose    ##
     ##########################
 	def handle_op(self, srv):
-		#pose = [0.16336895390979655, -0.9986214929134043, -1.1876846250202815, 1.9378012302962488, 0.6680486331240977, 1.0339030510347689, -0.49777676566881673, -0.16336895390979655, -0.9986214929134043, 1.1876846250202815, 1.9378012302962488, -0.6680486331240977, 1.0339030510347689, 0.49777676566881673]
 		pose = [0.46336895390979655, -0.9986214929134043, -1.4876846250202815, 1.9378012302962488, 0.5680486331240977, 1.2339030510347689, -0.49777676566881673, -0.46336895390979655, -0.9986214929134043, 1.4876846250202815, 1.9378012302962488, -0.5680486331240977, 1.2339030510347689, 0.49777676566881673]
 		if srv.request.data:
 			self.baxter_arm.move_joints_directly(pose, 'moveit', 'both', True, 1.0)
@@ -1284,11 +1085,12 @@ class baxter_policies():
 	######################
 	##	Initialization	##
 	######################
+
 	def initialize_wrist (self, side):
-		angle_correction = self.obtain_wrist_correction(side)
+		angle_correction = self.obtain_wrist_offset(side)
 		current_angles = self.baxter_arm.choose_arm_group(side).get_current_joint_values()
 		current_angles[6] -= angle_correction
-		current_angles[6] = self.limit_correction(current_angles[6])
+		current_angles[6] = self.translate_into_threshold(current_angles[6])
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', side, True, 2.0)
 		self.baxter_arm.update_data()
 
@@ -1296,18 +1098,12 @@ class baxter_policies():
 	##	Cartesian Movement  ##
 	##########################
 	def orient_gripper (self, arm, f_angle):
-		angle_correction = self.obtain_wrist_correction(arm)
+		angle_correction = self.obtain_wrist_offset(arm)
 		current_angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 		angle = -f_angle+current_angles[6]-angle_correction
-		final_angle = self.limit_correction(angle)
+		final_angle = self.translate_into_threshold(angle)
 		current_angles[6] = final_angle
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', arm, True, 2.0)
-
-	def translate_request (self, req, ang):
-		cx = req.const_dist.data*np.cos(ang)
-		cy = req.const_dist.data*np.sin(ang)
-		cz = req.height.data
-		return cx, cy, cz
 
 	def angle_fix (self, angle):
 		new_angle = angle
@@ -1319,17 +1115,16 @@ class baxter_policies():
 
 	def aim_gripper (self, arm, angle):
 		#Orient the gripper towards the destination
-		angle_correction = self.obtain_wrist_correction(arm)
+		angle_correction = self.obtain_wrist_offset(arm)
 		current_angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
-
 		current_angles[6]-= angle
-		current_angles[6] = self.limit_correction(current_angles[6])
+		current_angles[6] = self.translate_into_threshold(current_angles[6])
 		print "Aim gripper towards the angle ", -(angle_correction - angle)
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', arm, True, 2.0)
 		self.baxter_arm.update_data()
 
 	def update_gripper_orientation (self, arm='right'):
-		self.exp_senses.rgrip_ori = -self.obtain_wrist_correction(arm)
+		self.exp_senses.rgrip_ori = -self.obtain_wrist_offset(arm)
 		print "Current gripper orientation: ", self.exp_senses.rgrip_ori
 
 	def handle_bcm(self, srv):
@@ -1343,19 +1138,14 @@ class baxter_policies():
 			#Update the current gripper orientation
 			self.update_gripper_orientation()
 
-			print "Baxter prev angle: ", self.exp_senses.rgrip_ori,
-
 			#Move the gripper towards the destination
 			pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
-			#self.exp_senses.rgrip_ori += srv.dest.angle.data
 			self.exp_senses.rgrip_ori = self.angle_fix(self.exp_senses.rgrip_ori)
 
-			print "Baxter action orientation: ", self.exp_senses.rgrip_ori
-			#self.rgrip_ori = self.limit_correction(self.rgrip_ori)
-			x,y,z = self.translate_request(srv.dest, self.exp_senses.rgrip_ori)
-			#print self.rgrip_ori, x, y, z
-
+			(x, y) = self.polar_to_cartesian(self.exp_senses.rgrip_ori, srv.dest_const_dist.data)
+			z = srv.dest.height.data
 			result = False
+
 			if self.baxter_arm.move_xyz(pos.x+x, pos.y+y, pos.z+z, False, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
 				self.baxter_arm.update_data()
 				#Update the current gripper orientation
@@ -1379,7 +1169,7 @@ class baxter_policies():
 
 	def handle_baxter_cartesian_fm_mov (self, srv):
 		self.baxter_arm.update_data()
-		dx, dy = self.translate_pos(srv.angle.data, srv.dist.data)
+		dx, dy = self.polar_to_cartesian(srv.angle.data, srv.dist.data)
 		pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
 		if self.baxter_arm.move_xyz(pos.x+dx, pos.y+dy, 0.1, False, "init", srv.arm.data, 1.0, 1.0):
 			self.baxter_arm.update_data()
@@ -1409,7 +1199,7 @@ class baxter_policies():
 		angle_to_check = self.angle_fix(angle_to_check)
 
 		pos = self.baxter_arm.choose_arm_state(arm).current_es.pose.position
-		x,y = self.translate_pos(angle_to_check, distance)
+		x,y = self.polar_to_cartesian(angle_to_check, distance)
 		resp = self.baxter_arm.move_xyz_plan(pos.x+x, pos.y+y, pos.z, "current", arm, 1.0)
 
 		if ((pos.x+x > self.ra_area_l[0]) and (pos.x+x<self.ra_area_l[1]) and (pos.y+y<self.ra_area_l[2]) and (pos.y+y>self.ra_area_l[3])) and resp != False:
@@ -1486,7 +1276,7 @@ class baxter_policies():
 	def handle_bd(self, srv):
 		self.baxter_arm.update_data()
 		sens = srv.object_position
-		dx, dy = self.translate_pos(sens.angle.data, sens.const_dist.data)
+		dx, dy = self.polar_to_cartesian(sens.angle.data, sens.const_dist.data)
 		far = self.right_arm_motiven_poly(abs(sens.angle.data))
 
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
@@ -1514,6 +1304,10 @@ class baxter_policies():
 				if first != self.baxter_arm.choose_gripper_state(srv.arm.data):
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				return Bool(False)
+
+	##################################
+	###		 Flexsim Example	   ###
+	##################################
 
 	def handle_flexsim (self, srv):
 		angles_1 = [0.368922379486442, 1.3894030986272135, 0.298359263243713, -1.2686021115812371, 0.32635441262262177, 0.2001844928190465, -0.38809713933500967]

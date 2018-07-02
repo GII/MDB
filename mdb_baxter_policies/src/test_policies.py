@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import rospy
+import rospy, tf
+from shape_msgs.msg import SolidPrimitive
 
 class test_policies():
 	def __init__(self, global_policies):
 		self.global_policies = global_policies
-
-		self.test_code()
 
 	def test_code(self):
 		#self.global_policies.baxter_arm.AddElements()
@@ -17,7 +16,36 @@ class test_policies():
 
 		#left_test_speed = [2.0, 6.0, 2.0, 4.0, 4.0, 0.0, 0.0]
 		#left_test_acceleration = [0.3, 0.3, 0.3, 0.7, 0.7, 0.7, 0.7]
-		#self.baxter_arm.move_joints_raw_position(left_test_angles_2, left_test_speed, left_test_acceleration, 'baxter', 'left', True, 5)
+		#self.global_policies.baxter_arm.move_joints_raw_position(left_test_angles_2, left_test_speed, left_test_acceleration, 'baxter', 'left', True, 5)
 
-		#self.baxter_arm.move_joints_command(4, left_test_angles_2, 'left', 'baxter')
-		#self.baxter_arm.move_joints_interface('left', left_test_angles, 0.05, 'moveit')
+		#self.global_policies.baxter_arm.move_joints_command(4, left_test_angles_2, 'left', 'baxter')
+		#self.global_policies.baxter_arm.move_joints_interface('left', left_test_angles, 0.05, 'moveit')
+
+	def test_position_constraint(self):
+		position_constraints = []
+		# print "End effector position: ", self.global_policies.baxter_arm.larm_group.get_current_pose('left_gripper')
+
+		pos = self.global_policies.baxter_arm.larm_state.current_es.pose.position
+		ori = self.global_policies.baxter_arm.larm_state.current_es.pose.orientation
+		pcr = self.global_policies.baxter_arm.position_constraint_region(SolidPrimitive.BOX, [1.22 + 0.22 + 1.0, 2.442, 0.20])
+		pcp = self.global_policies.baxter_arm.position_constraint_pose([1.0, 0.83, 0.0, -0.05 + 0.0095 + pos.z])
+		# pcp = self.global_policies.baxter_arm.position_constraint_pose([ori.w, pos.x, pos.y, pos.z])
+		print pos, ori
+
+		pc = self.global_policies.baxter_arm.position_constraints([pcr],[pcp], 1.0,'left')
+		self.global_policies.baxter_arm.add_position_constraints([pc], 'left')
+
+		# print self.global_policies.baxter_arm.larm_group.get_current_joint_values()
+
+		# self.global_policies.baxter_arm.move_joints_directly(pose, 'moveit', 'left', True, 1.0)
+		self.global_policies.baxter_arm.larm_group.set_start_state_to_current_state()
+		self.global_policies.baxter_arm.larm_group.set_planning_time(100.0)
+
+	def test_orientation_constraint(self):
+		ori = self.global_policies.baxter_arm.rarm_group.get_current_rpy()
+		quat = tf.transformations.quaternion_from_euler(ori[0], ori[1], ori[2])
+
+		oc = self.global_policies.baxter_arm.orientation_constraint([3.14, 3.14, 3.14], quat, 1.0, 'left')
+		self.global_policies.baxter_arm.add_orientation_constraints([oc],'left')
+
+		self.global_policies.baxter_arm.larm_group.set_planning_time(120.0)
