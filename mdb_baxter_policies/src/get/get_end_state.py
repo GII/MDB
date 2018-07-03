@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_policies.srv import GetES
+from mdb_baxter_policies.srv import GetEndState
 from baxter_core_msgs.msg import EndpointState
 
 class get_end_state():
@@ -13,7 +13,7 @@ class get_end_state():
 
 		self.left_state_sub = rospy.Subscriber("/robot/limb/left/endpoint_state", EndpointState, self.left_state_cb)
 		self.right_state_sub = rospy.Subscriber("/robot/limb/right/endpoint_state", EndpointState, self.right_state_cb)
-		self.getes_srv = rospy.Service('get_end_state', GetES, self.handle_getes)
+		self.getes_srv = rospy.Service('get_end_state', GetEndState, self.handle_getes)
 
 	def left_state_cb(self, state):
 		self.left_current_state = state

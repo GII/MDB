@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_policies.srv import GetHS
+from mdb_baxter_policies.srv import GetHeadState
 from baxter_core_msgs.msg import HeadState
-from sensor_msgs.msg import JointState
 
 class get_head_state():
 	def __init__(self):
-		rospy.init_node('get_joints_state_server')
+		rospy.init_node('get_head_state_server')
 		
 		self.current_state = None
 
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
-		self.geths_sv = rospy.Service('/get_head_state', GetHS, self.handle_geths)
+		self.geths_sv = rospy.Service('/get_head_state', GetHeadState, self.handle_geths)
 
 	def head_state_cb(self, state):
 		self.current_state = state

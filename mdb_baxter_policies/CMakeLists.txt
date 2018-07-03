@@ -60,32 +60,27 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files( 
    DIRECTORY srv
    FILES
-   GetJS.srv
-   GetES.srv
-   GetHS.srv
-   OpenGrip.srv
+   BaxChangeFace.srv
+   BaxCheckReach.srv
+   BaxDropBoth.srv
+   BaxFMCartesianMove.srv
+   BaxGetCompleteSense.srv
+   BaxGrab.srv
+   BaxGrabBoth.srv
+   BaxPush.srv
+   BaxRestoreArmPose.srv	
    BaxThrow.srv
-   BaxCM.srv
-   BaxJM.srv
-   BaxG.srv
-   BaxP.srv
-   BaxGB.srv
-   BaxDB.srv
-   GetHImg.srv
-   PickCal.srv
-   PickAdj.srv
-   BaxRAP.srv
-   BaxCF.srv
+   Calibration.srv
+   CheckActionValidity.srv
+   GetEndState.srv
+   GetGripperState.srv
+   GetHandImg.srv
+   GetHeadState.srv
+   GetJointsState.srv
    GetSense.srv
-   GetGS.srv
-   BCheckR.srv
-   BaxSense.srv
-   CheckAct.srv
-   Calib.srv
    GetSenseFM.srv
-   BaxFMCM.srv
-   GridCalib.srv
-   PlanMng.srv
+   GridCalibration.srv
+   ManagePlanScene.srv
  )
 
 ## Generate actions in the 'action' folder

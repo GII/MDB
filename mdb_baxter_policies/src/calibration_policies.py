@@ -1,10 +1,31 @@
 #!/usr/bin/env python
+
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
 import rospy, math, tf
 from std_msgs.msg import Bool, Float64, String
 from geometry_msgs.msg import Pose, PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from mdb_common.msg import ObjDet
-from mdb_baxter_policies.srv import Calib, GridCalib
+from mdb_baxter_policies.srv import Calibration, GridCalibration
 
 class calibration_policies():
 	def __init__(self, global_policies):
@@ -24,8 +45,8 @@ class calibration_policies():
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
 		self.tag_cent_sb = rospy.Subscriber("/aruco_single_head/pixel", PointStamped, self.tag_cent_cb)
 
-		self.baxter_calib_srver = rospy.Service('/baxter_calib', Calib, self.matrix_movement)
-		self.baxter_int_calib_srver = rospy.Service('/baxter_int_calib', GridCalib, self.interpolation_calibration)
+		self.baxter_calib_srver = rospy.Service('/baxter_calib', Calibration, self.matrix_movement)
+		self.baxter_int_calib_srver = rospy.Service('/baxter_int_calib', GridCalibration, self.interpolation_calibration)
 
 	#################
 	### Callbacks ###

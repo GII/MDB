@@ -1,6 +1,10 @@
-# Copyright 2016, GII / Universidad de la Coruna (UDC)
+#!/usr/bin/env python
+
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
 # Main contributor(s): 
 # * Luis Calvo, luis.calvo@udc.es
+#
 #  This file is also part of MDB.
 #
 # * MDB is free software: you can redistribute it and/or modify it under the
@@ -16,16 +20,15 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-#!/usr/bin/env python
 import rospy, sys, copy, moveit_commander, rospkg
 from baxter_core_msgs.msg import EndpointState, EndEffectorState, JointCommand
 from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
 from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest, GetPositionIK, GetPositionIKRequest
-from mdb_baxter_policies.srv import GetJS, GetES, GetHS
+from mdb_baxter_policies.srv import GetJointsState, GetEndState, GetHeadState
 from baxter_interface.gripper import Gripper
-from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, Grasp, RobotTrajectory
+from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, RobotTrajectory
 from shape_msgs.msg import SolidPrimitive
 from moveit_commander import PlanningSceneInterface
 
@@ -47,9 +50,9 @@ class baxter_arm():
 			self.compute_cp = rospy.ServiceProxy('/compute_cartesian_path', GetCartesianPath)
 			self.execute_kp = rospy.ServiceProxy('/execute_kinematic_path', ExecuteKnownTrajectory)
 			self.compute_ik = rospy.ServiceProxy('/compute_ik', GetPositionIK)
-			self.get_es = rospy.ServiceProxy('/get_end_state', GetES)  
-			self.get_js = rospy.ServiceProxy('/get_joints_state', GetJS)
-			self.get_hs = rospy.ServiceProxy('/get_head_state', GetHS)
+			self.get_es = rospy.ServiceProxy('/get_end_state', GetEndState)  
+			self.get_js = rospy.ServiceProxy('/get_joints_state', GetJointsState)
+			self.get_hs = rospy.ServiceProxy('/get_head_state', GetHeadState)
 		except rospy.ServiceException, e:
 			print "Service call failed: ", str(e)
 			exit(1)
@@ -76,100 +79,6 @@ class baxter_arm():
 
 		self.left_limb = Limb('left')
 		self.right_limb = Limb('right')
-
-		###################
-		###		TEST	###
-		###################
-
-		'''self.scene = PlanningSceneInterface()
-		self.robot = RobotCommander()
-		self.scene.remove_world_object("table")
-		self.scene.remove_world_object("obj")
-		self.grasps = []
-		
-	def AddElements (self):
-		p = PoseStamped()
-		p.header.frame_id = robot.get_planning_frame()
-
-		# add a table
-		p.pose.position.x = 0.61+0.22
-		p.pose.position.y = 0.0
-		p.pose.position.z = -0.05
-		self.scene.add_box("table", p, (1.22, 2.442, 0.019))
-
-		# add an object to be grasped
-		p.pose.position.x = 0.7963
-		p.pose.position.y = -0.3248
-		p.pose.position.z = -0.02
-		self.scene.add_box("small_obj", p, (0.3, 0.3, 0.07))
-
-	def GraspCreation(self):
-		g = grasp()
-		g.id = "test_grasp"
-
-		# pre grasp posture
-		g.pre_grasp_posture.header = self.create_header('right_gripper')
-		g.pre_grasp_posture.joint_names = ["right_gripper"]
-
-		pos = JointTrayectoryPoint()
-		pos.positions.append(0.0)
-		g.pre_grasp_posture.points.append(pos)
-
-		# grasp posture
-		g.grasp_posture.header = g.pre_grasp_posture.header
-		g.grasp_posture.joint_names = g.pre_grasp_posture.joint_names
-
-		pos = JointTrayectoryPoint()
-		pos.positions.append(0.2)
-		pos.effort.append(0.0)
-		g.grasp_posture.points.append(pos)
-
-		#grasp_pose
-		grasp_pose = PoseStamped()
-		grasp_pose.header = self.create_header('base')
-
-		grasp_pose.pose.position.x
-		grasp_pose.pose.position.y
-		grasp_pose.pose.position.z
-	
-		grasp_pose.pose.orientation.x
-		grasp_pose.pose.orientation.y
-		grasp_pose.pose.orientation.z
-		grasp_pose.pose.orientation.w
-
-		g.grasp_pose = grasp_pose
-
-		# max contact force
-		g.max_contact_force = 0
-
-		# allowed touch objects
-		#g.allowed_touch_objects = ["table"]
-
-		# pre grasp approach
-		g.pre_grasp_approach.direction.header = grasp_pose.header
-		g.pre_grasp_approach.direction.vector.x = 1.0
-		g.pre_grasp_approach.direction.vector.y = 0.0
-		g.pre_grasp_approach.direction.vector.z = 0.0
-		g.pre_grasp_approach.min_distance = 0.001
-		g.pre_grasp_approach.desired_distance = 0.1
-
-		# post-grasp retreat
-		g.post_grasp_retreat.direction.header = g.grasp_pose.header
-		g.post_grasp_retreat.direction.vector.x = 0.0
-		g.post_grasp_retreat.direction.vector.y = 0.0
-		g.post_grasp_retreat.direction.vector.z = 1.0
-		g.post_grasp_retreat.desired_distance = 0.25
-		g.post_grasp_retreat.min_distance = 0.01
-
-		# Append grasp to list of grasps
-		self.grasps.append(g)
-
-	def pickup (self, obj, grasps):
-		self.rarm_group.pick(obj, grasps)
-
-		###################
-		###		/TEST	###
-		###################'''
 
 	####################
 	###   Callbacks  ###
@@ -268,21 +177,7 @@ class baxter_arm():
 		self.choose_arm_group(side).clear_pose_targets()
 		self.choose_arm_group(side).set_pose_target(pose)
 
-		'''found = False
-		tries = 5
-		while not found and tries > 0:
-			plan = self.choose_arm_group(side).plan()
-			if len(plan.joint_trajectory.points) > 0:	found = True
-			else:	tries -= 1'''
-
 		plan = self.choose_arm_group(side).plan()
-		
-		'''if len(plan.joint_trajectory.points) == 0:
-			self.restore_arm_pose(side)
-			self.update_data()
-			self.choose_arm_group(side).clear_pose_targets()
-			self.choose_arm_group(side).set_pose_target(pose)
-			plan = self.choose_arm_group(side).plan()'''
 
 		self.change_velocity(plan, scale)
 		self.execute_kp(plan, wait)
@@ -296,6 +191,7 @@ class baxter_arm():
 		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group(side).clear_pose_targets()
+
 		pose_target = Pose()
 		pose_target.orientation.w = 0.0
 		pose_target.orientation.x = 1.0
@@ -314,6 +210,7 @@ class baxter_arm():
 		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group('both').clear_pose_targets()
+
 		l_ori = self.choose_arm_state('left').current_es.pose.orientation
 		r_ori = self.choose_arm_state('right').current_es.pose.orientation
 
@@ -366,6 +263,7 @@ class baxter_arm():
 		self.wait_to_move()
 		self.update_data()
 		self.choose_arm_group("both").clear_pose_targets()
+
 		l_pos = self.choose_arm_state("left").current_es.pose.position
 		r_pos = self.choose_arm_state("right").current_es.pose.position
 
@@ -430,7 +328,6 @@ class baxter_arm():
 		joint_command.command = self.arrange_joint_command(command, source)
 		joint_command.names = self.arrange_joint_command(self.select_joint_names(side), 'moveit')
 
-		
 		self.choose_joint_command_pub(side).publish(joint_command)
 
 	###################################
@@ -535,9 +432,6 @@ class baxter_arm():
 		self.choose_arm_group(side).set_start_state_to_current_state()
 		self.choose_arm_group(side).set_joint_value_target(group_joint_values)
 		plan = self.choose_arm_group(side).plan()
-		#print plan
-		#for pit in range (0, len(plan.joint_trajectory.points)):
-			#print plan.joint_trajectory.points[pit].positions
 		self.execute_kp(plan, True)
 
 	def select_joint_names (self, side):
@@ -620,6 +514,14 @@ class baxter_arm():
 
 		return waypoints
 
+	def select_group_name (self, code):
+		options = {
+			'left':'left_arm',
+			'right':'right_arm',
+			'both':'both_arms',
+		}
+		return options[code]
+
 	#Computes the request for the cartesian moveit service
 	def compute_cartesian_req(self, x, y, z, code, side):
 		self.update_data()
@@ -629,7 +531,7 @@ class baxter_arm():
 		gcp_req = GetCartesianPathRequest()
 		gcp_req.header = self.create_header('base')
 		gcp_req.start_state.joint_state = arm_joints_state
-		gcp_req.group_name = str(side)+"_arm" 
+		gcp_req.group_name = self.select_group_name(side)
 		gcp_req.link_name = str(side)+"_gripper"
 		gcp_req.waypoints = waypoints
 		gcp_req.max_step = 0.01
@@ -638,32 +540,22 @@ class baxter_arm():
 		return gcp_req
 
 	#Moves the arm to a specific waypoint in the robot 3d space and opens/closes the gripper if desired
-	#def move_xyz (self, x, y, z, pick, code, side, scale):
 	def move_xyz (self, x, y, z, pick, code, side, scale, perc):
 		self.wait_to_move()
 		self.update_data()
 		gcp_req = self.compute_cartesian_req(x, y, z, code, side)
-		#self.get_last_state(x, y, z, code, side, 1.0)
-		#print gcp_req
 		try:
-			#perc = 1.0
 			fract = 0.0
 			resp = None
 			tries = 6
-			#while fract!=1.0 and tries>0:
 			while fract < perc and tries>0:
 				resp = self.compute_cp(gcp_req)
 				fract = resp.fraction
-				#print fract, perc
 				tries -= 1
-				#perc -= 0.05
 			if tries == 0:
 				return False
 			if (resp.error_code.val==1):
 				self.change_velocity(resp.solution, scale)
-				#print resp.solution.joint_trajectory.joint_names
-				#print resp.solution.joint_trajectory.points
-				#print resp.solution.joint_trajectory
 				pet = self.execute_kp(resp.solution, True)
 				if (pet.error_code.val==1 or pet.error_code.val==-4) and pick:
 					self.gripper_manager(side)
@@ -674,7 +566,6 @@ class baxter_arm():
 		except rospy.ServiceException as exc:
 			print ("Service did not process request: " + str(exc))
 			return False
-		#rospy.sleep(1)
 
 	def move_xyz_plan(self, x, y, z, code, side, perc):
 		self.wait_to_move()
@@ -695,7 +586,6 @@ class baxter_arm():
 		except rospy.ServiceException as exc:
 			print ("Service did not process request: " + str(exc))
 			return False
-		#rospy.sleep(1)
 
 	def move_xyz_concatenate (self, l_plan, r_plan):
 		l_points = l_plan.joint_trajectory.points
@@ -731,72 +621,6 @@ class baxter_arm():
 				l_points[eti].accelerations = l_points[eti].accelerations + r_points[len(r_points)-1].accelerations
 				l_points[eti].effort =  l_points[eti].effort + r_points[len(r_points)-1].effort
 			return l_plan
-
-	def compute_cartesian_req_both (self, x, y, z, code, side):
-		self.update_data()
-		waypoints = self.generate_wp_xyz(x, y, z, code, side)
-
-		gcp_req = GetCartesianPathRequest()
-		gcp_req.header = self.create_header('base')
-		gcp_req.start_state.joint_state = self.remove_unnecesary_joints(self.joint_states, "both")
-		gcp_req.group_name = "both_arms" 
-		gcp_req.link_name = str(side)+"_gripper"
-		gcp_req.waypoints = waypoints
-		gcp_req.max_step = 0.01 #0.01 ESTO ME PERMITE CONTROLAR LA VELOCIDAD
-		gcp_req.avoid_collisions = True 
-
-		return gcp_req
-
-	def move_xyz_plan_both (self, x, y, z, code, side, perc):
-		self.wait_to_move()
-		gcp_req = self.compute_cartesian_req_both(x, y, z, code, side)
-		print "complete: ", gcp_req
-
-		try:
-			fract = 0.0
-			resp = None
-			tries = 5
-			while fract<perc and tries>0:
-				resp = self.compute_cp(gcp_req)
-				fract = resp.fraction
-				tries -= 1
-			if tries == 0:
-				return False
-			if (resp.error_code.val==1):
-				return resp.solution
-		except rospy.ServiceException as exc:
-			print ("Service did not process request: " + str(exc))
-			return False
-
-	def move_xyz_execute_both (self, points, pick, code, scale, perc):
-		l_plan = self.move_xyz_plan_both(points[0], points[1], points[2], code, 'left', perc)
-		#r_plan = self.move_xyz_plan_both(points[3], points[4], points[5], code, 'right', perc)
-
-		print "l_plan: ", l_plan
-		#print "r_plan: ", r_plan
-
-		'''if (l_plan and r_plan):
-			l_plan_c = self.change_velocity(l_plan, scale)
-			r_plan_c = self.change_velocity(r_plan, scale)
-
-		b_plan = None
-		if (l_plan and r_plan):
-			b_plan = self.move_xyz_concatenate(l_plan, r_plan)		
-		if b_plan:
-			#print b_plan
-			try:
-				pet = self.execute_kp(b_plan, True)
-				print pet.error_code.val
-				if (pet.error_code.val==1 or pet.error_code.val==-4) and pick:
-					self.lgripper_state = self.gripper_manager(self.lgripper, self.lgripper_state)
-					self.rgripper_state = self.gripper_manager(self.rgripper, self.rgripper_state)		
-				return True
-			except rospy.ServiceException as exc:
-				print ("Service did not process request: " + str(exc))
-				return False
-		else:
-			return False
-		rospy.sleep(1)'''
 		
 	def move_xyz_execute(self, points, pick, code, scale, perc):
 		self.wait_to_move()
@@ -814,7 +638,6 @@ class baxter_arm():
 		if (l_plan and r_plan):
 			b_plan = self.move_xyz_concatenate(l_plan, r_plan)		
 		if b_plan:
-			#print b_plan
 			try:
 				pet = self.execute_kp(b_plan, True)
 				print pet.error_code.val
@@ -833,16 +656,13 @@ class baxter_arm():
 		self.wait_to_move()
 		l_plan = self.move_xyz_plan(points[0], points[1], points[2], code, 'left', perc)
 		r_plan = self.move_xyz_plan(points[3], points[4], points[5], code, 'right', perc)
+
 		b_plan = None
 		if (l_plan and r_plan):
 			b_plan = self.move_xyz_concatenate(l_plan, r_plan)
+
 			b_plan_points = b_plan.joint_trajectory.points
 			plan_l = []
-			'''for ite in range (0, len(b_plan_points)):
-				plan = self.move_joints_plan(list(b_plan_points[ite].positions), 'moveit', 'both')
-				print plan
-				plan_l.append(plan)
-				self.move_joints_directly(list(b_plan_points[ite].positions), 'moveit', 'both', True, scale)'''
 			fplan = self.move_joints_plan(list(b_plan_points[0].positions), 'moveit', 'both')
 			lplan = self.move_joints_plan(list(b_plan_points[len(b_plan_points)-1].positions), 'moveit', 'both')				
 			plan_l.append(fplan)

@@ -1,21 +1,41 @@
 #! /usr/bin/env python
 
-import rospy
-import tf, rospkg, yaml, math
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
+#! /usr/bin/env python
+import rospy, tf, rospkg, yaml, math
+import numpy as np
 from baxter_arm import *
 from baxter_display import *
 from exp_senses import *
 from calibration_policies import calibration_policies
 from robobo_policies import robobo_policies
 from dynamic_reconfigure import client
-import numpy as np
 from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from mdb_common.msg import OpenGripReq, Candidates
 from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
-from mdb_baxter_policies.srv import BaxThrow, BaxP, BaxGB, BaxDB, BaxG, PickAdj, BaxRAP, BaxCF, BCheckR, BaxSense, CheckAct, BaxFMCM, PlanMng
+from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, BaxFMCartesianMove, ManagePlanScene
 from dynamic_reconfigure.srv import Reconfigure
 from gazebo_msgs.srv import GetModelState
 
@@ -23,6 +43,7 @@ class baxter_policies():
 	def __init__(self):
 		rospy.init_node("baxter_policies_server")
 		rospy.on_shutdown(node_shutdown)
+
 		# Variables
 		self.rospack = rospkg.RosPack()
 
@@ -55,7 +76,7 @@ class baxter_policies():
 		self.baxter_display = display()
 
 		# Experiment sensorization
-		self.exp_senses = exp_senses()
+		self.exp_senses = exp_senses(self)
 
 		# Experiment calibration
 		self.exp_calibration = calibration_policies(self)
@@ -74,43 +95,42 @@ class baxter_policies():
 		self.grip_pub = rospy.Publisher('/open_grip', OpenGripReq, queue_size = 1)
 
 		# ROS Service Servers
-		self.bt_srver = rospy.Service('/baxter_throw', BaxThrow, self.handle_bt)  
-		self.bp_srver = rospy.Service('/baxter_push', BaxP, self.handle_bp) 
-		self.bc_srver = rospy.Service('/baxter_change', BaxChange, self.handle_bc) 
-		self.bgb_srver = rospy.Service('/baxter_grab_both', BaxGB, self.handle_bgb) 
-		self.bdb_srver = rospy.Service('/baxter_drop_both', BaxDB, self.handle_bdb) 
-		self.bg_srver = rospy.Service('/baxter_grab', BaxG, self.handle_bg) 
-		self.bgm_srver = rospy.Service('/baxter_giveme', BaxChange, self.handle_bgm)
-		self.brap_srver = rospy.Service('/baxter_restore', BaxRAP, self.handle_brap)
-		self.bcf_srver = rospy.Service('/baxter_changeface', BaxCF, self.handle_bcf)
-		self.bop_srver = rospy.Service('/baxter_op', BaxChange, self.handle_op)
-		self.boap_srver = rospy.Service('/baxter_oap', BaxChange, self.handle_oap)
-		self.bolap_srver = rospy.Service('/baxter_olap', BaxChange, self.handle_olap)
-		self.borap_srver = rospy.Service('/baxter_orap', BaxChange, self.handle_orap)
-		self.bes_srver = rospy.Service('/baxter_bes', BaxSense, self.handle_bes)
-		self.bd_srver = rospy.Service('/baxter_bd', BaxG, self.handle_bd)
-		self.baxter_flexsim_srver = rospy.Service('/baxter_flexsim', BaxChange, self.handle_flexsim) 
+		self.bax_throw_srver = rospy.Service('/baxter/policy/throw', BaxThrow, self.handle_baxter_throw)  
+		self.bax_grab_srver = rospy.Service('/baxter/policy/grab', BaxGrab, self.handle_baxter_grab) 
+		self.bax_push_srver = rospy.Service('/baxter/policy/push', BaxPush, self.handle_baxter_push) 
+		self.bax_change_srver = rospy.Service('/baxter/policy/change_hands', BaxChange, self.handle_baxter_change_hands) 
+		self.bax_grab_both_srver = rospy.Service('/baxter/policy/grab_both', BaxGrabBoth, self.handle_baxter_grab_both) 
+		self.bax_drop_both_srver = rospy.Service('/baxter/policy/drop_both', BaxDropBoth, self.handle_baxter_drop_both) 
+		self.bax_ask_srver = rospy.Service('/baxter/policy/ask_for_help', BaxChange, self.handle_baxter_ask_help)
+		self.bax_restore_srver = rospy.Service('/baxter/restore', BaxRestoreArmPose, self.handle_baxter_restore_pose)
+		self.bax_change_face_srver = rospy.Service('/baxter/change_face', BaxChangeFace, self.handle_baxter_change_face)
+		self.bax_operation_pose_srver = rospy.Service('/baxter/operation_pose', BaxChange, self.handle_operation_pose)
+		self.bax_open_arms_pose_srver = rospy.Service('/baxter/open_arms_pose', BaxChange, self.handle_open_arms_pose)
+		self.bax_open_larm_pose_srver = rospy.Service('/baxter/open_left_arm_pose', BaxChange, self.handle_open_left_arm_pose)
+		self.bax_open_rarm_pose_srver = rospy.Service('/baxter/open_right_arm_pose', BaxChange, self.handle_open_right_arm_pose)
+		self.bax_get_complete_sens_srver = rospy.Service('/baxter/get_complete_sense', BaxGetCompleteSense, self.handle_get_complete_sens)
+		self.bax_drop_srver = rospy.Service('/baxter/policy/drop', BaxGrab, self.handle_baxter_drop)
+		self.bax_flexsim_srver = rospy.Service('/baxter/flexsim_example', BaxChange, self.handle_flexsim) 
 
-		self.bg_srver = rospy.Service('/baxter_grab_reach', BaxG, self.handle_bg_reach)
+		self.bax_grab_reach_srver = rospy.Service('/baxter/grab_reach', BaxGrab, self.handle_baxter_grab_reach)
 
-		self.baxter_fm_cart_mov_srver = rospy.Service('/baxter_fm_cart_mov', BaxFMCM, self.handle_baxter_cartesian_fm_mov)
-		self.baxter_cart_mov_srver = rospy.Service('/baxter_cart_mov', BaxMC, self.handle_bcm)
-		self.candidate_actions_srver = rospy.Service ("/candidate_actions", CandAct, self.handle_cand_act)
-		self.check_action_validity_srver = rospy.Service("/check_action_val", CheckAct, self.handle_check_action_validity)
-		self.baxter_sa_srver = rospy.Service('/baxter_sa', BaxChange, self.handle_sa)
+		self.bax_fm_cart_mov_srver = rospy.Service('/baxter/fm_cart_mov', BaxFMCartesianMove, self.handle_baxter_cartesian_fm_mov)
+		self.bax_cart_mov_srver = rospy.Service('/baxter/cart_mov', BaxMC, self.handle_baxter_cartesian_mov)
+		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
+		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
+		self.bax_sa_srver = rospy.Service('/baxter_sa', BaxChange, self.handle_sa) #TODO: what is this?
 
 		# ROS Simulation Service Servers
-		self.bsrg_srver = rospy.Service('/baxter_reset_gippers', BaxChange, self.handle_bsrg)
-		self.bcrc_srver = rospy.Service('/baxter_check_close_reach', BCheckR, self.handle_bcrc)
-		self.bfrc_srver = rospy.Service('/baxter_check_far_reach', BCheckR, self.handle_bfrc)
+		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_gippers', BaxChange, self.handle_baxter_reset_grippers)
+		self.bax_check_close_reach_srver = rospy.Service('/baxter/check_close_reach', BaxCheckReach, self.handle_baxter_check_close_reach)
+		self.bax_check_far_reach_srver = rospy.Service('/baxter/check_far_reach', BaxCheckReach, self.handle_baxter_check_far_reach)
 
 		# ROS Simulation Clients
 		self.get_state_srv = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
 
 		# ROS Service Clients
 		try:
-			self.pickadj_clnt = rospy.ServiceProxy('/pickup_adjustment', PickAdj)
-			self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', PlanMng)
+			self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', ManagePlanScene)
 		except rospy.ServiceException, e:
 			print "Service exception", str(e)
 			exit(1)
@@ -210,6 +230,9 @@ class baxter_policies():
 		dist = self.obtain_dist(co, cc)
 		return angle, dist
 
+	def obtain_dist(self, x, y):
+		return np.sqrt((x**2)+(y**2))
+
 	def obtain_wrist_offset(self, side):
 		self.baxter_arm.update_data()
 		ori = self.baxter_arm.choose_arm_state(side).current_es.pose.orientation
@@ -263,9 +286,6 @@ class baxter_policies():
 		yprime = self.t_poly(cand_f)
 		return self.search_candidate(yprime, cand_f, d)
 
-	def obtain_dist(self, x, y):
-		return np.sqrt((x**2)+(y**2))
-
 	def pose_du (self, s0, sign, arm):
 		angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 		angles = [self.select_offset(arm)+s0, -0.9, sign*0.0, 1.0, sign*0.0, 1.27, sign*0.0]
@@ -287,7 +307,7 @@ class baxter_policies():
 		angles[5] -= 1.57
 		self.baxter_arm.move_joints_directly(angles, 'moveit', arm, True, scale)
 
-	def handle_bt(self, srv):
+	def handle_baxter_throw(self, srv):
 		if not self.super_throw:
 			if (-1.5<=srv.sensorization.angle.data<=1.5):
 				rospy.sleep(0.5)
@@ -431,7 +451,7 @@ class baxter_policies():
 				return True
 		return False
 
-	def handle_bp(self, srv):
+	def handle_baxter_push(self, srv):
 		self.baxter_arm.update_data()
 
 		if self.baxter_arm.gripper_instate_close("left") or self.baxter_arm.gripper_instate_close("right"):
@@ -632,7 +652,7 @@ class baxter_policies():
 		else:
 			self.exp_senses.assign_gripper_sense(side, 1.0)
 
-	def handle_bg(self, srv):
+	def handle_baxter_grab(self, srv):
 		self.baxter_arm.update_data()
 
 		sens = srv.object_position
@@ -691,7 +711,7 @@ class baxter_policies():
 					result = True
 		return result
 
-	def handle_bg_reach(self, srv):
+	def handle_baxter_grab_reach(self, srv):
 		self.baxter_arm.update_data()
 		sens = srv.object_position
 		dx, dy = self.polar_to_cartesian(sens.angle.data, sens.const_dist.data)
@@ -750,7 +770,7 @@ class baxter_policies():
 		return options[arg]
 
 	#NOTE: Removed the message's success variable management
-	def handle_bc(self, srv):
+	def handle_baxter_change_hands(self, srv):
 		if (srv.request.data == True):
 			approach_dist = 0.22
 			if self.baxter_arm.gripper_instate_close("left") or self.baxter_arm.gripper_instate_close("right"):
@@ -869,7 +889,7 @@ class baxter_policies():
 			return True
 		return False
 
-	def handle_bgb(self, srv):
+	def handle_baxter_grab_both(self, srv):
 		if not (self.baxter_arm.choose_gripper_state("left") and self.baxter_arm.choose_gripper_state("right")) and not self.choose_dual_checker(self.mode)():
 			obx, oby = self.polar_to_cartesian(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
 			obz = srv.sensorization.height.data
@@ -942,7 +962,7 @@ class baxter_policies():
 			return True
 		return False
 
-	def handle_bdb(self, srv):
+	def handle_baxter_drop_both(self, srv):
 		#if self.choose_dual_checker(self.mode)():
 		dx, dy = self.polar_to_cartesian(srv.destination.angle.data, srv.destination.const_dist.data)
 		if self.adquire_dual_drop_configuration(dx, dy, srv.destination.height.data, srv.size.data):
@@ -968,7 +988,7 @@ class baxter_policies():
 	##     Give     ##
 	##################
 
-	def handle_bgm(self, srv):
+	def handle_baxter_ask_help(self, srv):
 		if (srv.request.data == True):
 			self.baxter_display.changeDisplay("giveme")
 			rospy.sleep(10)
@@ -978,14 +998,14 @@ class baxter_policies():
 	##############################
 	##     Restore position     ##
 	##############################
-	def handle_brap(self, srv):
+	def handle_baxter_restore_pose(self, srv):
 		self.baxter_arm.restore_arm_pose(srv.arm.data)
 		return Bool(True)
 
 	#######################
 	##    Change face    ##
 	#######################
-	def handle_bcf(self, srv):
+	def handle_baxter_change_face(self, srv):
 		self.baxter_display.changeDisplay(srv.expression.data)
 		return Bool(True)
 
@@ -997,13 +1017,13 @@ class baxter_policies():
 		self.baxter_arm.move_joints_directly(pose, 'moveit', 'both', True, 1.0)
 		self.baxter_arm.update_data()
 
-	def handle_oap(self, srv):
+	def handle_open_arms_pose(self, srv):
 		if srv.request.data:
 			self.adopt_oap()
 			return Bool(True)
 		return Bool(False)
 
-	def handle_olap(self, srv):
+	def handle_open_left_arm_pose(self, srv):
 		pose = [1.7000342081740099, -0.9986214929134043, -1.1876846250202815, 1.9378012302962488, 0.6680486331240977, 1.0339030510347689, -0.49777676566881673]
 		if srv.request.data:
 			self.baxter_arm.move_joints_directly(pose, 'moveit', 'left', True, 1.0)
@@ -1011,7 +1031,7 @@ class baxter_policies():
 			return Bool(True)
 		return Bool(False)
 
-	def handle_orap(self, srv):
+	def handle_open_right_arm_pose(self, srv):
 		pose = [-1.7000342081740099, -0.9986214929134043, 1.1876846250202815, 1.9378012302962488, -0.6680486331240977, 1.0339030510347689, 0.49777676566881673]
 		if srv.request.data:
 			self.baxter_arm.move_joints_directly(pose, 'moveit', 'right', True, 1.0)
@@ -1022,7 +1042,7 @@ class baxter_policies():
 	##########################
 	##    Operation pose    ##
     ##########################
-	def handle_op(self, srv):
+	def handle_operation_pose(self, srv):
 		pose = [0.46336895390979655, -0.9986214929134043, -1.4876846250202815, 1.9378012302962488, 0.5680486331240977, 1.2339030510347689, -0.49777676566881673, -0.46336895390979655, -0.9986214929134043, 1.4876846250202815, 1.9378012302962488, -0.5680486331240977, 1.2339030510347689, 0.49777676566881673]
 		if srv.request.data:
 			self.baxter_arm.move_joints_directly(pose, 'moveit', 'both', True, 1.0)
@@ -1035,7 +1055,7 @@ class baxter_policies():
 	##    Reset Grippers	##
 	##########################
 
-	def handle_bsrg(self, srv):
+	def handle_baxter_reset_grippers(self, srv):
 		if (srv.request.data == True):
 			self.baxter_arm.lgripper.open()
 			self.baxter_arm.rgripper.open()
@@ -1048,7 +1068,7 @@ class baxter_policies():
 	##########################
 	##    Check close reach	##
 	##########################
-	def handle_bcrc (self, srv):
+	def handle_baxter_check_close_reach (self, srv):
 		dist = 0.0
 		if srv.type.data == 'exp_small_obj':
 			dist = self.g_lowpoly(srv.ang.data)
@@ -1062,7 +1082,7 @@ class baxter_policies():
 	##########################
 	##    Check far reach	##
 	##########################
-	def handle_bfrc (self, srv):
+	def handle_baxter_check_far_reach (self, srv):
 		dist = 0.0
 		if srv.type.data == 'exp_small_obj':
 			dist = self.g_highpoly(srv.ang.data)
@@ -1076,7 +1096,7 @@ class baxter_policies():
 	##########################
 	##		   Sense		##
 	##########################
-	def handle_bes(self, srv):
+	def handle_get_complete_sens(self, srv):
 		if (srv.request.data == True):
 			self.exp_senses.publish_current_senses(srv.box_rad.data, srv.obj_rad.data)
 			return Bool(True)
@@ -1127,7 +1147,7 @@ class baxter_policies():
 		self.exp_senses.rgrip_ori = -self.obtain_wrist_offset(arm)
 		print "Current gripper orientation: ", self.exp_senses.rgrip_ori
 
-	def handle_bcm(self, srv):
+	def handle_baxter_cartesian_mov(self, srv):
 		if srv.valid.data == True:
 			#Update the current gripper orientation
 			self.update_gripper_orientation()
@@ -1273,7 +1293,7 @@ class baxter_policies():
 			return True
 		return result
 
-	def handle_bd(self, srv):
+	def handle_baxter_drop(self, srv):
 		self.baxter_arm.update_data()
 		sens = srv.object_position
 		dx, dy = self.polar_to_cartesian(sens.angle.data, sens.const_dist.data)
@@ -1330,9 +1350,6 @@ class baxter_policies():
 		self.baxter_arm.move_joints_directly(angles_2, 'baxter', 'right', True, 1.0)
 		self.baxter_arm.move_xyz(0.710313470302, -0.290793390638, -0.03, True, "current", 'right', 1.0, 1.0)
 
-	
-############################################
-############################################
 ############################################    		
 
 def node_shutdown():

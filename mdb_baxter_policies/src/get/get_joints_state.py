@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_policies.srv import GetJS
+from mdb_baxter_policies.srv import GetJointsState
 from sensor_msgs.msg import JointState
 
 class get_joints_state():
@@ -11,7 +11,7 @@ class get_joints_state():
 		self.current_state = None
 
 		self.joint_states_sub = rospy.Subscriber("/robot/joint_states", JointState, self.joint_states_cb)
-		self.getjs_srv = rospy.Service('get_joints_state', GetJS, self.handle_getjs)
+		self.getjs_srv = rospy.Service('get_joints_state', GetJointsState, self.handle_getjs)
 
 	def joint_states_cb(self, state):
 		self.current_state = state

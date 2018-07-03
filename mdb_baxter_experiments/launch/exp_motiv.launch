@@ -4,7 +4,8 @@
    <arg name="exp_type" default="regular"/>
    <arg name="config_time" default="20" />
    <arg name="sense_fix" default="true" />
-  <node name="exp_motiv_17" pkg="mdb_baxter_experiments" type="exp_motiv_17.py" required="true" output="screen">
+
+  <node name="exp_motiv" pkg="mdb_baxter_experiments" type="exp_motiv.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
 	<param name="exp_type" type="str" value="$(arg exp_type)" />
 	<param name="config_time" type="int" value="$(arg config_time)" />

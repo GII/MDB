@@ -1,4 +1,25 @@
 #!/usr/bin/env python
+
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
 import rospy, cv2, re, math, vlc, rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
@@ -12,7 +33,7 @@ from mdb_baxter_experiments.srv import SimMng, SimMngRequest
 from mdb_common.msg import SensData
 
 
-class exp_motiv_17():
+class exp_motiv():
 	def __init__(self):
 		self.head_state = None
 		self.rospack = rospkg.RosPack()
@@ -594,10 +615,10 @@ class exp_motiv_17():
 
 
 def main():
-	ltme = exp_motiv_17()
+	ltme = exp_motiv()
 	rospy.spin()
 
 if __name__ == '__main__':
-	rospy.init_node("exp_motiv_17")
+	rospy.init_node("exp_motiv")
 	main()	
 

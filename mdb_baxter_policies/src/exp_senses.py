@@ -1,24 +1,43 @@
 #!/usr/bin/env python
+
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
 import rospy, math
 import numpy as np
 from std_msgs.msg import Float64, Bool, String
 from mdb_common.msg import SensData
 from mdb_common.srv import GetSenseMotiv
-from mdb_baxter_policies.srv import GetES, GetSense, GetSenseFM
+from mdb_baxter_policies.srv import GetSense, GetSenseFM
 from geometry_msgs.msg import PointStamped, PoseStamped
 
-
 class exp_senses():
-	def __init__(self):
+	def __init__(self, global_policies):
+		self.global_policies = global_policies
+
 		self.obj_sense = SensData()
 		self.box_sense = SensData()
 		self.rob_sense = SensData()
 		self.rob_ori = Float64()
 		self.rob_obj_ori = Float64()
 		self.rob_box_ori = Float64()
-
-		self.larm_state = None
-		self.rarm_state = None
 
 		self.rgrip_ori = 0.0
 		self.rob_grip = 0.0
@@ -52,44 +71,29 @@ class exp_senses():
 		self.lgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_left_hand", Bool, queue_size = 1)
 		self.rgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_right_hand", Bool, queue_size = 1)
 
-		self.gs_srver = rospy.Service('/baxter_sense', GetSense, self.handle_gs)
+		self.gs_srver = rospy.Service('/baxter/get_sense', GetSense, self.handle_gs)
 		self.gs_motiv_srver = rospy.Service('/mdb3/baxter/sensors', GetSenseMotiv, self.handle_gs_motiv)
 		self.gs_fm_srver = rospy.Service('/mdb3/baxter/fm_sensors', GetSenseFM, self.handle_gs_fm)
-
-		self.get_es = rospy.ServiceProxy('/get_end_state', GetES) 
-
-	def endpoint_data (self):
-		try:
-			self.larm_state = self.get_es(String('left'))
-			self.rarm_state = self.get_es(String('right'))
-		except rospy.ServiceException as exc:
-			print ("Service did not process request: " + str(exc)) 
-
-
-	def sensorization_conversion(self, x, y, z):
-		dist = np.sqrt((x**2)+(y**2))
-		angle = np.arctan(y/x)
-		return dist, angle, z
 
   	### Callbacks ###
 	def mixed_box_cb(self, sense):
 		if rospy.has_param("/baxter_sense"):
 			do_sense = rospy.get_param("/baxter_sense")
 			if do_sense:
-				(dist, angle, height) = self.sensorization_conversion(sense.pose.position.x, sense.pose.position.y, -0.04)
+				(angle, dist) = self.global_policies.cartesian_to_polar(sense.pose.position.y, sense.pose.position.x)
 				self.box_sense.dist.data = dist-0.08
 				self.box_sense.angle.data = angle
-				self.box_sense.height.data = height
+				self.box_sense.height.data = -0.04
 				self.box_sense.radius.data = 0.0
 
 	def mixed_ball_cb(self, sense):
 		if rospy.has_param("/baxter_sense"):
 			do_sense = rospy.get_param("/baxter_sense")
 			if do_sense:
-				(dist, angle, height) = self.sensorization_conversion(sense.pose.position.x, sense.pose.position.y, -0.04)
+				(angle, dist) = self.global_policies.cartesian_to_polar(sense.pose.position.y, sense.pose.position.x)
 				self.obj_sense.dist.data = dist
 				self.obj_sense.angle.data = angle
-				self.obj_sense.height.data = height
+				self.obj_sense.height.data = -0.04
 				self.obj_sense.radius.data = 0.0
 
 	def obj_sense_cb (self, sens):
@@ -113,26 +117,12 @@ class exp_senses():
 	def rob_ori_box_cb(self, ori):
 		self.rob_box_ori = ori
 
-	def rob_loc_cb(self, loc):
-		(rob_dx, rob_dy) = self.translate_pos(self.rob_sense.angle.data, self.rob_sense.dist.data)
-		inc_x = 0.05*np.cos(new_angle)
-		inc_y = 0.05*np.sin(new_angle)
-
-	### Services ###
-	def dist_calc (self, x1, y1, x2, y2):
-		return np.sqrt(((x1-x2)**2)+((y1-y2)**2))		
-
-	def translate_pos (self, angle, dist):
-		dx = dist*np.cos(angle)
-		dy = dist*np.sin(angle)
-		return dx, dy
-
+	### Services ###		
 	def handle_gs_motiv(self, srv):
 		if (srv.request.data == True):
-			self.endpoint_data()
-			(box_dx, box_dy) = self.translate_pos(self.box_sense.angle.data, self.box_sense.dist.data)
-			(obj_dx, obj_dy) = self.translate_pos(self.obj_sense.angle.data, self.obj_sense.dist.data)
-			(rob_dx, rob_dy) = self.translate_pos(self.rob_sense.angle.data, self.rob_sense.dist.data)
+			(box_dx, box_dy) = self.global_policies.polar_to_cartesian(self.box_sense.angle.data, self.box_sense.dist.data)
+			(obj_dx, obj_dy) = self.global_policies.polar_to_cartesian(self.obj_sense.angle.data, self.obj_sense.dist.data)
+			(rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(self.rob_sense.angle.data, self.rob_sense.dist.data)
 
 			inc_x = 0.1*np.cos(self.rob_ori.data)
 			inc_y = 0.1*np.sin(self.rob_ori.data)
@@ -140,29 +130,29 @@ class exp_senses():
 			robg_y = rob_dy + inc_y
 
 			if self.grip_state_conversion(self.rgrip_sense.data):
-				box_ball_dist = self.dist_calc (box_dx, box_dy, self.rarm_state.current_es.pose.position.x, self.rarm_state.current_es.pose.position.y)
+				box_ball_dist = self.global_policies.obtain_dist(box_dx-self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x, box_dy-self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y)
 				hand_ball_dist = 0.0
-				rob_ball_dist = self.dist_calc (robg_x, robg_y, self.rarm_state.current_es.pose.position.x, self.rarm_state.current_es.pose.position.y)
+				rob_ball_dist = self.global_policies.obtain_dist(robg_x-self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x, robg_y-self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y)
 			else:
 				if self.rob_grip > 0.0:
 					rob_ball_dist = 0.0
-					box_ball_dist = self.dist_calc (box_dx, box_dy, robg_x, robg_y)
-					hand_ball_dist = self.dist_calc (self.rarm_state.current_es.pose.position.x, self.rarm_state.current_es.pose.position.y, robg_x, robg_y)
+					box_ball_dist = self.global_policies.obtain_dist(box_dx-robg_x, box_dy-robg_y)
+					hand_ball_dist = self.global_policies.obtain_dist(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x-robg_x, self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y-robg_y)
 				else:
-					rob_ball_dist = self.dist_calc(robg_x,robg_y,obj_dx,obj_dy) #np.sqrt((self.dist_calc(rob_dx,rob_dy,obj_dx,obj_dy)**2) - (0.11**2))
-					box_ball_dist = self.dist_calc (box_dx, box_dy, obj_dx, obj_dy) #rob_dx, rob_dy)
-					hand_ball_dist = self.dist_calc (self.rarm_state.current_es.pose.position.x, self.rarm_state.current_es.pose.position.y, obj_dx, obj_dy)
+					rob_ball_dist = self.global_policies.obtain_dist(robg_x-obj_dx, robg_y-obj_dy) 
+					box_ball_dist = self.global_policies.obtain_dist(box_dx-obj_dx, box_dy-obj_dy) 
+					hand_ball_dist = self.global_policies.obtain_dist(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x-obj_dx, self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y-obj_dy)
 
 			if self.grip_state_conversion(self.rgrip_sense.data):
-				obj_dx = self.rarm_state.current_es.pose.position.x
-				obj_dy = self.rarm_state.current_es.pose.position.y
+				obj_dx = self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x
+				obj_dy = self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y
 			elif self.rob_grip > 0.0:
 				obj_dx = robg_x
 				obj_dy = robg_y
 
 			print 'rob_obj: ', rob_ball_dist, 'hand_obj: ', hand_ball_dist, 'box_obj: ', box_ball_dist
 
-			return Float64(box_ball_dist), Float64(hand_ball_dist), Float64(rob_ball_dist), Float64(obj_dx), Float64(obj_dy), Float64(box_dx), Float64(box_dy), Float64(self.rarm_state.current_es.pose.position.x), Float64(self.rarm_state.current_es.pose.position.y), Float64(rob_dx), Float64(rob_dy), Float64(self.rgrip_ori), Float64(self.rob_ori.data)
+			return Float64(box_ball_dist), Float64(hand_ball_dist), Float64(rob_ball_dist), Float64(obj_dx), Float64(obj_dy), Float64(box_dx), Float64(box_dy), Float64(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x), Float64(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y), Float64(rob_dx), Float64(rob_dy), Float64(self.rgrip_ori), Float64(self.rob_ori.data)
 
 	def handle_gs(self, srv):
 		if (srv.request.data == True):
@@ -170,11 +160,10 @@ class exp_senses():
 
 	def handle_gs_fm (self, srv):
 		if (srv.request.data == True):
-			self.endpoint_data()
-			(obj_dx, obj_dy) = self.translate_pos(self.obj_sense.angle.data, self.obj_sense.dist.data)
+			(obj_dx, obj_dy) = self.global_policies.polar_to_cartesian(self.obj_sense.angle.data, self.obj_sense.dist.data)
 
-			hand_ball_dist = self.dist_calc(obj_dx, obj_dy, self.larm_state.current_es.pose.position.x, self.larm_state.current_es.pose.position.y)
-			hand_ball_angle = np.arctan2(obj_dy-self.larm_state.current_es.pose.position.y, obj_dx-self.larm_state.current_es.pose.position.x)
+			hand_ball_dist = self.global_policies.obtain_dist(obj_dx-self.global_policies.baxter_arm.larm_state.current_es.pose.position.x, obj_dy-self.global_policies.baxter_arm.larm_state.current_es.pose.position.y)
+			hand_ball_angle = np.arctan2(obj_dy-self.global_policies.baxter_arm.larm_state.current_es.pose.position.y, obj_dx-self.global_policies.baxter_arm.larm_state.current_es.pose.position.x)
 
 			return Float64(hand_ball_dist), Float64(hand_ball_angle)
 

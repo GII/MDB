@@ -1,10 +1,31 @@
 #!/usr/bin/env python
+
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
 import rospy, sys
 from std_msgs.msg import Header, Bool
 from moveit_msgs.msg import PlanningScene, AttachedCollisionObject
 from geometry_msgs.msg import Pose
 from shape_msgs.msg import SolidPrimitive
-from mdb_baxter_policies.srv import PlanMng
+from mdb_baxter_policies.srv import ManagePlanScene
 
 class exp_scene():
 	def __init__(self):
@@ -12,7 +33,7 @@ class exp_scene():
 		self.planning_scene = PlanningScene()
 		self.attachments = None
 		
-		self.mod_ps_srver = rospy.Service('/mdb3/baxter/modify_planning_scene', PlanMng, self.handle_mod_ps)
+		self.mod_ps_srver = rospy.Service('/mdb3/baxter/modify_planning_scene', ManagePlanScene, self.handle_mod_ps)
 
 	def handle_mod_ps(self, req):
 		if self.manage_element(req.element.data, req.action.data, [req.x.data, req.y.data, req.z.data]):
