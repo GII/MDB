@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_policies.srv import GetGS
+from mdb_baxter_policies.srv import GetGripperState
 from baxter_core_msgs.msg import EndEffectorState
 
 class get_gripper_state():
@@ -13,7 +13,7 @@ class get_gripper_state():
 
 		self.lgrip_sb = rospy.Subscriber("/robot/end_effector/left_gripper/state", EndEffectorState, self.lgrip_cb)
 		self.rgrip_sb = rospy.Subscriber("/robot/end_effector/right_gripper/state", EndEffectorState, self.rgrip_cb)
-		self.getgs_sv = rospy.Service('get_gripper_state', GetGS, self.handle_getgs)
+		self.getgs_sv = rospy.Service('get_gripper_state', GetGripperState, self.handle_getgs)
 
 	def lgrip_cb(self, state):
 		self.left_current_state = state

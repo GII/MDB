@@ -4,5 +4,6 @@ std_msgs/Float64 height
 std_msgs/Bool use_tag
 std_msgs/Bool use_arm
 std_msgs/Int32 row_to_calibrate
+std_msgs/Int32 pos_to_start
 ---
 std_msgs/Bool result

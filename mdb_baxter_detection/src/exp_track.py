@@ -225,6 +225,11 @@ class exp_track:
 			v2 = im.shape[1]
 			h2 = im.shape[0]'''
 
+		v1 = 0
+		v2 = im.shape[1]
+		h1 = 98
+		h2 = 430
+
 		rr, cc = draw.polygon(np.array([h1, h1, h2, h2]), np.array([v1, v2, v2, v1]), shape=im.shape)
 		mask = np.zeros([im.shape[0],im.shape[1]], dtype='bool')
 		mask[rr, cc] = True

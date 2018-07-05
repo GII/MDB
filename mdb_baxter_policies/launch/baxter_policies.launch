@@ -2,6 +2,7 @@
 <launch>
   <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
+  <arg name="super_throw" default="false" />
 
   <arg name="cal_xmin" default="0.32"/>
   <arg name="cal_xmax" default="1.34"/>
@@ -30,6 +31,7 @@
    <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
+	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
 
 	<param name="cal_xmin" type="double" value="$(arg cal_xmin)"/>
 	<param name="cal_xmax" type="double" value="$(arg cal_xmax)"/>

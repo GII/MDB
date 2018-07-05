@@ -1,5 +1,4 @@
 mdb_common/CMReq destination
 std_msgs/Float64 size
-std_msgs/Bool hackademia17success
 ---
 std_msgs/Bool result 

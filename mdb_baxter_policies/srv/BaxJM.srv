@@ -1,7 +1,0 @@
-std_msgs/Float64[] angles
-std_msgs/String order
-std_msgs/String arm
-std_msgs/Bool block
-std_msgs/Float64 scale
----
-std_msgs/Bool result 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from mdb_baxter_policies.srv import GetHImg
+from mdb_baxter_policies.srv import GetHandImg
 from sensor_msgs.msg import Image
 
 class get_hand_image():
@@ -13,7 +13,7 @@ class get_hand_image():
 
 		self.limg_sub = rospy.Subscriber('/cameras/left_hand_camera/image', Image, self.limg_cb)
 		self.rimg_sub = rospy.Subscriber('/cameras/right_hand_camera/image', Image, self.rimg_cb)
-		self.getimage_srv = rospy.Service('/get_hand_image', GetHImg, self.handle_get_image)
+		self.getimage_srv = rospy.Service('/get_hand_image', GetHandImg, self.handle_get_image)
 
 	def limg_cb(self, Image):
 		self.current_limg = Image
@@ -33,9 +33,6 @@ class get_hand_image():
 
 def get_hand_image_server():
 	get_hand_image()
-	#init = rospy.get_time()
-	#rospy.sleep(5)
-	#print (rospy.get_time() - init).to_sec()
 
 	init = rospy.get_rostime()
 	rospy.sleep(65.8)
