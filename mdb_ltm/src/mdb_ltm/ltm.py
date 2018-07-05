@@ -339,8 +339,8 @@ class LTM(object):
         rospy.loginfo('Reading perceptions...')
         sensing = []
         for perception in self.perceptions.itervalues():
-            rospy.logdebug('Reading ' + perception.ident + ' = ' + str(perception.raw))
             perception.read()
+            rospy.logdebug('Reading ' + perception.ident + ' = ' + str(perception.raw))
             sensing.append(perception.value)
         return sensing
 
