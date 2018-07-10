@@ -25,7 +25,7 @@ import numpy as np
 from std_msgs.msg import String
 from mdb_common.srv import ExecPolicy, ExecPolicyRequest
 
-class exp_ltm_helper():
+class exp_helper():
 	def __init__(self):
 		self.exec_pol_clnt = rospy.ServiceProxy("/mdb/baxter/exec_policy", ExecPolicy)  
 		self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
@@ -36,10 +36,10 @@ class exp_ltm_helper():
 		resp = self.exec_pol_clnt(req)		
 
 def main():
-	exp_ltm_helper()
+	exp_helper()
 	rospy.spin()
 
 if __name__ == '__main__':
-	rospy.init_node("exp_ltm_helper")
+	rospy.init_node("exp_helper")
 	main()	
 

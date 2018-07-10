@@ -1,5 +1,26 @@
 #!/usr/bin/env python
 
+# Copyright 2018, GII / Universidad de la Coruna (UDC)
+#
+# Main contributor(s): 
+# * Luis Calvo, luis.calvo@udc.es
+#
+#  This file is also part of MDB.
+#
+# * MDB is free software: you can redistribute it and/or modify it under the
+# * terms of the GNU Affero General Public License as published by the Free
+# * Software Foundation, either version 3 of the License, or (at your option) any
+# * later version.
+# *
+# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
+# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# * details.
+# *
+# * You should have received a copy of the GNU Affero General Public License
+# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+
+
 import cv2, math, rospy, sys, tf, scipy.interpolate, rospkg, yaml
 import numpy as np
 import sensor_msgs.point_cloud2 as pc2
@@ -23,20 +44,6 @@ class obj_pos_int:
 		self.complete_uv = []
 		self.complete_xy = []		
 		self.read_grid_data_file()
-	
-		#print self.complete_uv, '\n\n\n', self.complete_xy, '\n\n\n'
-
-		'''self.left_uv = []
-		self.left_xy = []
-
-		for ite in range (0, len(self.complete_xy)):
-			if self.complete_xy[ite][1] > 0.0:
-				self.left_uv.append(self.complete_uv[ite])
-				self.left_xy.append(self.complete_xy[ite])
-
-		print self.left_uv, '\n\n\n', self.left_xy, '\n\n\n'
-		self.complete_uv = self.left_uv
-		self.complete_xy = self.left_xy'''
 
 		self.fu, self.fv = self.obtain_interpolation_rbf(rospy.get_param("~function_type"))
 		#self.fu, self.fv = self.obtain_interpolation_int2d("cubic")

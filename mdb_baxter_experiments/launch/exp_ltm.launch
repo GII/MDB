@@ -6,7 +6,7 @@
    <arg name="fixed_height" default="-0.04" />
    <arg name="super_throw" default="false" />
 
-  <node name="exp_ltm" pkg="mdb_baxter_experiments" type="exp_ltm.py" required="true" output="screen">
+  <node name="exp_ltm" pkg="mdb_baxter_experiments" type="exp_core.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
 	<param name="exp_type" type="str" value="$(arg exp_type)" />
 	<param name="config_time" type="int" value="$(arg config_time)" />
@@ -14,5 +14,5 @@
 	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
   </node>
 
-  <node name="exp_ltm_helper" pkg="mdb_baxter_experiments" type="exp_ltm_helper.py" required="true" output="screen"/> 
+  <node name="exp_helper" pkg="mdb_baxter_experiments" type="exp_helper.py" required="true" output="screen"/> 
 </launch>

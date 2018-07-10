@@ -1,7 +1,7 @@
 //| This file is a part of the CAFER framework developped within
 //| the DREAM project (http://www.robotsthatdream.eu/).
 //|
-//| Copyright 2016, GII / Universidad de la Coruna (UDC)
+//| Copyright 2018, GII / Universidad de la Coruna (UDC)
 //| Main contributor(s): 
 //|   * Luis Calvo, luis.calvo@udc.es
 //|

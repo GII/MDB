@@ -25,7 +25,7 @@ from baxter_core_msgs.msg import EndpointState, EndEffectorState, JointCommand
 from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
-from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest, GetPositionIK, GetPositionIKRequest
+from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest, GetPositionIKRequest
 from mdb_baxter_policies.srv import GetJointsState, GetEndState, GetHeadState
 from baxter_interface.gripper import Gripper
 from moveit_msgs.msg import OrientationConstraint, Constraints, PositionConstraint, RobotTrajectory
@@ -49,7 +49,6 @@ class baxter_arm():
 		try:
 			self.compute_cp = rospy.ServiceProxy('/compute_cartesian_path', GetCartesianPath)
 			self.execute_kp = rospy.ServiceProxy('/execute_kinematic_path', ExecuteKnownTrajectory)
-			self.compute_ik = rospy.ServiceProxy('/compute_ik', GetPositionIK)
 			self.get_es = rospy.ServiceProxy('/get_end_state', GetEndState)  
 			self.get_js = rospy.ServiceProxy('/get_joints_state', GetJointsState)
 			self.get_hs = rospy.ServiceProxy('/get_head_state', GetHeadState)
