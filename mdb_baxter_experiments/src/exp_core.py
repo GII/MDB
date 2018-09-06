@@ -53,7 +53,7 @@ class exp_core():
 		self.ball_pos = None
 		self.box_pos = None
 
-		self.policies_manager = ltm_policies_manager(self)
+		self.policies_manager = policies_manager(self)
 
 		self.bax_restore_arm_pose_clnt = rospy.ServiceProxy('/baxter/restore', BaxRestoreArmPose)
 		self.bax_change_face_clnt = rospy.ServiceProxy('/baxter/change_face', BaxChangeFace)

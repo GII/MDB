@@ -35,7 +35,7 @@ from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from moveit_msgs.msg import OrientationConstraint, Constraints
 from mdb_common.msg import OpenGripReq, Candidates
 from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
-from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, BaxFMCartesianMove, ManagePlanScene
+from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, BaxFMCartesianMove, ManagePlanScene, JoystickControl
 from dynamic_reconfigure.srv import Reconfigure
 from gazebo_msgs.srv import GetModelState
 
@@ -102,6 +102,7 @@ class baxter_policies():
 		self.bax_grab_both_srver = rospy.Service('/baxter/policy/grab_both', BaxGrabBoth, self.handle_baxter_grab_both) 
 		self.bax_drop_both_srver = rospy.Service('/baxter/policy/drop_both', BaxDropBoth, self.handle_baxter_drop_both) 
 		self.bax_ask_srver = rospy.Service('/baxter/policy/ask_for_help', BaxChange, self.handle_baxter_ask_help)
+		self.bax_joystick_control_srver = rospy.Service('/baxter/policy/joystick', JoystickControl, self.handle_joystick_control)
 		self.bax_restore_srver = rospy.Service('/baxter/restore', BaxRestoreArmPose, self.handle_baxter_restore_pose)
 		self.bax_change_face_srver = rospy.Service('/baxter/change_face', BaxChangeFace, self.handle_baxter_change_face)
 		self.bax_operation_pose_srver = rospy.Service('/baxter/operation_pose', BaxChange, self.handle_operation_pose)
@@ -118,7 +119,6 @@ class baxter_policies():
 		self.bax_cart_mov_srver = rospy.Service('/baxter/cart_mov', BaxMC, self.handle_baxter_cartesian_mov)
 		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
 		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
-		self.bax_sa_srver = rospy.Service('/baxter_sa', BaxChange, self.handle_sa) #TODO: what is this?
 
 		# ROS Simulation Service Servers
 		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_gippers', BaxChange, self.handle_baxter_reset_grippers)
@@ -985,7 +985,7 @@ class baxter_policies():
 			#return Bool(False)
 
 	##################
-	##     Give     ##
+	##     Ask      ##
 	##################
 
 	def handle_baxter_ask_help(self, srv):
@@ -994,6 +994,26 @@ class baxter_policies():
 			rospy.sleep(10)
 			return Bool(True)
 		return Bool(False)
+
+	########################
+	##	Joystick Control  ##
+	########################
+
+	def handle_joystick_control (self, srv):
+		(joystick_x, joystick_y) = self.polar_to_cartesian(srv.joystick_pos.angle.data, srv.joystick_pos.const_dist.data)
+		if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data + self.safe_operation_height, False, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+			self.orient_gripper(srv.arm_to_move.data, srv.joystick_angle.data + 1.57)
+			if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data, True, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+				(dx, dy) = self.polar_to_cartesian(srv.joystick_angle.data, 0.03)
+				if self.baxter_arm.move_xyz(joystick_x+dx, joystick_y+dy, srv.joystick_pos.height.data, False, 'joystick', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+					rospy.sleep(srv.time_to_control.data)
+					if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data, True, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+						if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data + self.safe_operation_height, False, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+							self.baxter_arm.restore_arm_pose(srv.arm_to_move.data)
+							return Bool(True)
+		return Bool(False)
+	
+
 
 	##############################
 	##     Restore position     ##
@@ -1173,18 +1193,6 @@ class baxter_policies():
 				result = True
 
 			return Bool(result)
-		return Bool(True)
-
-	def handle_sa(self, srv):
-		self.baxter_arm.update_data()
-		current_angles_prev = self.baxter_arm.choose_arm_group('right').get_current_joint_values()
-		orap = [-1.7000342081740099, -0.9986214929134043, 1.1876846250202815, 1.9378012302962488, -0.6680486331240977, 1.0339030510347689, 0.49777676566881673]
-		self.baxter_arm.move_joints_directly(orap, 'moveit', 'right', True, 1.0)
-		rospy.sleep(2)
-		rospy.delete_param("/baxter_sense")
-		self.baxter_arm.move_joints_directly(current_angles_prev, 'moveit', 'right', True, 1.0)
-		rospy.sleep(2)
-		self.baxter_arm.update_data()
 		return Bool(True)
 
 	def handle_baxter_cartesian_fm_mov (self, srv):

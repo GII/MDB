@@ -80,6 +80,7 @@ find_package(catkin REQUIRED COMPONENTS
    GetSense.srv
    GetSenseFM.srv
    GridCalibration.srv
+   JoystickControl.srv
    ManagePlanScene.srv
  )
 

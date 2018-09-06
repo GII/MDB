@@ -20,7 +20,7 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, sys, copy, moveit_commander, rospkg
+import rospy, sys, copy, moveit_commander, rospkg, tf
 from baxter_core_msgs.msg import EndpointState, EndEffectorState, JointCommand
 from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Bool, String, Header
@@ -502,6 +502,14 @@ class baxter_arm():
 			wpose.orientation.x = 1.0
 			wpose.orientation.y = 0.0
 			wpose.orientation.z = 0.0
+		elif (code == 'joystick'):
+			(roll, pitch, yaw) = tf.transformations.euler_from_quaternion((start_pose.orientation.x, start_pose.orientation.y, start_pose.orientation.z, start_pose.orientation.w))
+			(qx, qy, qz, qw) = tf.transformations.quaternion_from_euler(roll-0.10, pitch, yaw)
+			wpose.orientation.w = qw
+			wpose.orientation.x = qx
+			wpose.orientation.y = qy
+			wpose.orientation.z = qz
+			
 
 		wpose.position.x = x
 		wpose.position.y = y
