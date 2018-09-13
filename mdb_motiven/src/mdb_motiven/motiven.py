@@ -104,7 +104,15 @@ class MOTIVEN(object):
         self.max_policies_exec = 8
         # Goals LTM
         # Establezco lista de goals
-        self.goals_list = ['intrinsic', 'ball_in_box', 'ball_in_robot']
+        self.goals_list = [
+            'intrinsic',
+            'ball_in_box',
+            'ball_in_robot',
+            'ball_reachable',
+            'ball_reachable_two_hands',
+            'ball_in_hand_opposite_box',
+            'ball_in_same_hand_as_box',
+            'ball_in_two_hands']
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
         self.active_goal = self.goals_list[1]
@@ -117,7 +125,15 @@ class MOTIVEN(object):
             self.episode2 = Episode()
             self.state_t = 'Unnamed'
             self.state_t1 = 'Unnamed'
-            goal_states = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'Unnamed']
+            goal_states = [
+                'ball_reachable',
+                'ball_reachable_two_hands',
+                'ball_in_hand_opposite_box',
+                'ball_in_same_hand_as_box',
+                'ball_in_two_hands',
+                'ball_in_robot',
+                'ball_in_box',
+                'Unnamed']
             self.reward_dict = dict.fromkeys(goal_states)
             for key in self.reward_dict.keys():
                 self.reward_dict[key] = MeanReward()
@@ -326,7 +342,9 @@ class MOTIVEN(object):
         if self.motiven_high_level:
             for goal in self.goal_manager.goals:
                 if goal.goal_id == self.active_goal:
-                    goal.activation = self.reward_dict[self.state_t1].mean_value
+                    goal.activation = self.reward_dict[goal.goal_id].mean_value
+                elif self.reward_dict[goal.goal_id].mean_value >= self.reward_dict[self.state_t1].mean_value:
+                    goal.activation = self.reward_dict[goal.goal_id].mean_value
                 else:
                     goal.activation = 0.0
         else:
@@ -1041,9 +1059,9 @@ class MOTIVEN(object):
             rospy.logdebug('Found None value in Perceptions')
         else:
             if perceptions_t1['ball_in_box'] and (not perceptions_t['ball_in_box']):
-                state = 'E7'
+                state = 'ball_in_box'
             elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
-                state = 'E6'
+                state = 'ball_in_robot'
             elif perceptions_t1['ball_in_left_hand'] or perceptions_t1['ball_in_right_hand']:
                 if (
                         perceptions_t1['ball_in_left_hand'] and
@@ -1053,7 +1071,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_right_hand'])
                         )
                 ):
-                    state = 'E5'
+                    state = 'ball_in_two_hands'
                 elif (
                         (
                             perceptions_t1['ball_in_left_hand'] and
@@ -1073,7 +1091,7 @@ class MOTIVEN(object):
                             )
                         )
                 ):
-                    state = 'E4'
+                    state = 'ball_in_same_hand_as_box'
                 elif perceptions_t1['ball_in_left_hand'] and perceptions_t1['box_ang'] <= 0:
                     if (
                             (not perceptions_t['ball_in_left_hand']) and
@@ -1084,7 +1102,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_left_hand']) or
                             (not perceptions_t['box_ang'] <= 0)
                     ):
-                        state = 'E3'
+                        state = 'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 elif perceptions_t1['ball_in_right_hand'] and perceptions_t1['box_ang'] > 0:
@@ -1097,7 +1115,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_right_hand']) or
                             (not perceptions_t['box_ang'] > 0)
                     ):
-                        state = 'E3'
+                        state = 'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 else:
@@ -1112,12 +1130,12 @@ class MOTIVEN(object):
                         (not abs(perceptions_t['ball_ang']) < 0.05)
                     )
             ):
-                state = 'E2'
+                state = 'ball_reachable_two_hands'
             elif (
                     (not LTMSim.object_too_far(perceptions_t1['ball_dist'], perceptions_t1['ball_ang'])) and
                     (LTMSim.object_too_far(perceptions_t['ball_dist'], perceptions_t['ball_ang']))
             ):
-                state = 'E1'
+                state = 'ball_reachable'
             else:
                 state = 'Unnamed'
         rospy.logdebug('Perceptions correspond to state => ' + str(state))
