@@ -62,7 +62,7 @@ class GoalMotiven(Goal):
         rospy.logdebug('Subscribing to %s...', self.activation_topic)
         rospy.Subscriber(self.activation_topic, self.activation_message, callback=self.update_activation_callback)
         rospy.logdebug('Subscribing to %s...', self.ok_topic)
-        rospy.Subscriber(self.ok_topic, self.ok_message, callback=self.update_reward_callback)
+        rospy.Subscriber(self.ok_topic, self.ok_message, callback=self.update_success_callback)
 
 
     def update_activation_callback(self, data):
@@ -72,7 +72,7 @@ class GoalMotiven(Goal):
             self.activation = data.activation
             self.new_activation.set()
 
-    def update_reward_callback(self, data):
+    def update_success_callback(self, data):
         """Calculate the value for the current sensor values."""
         if self.ident == data.id:
             rospy.logdebug('Reading goal success for ' + data.id + ' = ' + str(data.ok))
@@ -85,7 +85,7 @@ class GoalMotiven(Goal):
         self.new_activation.clear()
         super(GoalMotiven, self).update_activation(**kwargs)
 
-    def update_reward(self, **kwargs):
+    def update_success(self, **kwargs):
         """Calculate the value for the current sensor values."""
         self.new_reward.wait()
         self.new_reward.clear()
@@ -104,7 +104,7 @@ class GoalBallInBox(Goal):
                 self.activation = 0.0
         super(GoalBallInBox, self).update_activation(**kwargs)
 
-    def update_reward(self, perceptions=None):
+    def update_success(self, perceptions=None):
         """Calculate the value for the current sensor values."""
         self.reward = 0.0
         if perceptions is None:
@@ -167,7 +167,7 @@ class GoalBallWithRobot(Goal):
                 self.activation = 0.0
         super(GoalBallWithRobot, self).update_activation(**kwargs)
 
-    def update_reward(self, perceptions=None):
+    def update_success(self, perceptions=None):
         """Calculate the value for the current sensor values."""
         self.reward = 0.0
         if perceptions is None:

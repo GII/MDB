@@ -24,7 +24,7 @@
 /mdb/policy_msg: mdb_common.msg.PolicyMsg
 # Topic for publishing the executed policy's id
 /mdb/executed_policy_topic: /mdb/ltm/executed_policy
-/mdb/executed_policy_msg: std_msgs.msg.String
+/mdb/executed_policy_msg: mdb_common.msg.ExecutedPolicyMsg
 # Topics for Baxter's sensors
 /mdb/baxter/sensor/ball_dist_topic: /mdb/baxter/sensor/ball_dist
 /mdb/baxter/sensor/ball_dist_msg: std_msgs.msg.Float64

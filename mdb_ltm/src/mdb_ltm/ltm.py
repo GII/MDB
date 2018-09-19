@@ -376,7 +376,7 @@ class LTM(object):
     def __select_goal(self):
         """Find the active goal."""
         for goal in self.goals:
-            goal.update_reward()
+            goal.update_success()
         goal = max(self.goals, key=attrgetter('reward'))
         rospy.loginfo('Selecting goal => ' + goal.ident)
         return goal

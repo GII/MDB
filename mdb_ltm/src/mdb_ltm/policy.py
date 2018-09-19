@@ -43,8 +43,16 @@ class Policy(Node):
 
     def execute(self):
         """Run the policy."""
-        rospy.loginfo('Executing policy ' + self.ident)
-        self.publisher.publish(self.ident)
+        msg = self.message()
+        msg.policy = self.ident
+        cnodes = [node for node in self.neighbors if node.type == 'CNode']
+        goal = max(node for cnode in cnodes for node in cnode.neighbors if node.type == 'Goal', key=attrgetter('activation'))
+        if goal.activation == 0:
+            msg.goal = 'None'
+        else:
+            msg.goal = goal.ident
+        rospy.loginfo('Executing policy ' + msg.policy + ' linked to ' + msg.goal + ' goal')
+        self.publisher.publish(msg)
 
 class SuperThrow(Policy):
     """Interface to the learnt throw policy."""
