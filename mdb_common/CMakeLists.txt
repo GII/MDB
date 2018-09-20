@@ -50,7 +50,6 @@ add_message_files(
   CMReq.msg
   CNodeMsg.msg
   ControlMsg.msg
-  ExecutedPolicy.msg
   ForwardModelMsg.msg
   GoalActivationMsg.msg
   GoalMsg.msg

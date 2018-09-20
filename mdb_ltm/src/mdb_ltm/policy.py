@@ -17,15 +17,15 @@ class Policy(Node):
     def __init__(self, ros_name_prefix=None, **kwargs):
         """Constructor."""
         super(Policy, self).__init__(**kwargs)
-        self.topic = rospy.get_param(ros_name_prefix + '_topic')
-        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
+        self.topic = rospy.get_param(ros_name_prefix + "_topic")
+        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_msg"))
         self.publisher = None
         self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['publisher']
+        del state["publisher"]
         return state
 
     def init_ros(self):
@@ -38,21 +38,14 @@ class Policy(Node):
 
         This activation value is the sum of the connected c-nodes.
         """
-        self.activation = min(1.0, math.fsum(node.activation for node in self.neighbors if node.type == 'CNode'))
+        self.activation = min(1.0, math.fsum(node.activation for node in self.neighbors if node.type == "CNode"))
         super(Policy, self).update_activation(**kwargs)
 
     def execute(self):
         """Run the policy."""
-        msg = self.message()
-        msg.policy = self.ident
-        cnodes = [node for node in self.neighbors if node.type == 'CNode']
-        goal = max(node for cnode in cnodes for node in cnode.neighbors if node.type == 'Goal', key=attrgetter('activation'))
-        if goal.activation == 0:
-            msg.goal = 'None'
-        else:
-            msg.goal = goal.ident
-        rospy.loginfo('Executing policy ' + msg.policy + ' linked to ' + msg.goal + ' goal')
-        self.publisher.publish(msg)
+        rospy.loginfo("Executing policy " + self.ident)
+        self.publisher.publish(self.ident)
+
 
 class SuperThrow(Policy):
     """Interface to the learnt throw policy."""
@@ -60,15 +53,15 @@ class SuperThrow(Policy):
     def __init__(self, **kwargs):
         """Constructor."""
         super(SuperThrow, self).__init__(**kwargs)
-        self.throw_topic = rospy.get_param('/mdb/superthrow_topic')
-        self.throw_message = self.class_from_classname(rospy.get_param('/mdb/superthrow_msg'))
+        self.throw_topic = rospy.get_param("/mdb/superthrow_topic")
+        self.throw_message = self.class_from_classname(rospy.get_param("/mdb/superthrow_msg"))
         self.throw_publisher = None
-        self.real_robot = kwargs.get('Data')
+        self.real_robot = kwargs.get("Data")
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = super(SuperThrow, self).__getstate__()
-        del state['throw_publisher']
+        del state["throw_publisher"]
         return state
 
     def init_ros(self):
