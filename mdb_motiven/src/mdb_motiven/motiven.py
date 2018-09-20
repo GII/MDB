@@ -167,15 +167,17 @@ class MOTIVEN(object):
             while self.goal_topic_pb.get_num_connections() == 0:
                 pass
         # Publish Goal creation
-        for goal in self.goal_manager.goals:
-            self.goal_topic_pb.publish(
-                command='new',
-                id=goal.goal_id,
-                newdata_topic='',
-                execute_service='',
-                get_service='',
-                class_name='',
-                language='python')
+        ### METER FLAG AQUI
+        # for goal in self.goal_manager.goals:
+        #     self.goal_topic_pb.publish(
+        #         command='new',
+        #         id=goal.goal_id,
+        #         newdata_topic='',
+        #         execute_service='',
+        #         get_service='',
+        #         class_name='',
+        #         language='python')
+        ###
         # ROS services
         self.refresh_world_srv = rospy.ServiceProxy('/mdb/baxter/refresh_world', RefreshWorld)
         self.baxter_mov_srv = rospy.ServiceProxy('/baxter_cart_mov', BaxMC)
@@ -285,25 +287,14 @@ class MOTIVEN(object):
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.memory_manager_ltm()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
+        # Criterion:
+        # goal_ok indicates if we are on the right track, that is, if a 'utility' improvement is perceived
+        # when changing from the previous state to the current one.
         for goal in self.goal_manager.goals:
-            if self.active_goal == goal.goal_id:
-                if self.episode.getReward():
-                    goal_ok = 1.0
-                elif self.motiven_high_level:
-                    # if self.state_t1 == 'Unnamed':
-                    #     goal_ok = 0.0
-                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(0))
-                    # else:
-                    #     goal_ok = 1.0
-                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
-                    #             self.reward_dict[self.state_t1].mean_value))
-                    goal_ok = self.reward_dict[self.state_t1].mean_value
-                    rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
-                                self.reward_dict[self.state_t1].mean_value))
-                else:
-                    goal_ok = self.is_improving_behavior()
+            if self.motiven_high_level:
+                goal_ok = 1.0 if goal.goal_id == self.state_t1 else 0.0
             else:
-                goal_ok = 0.0
+                goal_ok = 1.0 if self.episode.getReward() else self.is_improving_behavior()
             self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=goal_ok)
             rospy.logdebug('Publishing goal success for ' + goal.goal_id + ' = ' + str(goal_ok))
         # pdb.set_trace()
