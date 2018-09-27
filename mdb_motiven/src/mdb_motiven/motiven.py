@@ -107,7 +107,7 @@ class MOTIVEN(object):
         self.goals_list = [
             'intrinsic',
             'ball_in_box',
-            'ball_in_robot',
+            # 'ball_in_robot',
             'ball_reachable',
             'ball_reachable_two_hands',
             'ball_in_hand_opposite_box',
@@ -131,7 +131,7 @@ class MOTIVEN(object):
                 'ball_in_hand_opposite_box',
                 'ball_in_same_hand_as_box',
                 'ball_in_two_hands',
-                'ball_in_robot',
+                # 'ball_in_robot',
                 'ball_in_box',
                 'Unnamed']
             self.reward_dict = dict.fromkeys(goal_states)
@@ -1051,8 +1051,8 @@ class MOTIVEN(object):
         else:
             if perceptions_t1['ball_in_box'] and (not perceptions_t['ball_in_box']):
                 state = 'ball_in_box'
-            elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
-                state = 'ball_in_robot'
+            # elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
+            #     state = 'ball_in_robot'
             elif perceptions_t1['ball_in_left_hand'] or perceptions_t1['ball_in_right_hand']:
                 if (
                         perceptions_t1['ball_in_left_hand'] and
