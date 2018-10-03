@@ -8,8 +8,8 @@ Distributed under the (yes, we are still thinking about this too...).
 
 import threading
 import rospy
-from mdb_ltm.node import Node
 from mdb_simulator.ltm import LTMSim
+from mdb_ltm.node import Node
 
 
 class Goal(Node):
