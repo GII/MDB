@@ -23,7 +23,7 @@ class CNode(Node):
 
         This activation value is the product of its connected nodes, excluding the policy.
         """
-        self.activation = numpy.prod(node.activation for node in self.neighbors if node.type != "Policy")
+        self.activation = numpy.prod([node.activation for node in self.neighbors if node.type != "Policy"])
         super(CNode, self).update_activation(**kwargs)
 
     def context_is_on(self):

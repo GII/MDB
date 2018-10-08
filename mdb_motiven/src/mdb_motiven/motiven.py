@@ -105,7 +105,7 @@ class MOTIVEN(object):
         # Goals LTM
         # Establezco lista de goals
         self.goals_list = [
-            'intrinsic',
+            # 'intrinsic',
             'ball_in_box',
             # 'ball_in_robot',
             'ball_reachable',
@@ -115,7 +115,7 @@ class MOTIVEN(object):
             'ball_in_two_hands']
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
-        self.active_goal = self.goals_list[1]
+        self.active_goal = 'ball_in_box'
         # MOTIVEN HIGH LEVEL
         self.motiven_high_level = True
         if self.motiven_high_level:
@@ -238,7 +238,7 @@ class MOTIVEN(object):
             if self.motiven_high_level:
                 self.state_t = self.state_t1
                 self.state_t1 = self.getFinalState(self.sens_t1, self.sens_t)
-                pdb.set_trace()
+                # pdb.set_trace()
             ####
             self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
             if self.reset:
@@ -358,7 +358,7 @@ class MOTIVEN(object):
     def select_goal(self):
         """Select the current goal (ad-hoc at the moment)."""
         if self.iterations > 0:
-            self.active_goal = self.goals_list[1]
+            self.active_goal = 'ball_in_box'#self.goals_list[1]
 
     def run(self, log_level='INFO', standalone=True):
         # Load data

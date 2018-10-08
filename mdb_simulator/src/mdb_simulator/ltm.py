@@ -261,7 +261,7 @@ class LTMSim(object):
         self.__update_goal_sensors()
         for ident, publisher in self.publishers.iteritems():
             rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
-            pdb.set_trace()
+            # pdb.set_trace()
             publisher.publish(self.perceptions[ident])
 
     def __configure_sensors(self, sensors):
