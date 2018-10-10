@@ -53,7 +53,7 @@ class FileGoodness(File):
         """Write statistics data."""
         self.file_object.write(
             str(self.ltm.iteration) + '\t' + self.ltm.current_goal.ident + '\t' + self.ltm.current_world +
-            '\t' + str(self.ltm.current_reward) + '\t' + self.ltm.current_policy.ident + '\t' +
+            '\t' + str(self.ltm.current_success) + '\t' + self.ltm.current_policy.ident + '\t' +
             str(self.ltm.sensorial_changes()) + '\t' + str(len(self.ltm.c_nodes)) + '\n')
 
 
