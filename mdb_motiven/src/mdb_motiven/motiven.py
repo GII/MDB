@@ -110,8 +110,9 @@ class MOTIVEN(object):
             # 'ball_in_robot',
             'ball_reachable',
             'ball_reachable_two_hands',
-            'ball_in_hand_opposite_box',
-            'ball_in_same_hand_as_box',
+            'ball_in_hand'
+            # 'ball_in_hand_opposite_box',
+            # 'ball_in_same_hand_as_box',
             'ball_in_two_hands']
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
@@ -128,8 +129,9 @@ class MOTIVEN(object):
             goal_states = [
                 'ball_reachable',
                 'ball_reachable_two_hands',
-                'ball_in_hand_opposite_box',
-                'ball_in_same_hand_as_box',
+                'ball_in_hand'
+                # 'ball_in_hand_opposite_box',
+                # 'ball_in_same_hand_as_box',
                 'ball_in_two_hands',
                 # 'ball_in_robot',
                 'ball_in_box',
@@ -1085,7 +1087,7 @@ class MOTIVEN(object):
                             )
                         )
                 ):
-                    state = 'ball_in_same_hand_as_box'
+                    state = 'ball_in_hand' #'ball_in_same_hand_as_box'
                 elif perceptions_t1['ball_in_left_hand'] and perceptions_t1['box_ang'] <= 0:
                     if (
                             (not perceptions_t['ball_in_left_hand']) and
@@ -1096,7 +1098,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_left_hand']) or
                             (not perceptions_t['box_ang'] <= 0)
                     ):
-                        state = 'ball_in_hand_opposite_box'
+                        state = 'ball_in_hand' #'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 elif perceptions_t1['ball_in_right_hand'] and perceptions_t1['box_ang'] > 0:
@@ -1109,7 +1111,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_right_hand']) or
                             (not perceptions_t['box_ang'] > 0)
                     ):
-                        state = 'ball_in_hand_opposite_box'
+                        state = 'ball_in_hand' #'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 else:
