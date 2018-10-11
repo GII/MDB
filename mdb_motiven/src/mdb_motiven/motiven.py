@@ -501,7 +501,7 @@ class MOTIVEN(object):
                 self.it_reward += 1
                 self.stop_condition()
                 self.episode.cleanEpisode()
-            self.save_data()
+            # self.save_data()
             self.plot_graphs()
             plt.pause(0.0001)
 
@@ -608,7 +608,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -646,7 +646,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -723,7 +723,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
@@ -765,7 +765,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
