@@ -110,7 +110,7 @@ class MOTIVEN(object):
             # 'ball_in_robot',
             'ball_reachable',
             'ball_reachable_two_hands',
-            'ball_in_hand'
+            'ball_in_hand',
             # 'ball_in_hand_opposite_box',
             # 'ball_in_same_hand_as_box',
             'ball_in_two_hands']
@@ -129,7 +129,7 @@ class MOTIVEN(object):
             goal_states = [
                 'ball_reachable',
                 'ball_reachable_two_hands',
-                'ball_in_hand'
+                'ball_in_hand',
                 # 'ball_in_hand_opposite_box',
                 # 'ball_in_same_hand_as_box',
                 'ball_in_two_hands',
