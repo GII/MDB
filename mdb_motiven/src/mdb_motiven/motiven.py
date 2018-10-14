@@ -294,10 +294,13 @@ class MOTIVEN(object):
         # when changing from the previous state to the current one.
         for goal in self.goal_manager.goals:
             if self.motiven_high_level:
-                if self.active_goal == self.state_t1:
-                    goal_ok = 1.0
+                if goal.goal_id == self.state_t1:
+                    if self.active_goal == self.state_t1:
+                        goal_ok = 1.0
+                    else:
+                        goal_ok = 0.5
                 else:
-                    goal_ok = 0.5 if goal.goal_id == self.state_t1 else 0.0
+                    goal_ok = 0.0
             else:
                 goal_ok = 1.0 if self.episode.getReward() else self.is_improving_behavior()
             self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=goal_ok)
