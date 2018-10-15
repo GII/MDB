@@ -693,7 +693,12 @@ class MOTIVEN(object):
         self.traces_buffer.addEpisode(self.episode.getEpisode())
         #####
         if self.motiven_high_level:
-            if self.episode2.getSensorialStateT1() != 'Unnamed':
+        #     if self.episode2.getSensorialStateT1() != 'Unnamed':
+        #         self.traces_buffer2.addEpisode(self.episode2.getEpisode())
+            state = self.episode2.getSensorialStateT1()
+            if state != 'Unnamed':
+                if state in self.traces_buffer2.getTrace():
+                    self.traces_buffer2.pop(self.traces_buffer2.getTrace().index(state))
                 self.traces_buffer2.addEpisode(self.episode2.getEpisode())
         #####
         self.intrinsic_memory.addEpisode(self.episode.getSensorialStateT1())
