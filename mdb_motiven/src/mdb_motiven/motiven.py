@@ -122,7 +122,7 @@ class MOTIVEN(object):
         if self.motiven_high_level:
             self.reward_vector = TracesMemory()
             self.traces_buffer2 = TracesBuffer()
-            self.traces_buffer2.setMaxSize(4)
+            self.traces_buffer2.setMaxSize(7)#4
             self.episode2 = Episode()
             self.state_t = 'Unnamed'
             self.state_t1 = 'Unnamed'
@@ -698,7 +698,7 @@ class MOTIVEN(object):
             state = self.episode2.getSensorialStateT1()
             if state != 'Unnamed':
                 if state in self.traces_buffer2.getTrace():
-                    self.traces_buffer2.pop(self.traces_buffer2.getTrace().index(state))
+                    self.traces_buffer2.getContents().pop(self.traces_buffer2.getTrace().index(state))
                 self.traces_buffer2.addEpisode(self.episode2.getEpisode())
         #####
         self.intrinsic_memory.addEpisode(self.episode.getSensorialStateT1())
