@@ -382,7 +382,11 @@ class LTM(object):
         for goal in self.goals:
             goal.update_success()
         goal = max(self.goals, key=attrgetter('reward'))
-        rospy.loginfo('Selecting goal => ' + goal.ident)
+        if goal.reward == 0:
+            goal = None
+            rospy.loginfo('Successful goal => None')
+        else:
+            rospy.loginfo('Successful goal => ' + goal.ident)
         return goal
 
     def __add_antipoint(self, perception):
@@ -482,10 +486,16 @@ class LTM(object):
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5)
         networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
         goal = max(self.goals, key=attrgetter('reward'))
-        pyplot.title(
-            'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
-            str(self.iteration) + ' REWARD: ' + str(self.current_success) + '\nPOLICY: ' + self.current_policy.ident,
-            fontsize=10)
+        if goal.reward == 0:
+            pyplot.title(
+                'GOAL: None WORLD: ' + self.current_world + '\nITERATION: ' +
+                str(self.iteration) + ' REWARD: ' + str(self.current_success) + '\nPOLICY: ' + self.current_policy.ident,
+                fontsize=10)
+        else:
+            pyplot.title(
+                'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
+                str(self.iteration) + ' REWARD: ' + str(self.current_success) + '\nPOLICY: ' + self.current_policy.ident,
+                fontsize=10)
         # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
         # pyplot.legend(
         #     loc='bottom right', shadow=True, fancybox=True, fontsize=10, labelspacing=3, bbox_to_anchor=(1.30, 0.5))
@@ -537,11 +547,14 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                self.current_success = self.current_goal.reward
-                if self.current_success < self.current_goal.threshold:
-                    self.__add_antipoint(previous_sensing)
+                if self.current_goal is not None:
+                    self.current_success = self.current_goal.reward
+                    if self.current_success < self.current_goal.threshold:
+                        self.__add_antipoint(previous_sensing)
+                    else:
+                        self.__add_point(previous_sensing)
                 else:
-                    self.__add_point(previous_sensing)
+                    self.current_success = 0.0
                 self.__update_policies_to_test()
                 if plot:
                     self.__show()
