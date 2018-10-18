@@ -158,13 +158,13 @@ class MOTIVEN(object):
         rospy.init_node('motiven', log_level=getattr(rospy, log_level))
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=0)
         self.goal_activation_topic_pb = rospy.Publisher(
             "/mdb/motiven/goal_activation",
             GoalActivationMsg,
             latch=True,
-            queue_size=None)
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)
+            queue_size=0)
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=0)
         if self.ltm:
             while self.goal_topic_pb.get_num_connections() == 0:
                 pass

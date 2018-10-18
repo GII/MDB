@@ -30,7 +30,7 @@ class Policy(Node):
 
     def init_ros(self):
         """Create publishers and make subscriptions."""
-        self.publisher = rospy.Publisher(self.topic, self.message, latch=True, queue_size=None)
+        self.publisher = rospy.Publisher(self.topic, self.message, latch=True, queue_size=0)
 
     def update_activation(self, **kwargs):
         """
@@ -68,7 +68,7 @@ class SuperThrow(Policy):
         """Create publishers and make subscriptions."""
         super(SuperThrow, self).init_ros()
         if self.real_robot:
-            self.throw_publisher = rospy.Publisher(self.throw_topic, self.throw_message, latch=True, queue_size=None)
+            self.throw_publisher = rospy.Publisher(self.throw_topic, self.throw_message, latch=True, queue_size=0)
 
     def execute(self):
         """Run the policy."""

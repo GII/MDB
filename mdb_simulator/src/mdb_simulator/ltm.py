@@ -271,7 +271,7 @@ class LTMSim(object):
             topic = rospy.get_param(sensor['ros_name_prefix'] + '_topic')
             message = self.__class_from_classname(rospy.get_param(sensor['ros_name_prefix'] + '_msg'))
             rospy.logdebug('I will publish to %s...', topic)
-            self.publishers[sensor['id']] = rospy.Publisher(topic, message, latch=True, queue_size=None)
+            self.publishers[sensor['id']] = rospy.Publisher(topic, message, latch=True, queue_size=0)
 
     def __configure_simulation(self, simulation):
         """Configure the ROS topic where listen for commands to be executed."""

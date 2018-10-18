@@ -327,7 +327,7 @@ class LTM(object):
                 topic = rospy.get_param(configuration['Control']['ros_name_prefix'] + '_topic')
                 message = self.__class_from_classname(
                     rospy.get_param(configuration['Control']['ros_name_prefix'] + '_msg'))
-                self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=None)
+                self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
                 # Load experiment configuration
                 self.iterations = configuration['Experiment']['iterations']
                 self.period = configuration['Experiment']['period']
@@ -382,7 +382,7 @@ class LTM(object):
         for goal in self.goals:
             goal.update_success()
         goal = max(self.goals, key=attrgetter('reward'))
-        if goal.reward == 0:
+        if goal.reward < goal.threshold:
             goal = None
             rospy.loginfo('Successful goal => None')
         else:
@@ -422,9 +422,9 @@ class LTM(object):
             rospy.logdebug('New c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
                            ', ' + goal.ident + ' and ' + self.current_policy.ident)
 
-    def __update_policies_to_test(self):
+    def __update_policies_to_test(self, drop):
         """Maintenance tasks on the pool of policies used to choose one randomly when needed."""
-        if self.current_success < self.current_goal.threshold:
+        if drop:
             if self.current_policy in self.policies_to_test:
                 self.policies_to_test.remove(self.current_policy)
         else:
@@ -548,14 +548,15 @@ class LTM(object):
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
                 if self.current_goal is not None:
+                    drop_policy = False
                     self.current_success = self.current_goal.reward
-                    if self.current_success < self.current_goal.threshold:
-                        self.__add_antipoint(previous_sensing)
-                    else:
-                        self.__add_point(previous_sensing)
+                    self.__add_point(previous_sensing)
                 else:
+                    drop_policy = True
                     self.current_success = 0.0
-                self.__update_policies_to_test()
+                    if self.current_policy.activation >= self.current_policy.threshold:
+                        self.__add_antipoint(previous_sensing)
+                self.__update_policies_to_test(drop=drop_policy)
                 if plot:
                     self.__show()
                 self.__statistics()
