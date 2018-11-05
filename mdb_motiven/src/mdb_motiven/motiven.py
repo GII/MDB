@@ -1153,3 +1153,6 @@ class MOTIVEN(object):
         for i in range(len(Trace)):
             self.reward_dict[Trace[i][0]].mean_value = (self.reward_dict[Trace[i][0]].mean_value * self.reward_dict[Trace[i][0]].n_values + Trace[i][1]) / (self.reward_dict[Trace[i][0]].n_values + 1)
             self.reward_dict[Trace[i][0]].n_values += 1
+        rospy.logdebug('Reward vector values: ')
+        for key, value in self.reward_dict.iteritems():
+            rospy.logdebug('Goal state ' + key + ' , value ' + str(value.mean_value))
