@@ -27,7 +27,6 @@
   <!-- Example: -->
   <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
   <author email="luis.calvo@udc.es">Luis Calvo Varela</author>
-  <author email="jose.antonio.becerra.permuy@udc.es">Jose Antonio Becerra Permuy</author>
 
 
   <!-- The *_depend tags are used to specify dependencies -->
@@ -80,6 +79,7 @@
   <depend>eigen_conversions</depend>
   <depend>swri_profiler</depend>
   <depend>tf</depend>
+  <depend>image_transport</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -22,8 +22,8 @@
 
 import rospy
 import numpy as np
-from mdb_baxter_policies.srv import BaxThrow, BaxGrab, BaxPush, BaxGrabBoth, BaxDropBoth, GetSense, BaxCheckReach, BaxGetCompleteSense
-from mdb_baxter_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, GetSenseRequest, BaxGetCompleteSenseRequest, BaxCheckReachRequest
+from mdb_baxter_policies.srv import BaxThrow, BaxGrab, BaxPush, BaxGrabBoth, BaxDropBoth, GetSense, BaxCheckReach, BaxGetCompleteSense, JoystickControl
+from mdb_baxter_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, GetSenseRequest, BaxGetCompleteSenseRequest, BaxCheckReachRequest, JoystickControlRequest
 from std_msgs.msg import Bool, Float64, String, Int16
 from mdb_common.srv import BaxChange, BaxChangeRequest
 from mdb_common.msg import SensData
@@ -44,6 +44,7 @@ class policies_manager():
 		self.bax_grab_both_clnt = rospy.ServiceProxy('/baxter/policy/grab_both', BaxGrabBoth) 
 		self.bax_drop_both_clnt = rospy.ServiceProxy('/baxter/policy/drop_both', BaxDropBoth) 
 		self.bax_ask_help_clnt = rospy.ServiceProxy('/baxter/policy/ask_for_help', BaxChange) 
+		self.bax_joy_control_clnt = rospy.ServiceProxy('/baxter/policy/joystick', JoystickControl)
 		self.bax_get_sense_clnt = rospy.ServiceProxy('/baxter/get_sense', GetSense)
 		self.bax_get_complete_sense_clnt = rospy.ServiceProxy('/baxter/get_complete_sense', BaxGetCompleteSense)
 		self.bax_check_far_reach_clnt = rospy.ServiceProxy('/baxter/check_far_reach', BaxCheckReach)
@@ -97,7 +98,8 @@ class policies_manager():
 			'put_object_in_robot':self.bax_grab_clnt,
 			'throw':self.bax_throw_clnt,
 			'ask_nicely':self.bax_ask_help_clnt,
-			'flexsim':self.bax_grab_clnt, 
+			'flexsim':self.bax_grab_clnt,
+			'robobo':self.bax_joy_control_clnt,  
 		}
 		return options[arg]
 
@@ -112,6 +114,7 @@ class policies_manager():
 			'throw':BaxThrowRequest(),
 			'ask_nicely':BaxChangeRequest(),
 			'flexsim':BaxGrabRequest(),
+			'robobo':JoystickControlRequest(),
 		}
 		return options[arg]
 
@@ -354,6 +357,27 @@ class policies_manager():
 		resp = self.choose_policy_srv(policy_code)(srv).result.data
 		return resp
 
+	def policy_robobo(self, policy_code, global_s, arm, srv):
+		#TODO: Include the joystick detection into the experiment sensorization. 
+		srv.joystick_pos.const_dist = 0.6
+		srv.joystick_pos.angle = 0.785
+		srv.joystick_pos.height.data = 0.09
+
+		#TODO: Where to obtain these information?
+		srv.joystick_angle.data = 0.0
+		srv.time_to_control.data = 0.0
+
+		srv.arm_to_move.data = arm
+		srv.velocity_scale.data = 1.0
+		
+		self.global_exp.adopt_expression("focus")
+		if not self.gripper_sense_data(global_s, arm) > 0.0:
+			resp = self.choose_policy_srv(policy_code)(srv).result.data
+			return resp
+
+		return False
+		
+
 	def choose_policy (self, arg):
 		options = {
 			'grasp_object':self.policy_grasp_object,
@@ -365,6 +389,7 @@ class policies_manager():
 			'throw':self.policy_throw,
 			'ask_nicely':self.policy_ask_nicely,
 			'flexsim':self.policy_flexsim,
+			'robobo':self.policy_robobo,
 		}
 		return options[arg]		
 

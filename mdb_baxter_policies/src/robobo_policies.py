@@ -39,12 +39,10 @@ class robobo_policies():
 		self.area_limit_l = []
 
 		self.readtcfile()
-
 		self.rob_poly = self.global_policies.obtain_poly(self.angle_l, self.angle_time_l, 2)
 		self.rob_dist_poly = self.global_policies.obtain_poly(self.distance_l, self.distance_time_l, 2)
 
 		self.robobo_mv_srver = rospy.Service('/robobo_mv', BaxMC, self.handle_rob_move)
-
 		self.robobo_pick_srver = rospy.Service('/robobo_pick', BaxChange, self.handle_rob_pick)
 		self.robobo_drop_srver = rospy.Service('/robobo_drop', BaxChange, self.handle_rob_drop)
 		self.robobo_mv_b_srver = rospy.Service('/robobo_move_backwards', BaxChange, self.handle_rob_move_backwards)
@@ -99,30 +97,12 @@ class robobo_policies():
 
 	def rotate_robobo(self, time, lspeed):
 		self.robobo_command.wait_for_service()
-		command_name = 'MOVE'
-		command_parameters = []
-		command_parameters.append(KeyValue('lspeed', str(lspeed)))
-		command_parameters.append(KeyValue('rspeed', str(-lspeed)))
-		command_parameters.append(KeyValue('time', str(time)))
-		self.robobo_command(command_name, 0, command_parameters)
+		self.execute_command('MOVE', ['lspeed', 'rspeed', 'time'], [str(lspeed), str(-lspeed), str(time)], 0)
 		rospy.sleep(time)
 
 	def	rob_move_straight(self, time, way):
 		self.robobo_command.wait_for_service()
-		command_name = 'MOVE'
-		command_parameters = []
-		command_parameters.append(KeyValue('lspeed', str(25*way)))
-		command_parameters.append(KeyValue('rspeed', str(25*way)))
-		command_parameters.append(KeyValue('time', str(time)))
-		self.robobo_command(command_name, 0, command_parameters)
-		rospy.sleep(time)
-
-	def spin_robobo(self, angle):
-		self.robobo_command.wait_for_service()
-		command_name = 'TURNINPLACE'
-		command_parameters = []
-		command_parameters.append(KeyValue('degrees', str(math.degress)))
-		self.robobo_command(command_name, 0, command_parameters)
+		self.execute_command('MOVE', ['lspeed', 'rspeed', 'time'], [str(25*way), str(25*way), str(time)], 0) 
 		rospy.sleep(time)
 
 	def handle_rob_move_backwards (self, srv):
@@ -192,3 +172,32 @@ class robobo_policies():
 		self.global_policies.exp_senses.rob_grip = 0.0
 		rospy.sleep(2)
 		return Bool(True)
+
+	def execute_command(self, name, parameters, values, command_id):
+		self.robobo_command.wait_for_service()
+		command_name = name
+		command_parameters = []
+		for it in range(0, len(parameters)):
+			command_parameters.append(KeyValue(parameters[it], values[it]))
+		print command_name, command_id, command_parameters
+		self.robobo_command(command_name, command_id, command_parameters)	
+
+	def adquire_wheels_speed (self, x, y, turn_coef=3):
+		max_velocity = 40
+		#y = -y #it is required because the y is positive to the left in the joystick and the equation considers it to the right
+		alpha = 0.5*math.atan2(y, x)				
+		m = math.sqrt((x**2)+(y**2))
+		##############
+		max_module = m
+		##############
+		beta = alpha + 0.785	
+		epsilon=0.00001
+		left_speed = (max_velocity/max_module)*m*math.cos(beta) 
+		right_speed = (max_velocity/max_module)*m*math.sin(beta)
+
+		return left_speed, right_speed
+
+	def joystick_rob_move(self, x, y, time):
+		(l_wheel, r_wheel) = self.adquire_wheels_speed(x, y)
+		self.execute_command('MOVE-BLOCKING', ['lspeed', 'rspeed', 'time', 'blockid'], [str(int(l_wheel)), str(int(r_wheel)), str(time), '0'], 0)
+		

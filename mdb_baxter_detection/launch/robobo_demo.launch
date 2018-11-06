@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch> 
+   <arg name="image_topic" default="/camera/image/compressed"/>
+
+   <node name="ball_track" pkg="mdb_baxter_detection" type="ball_track" required="true" output="screen">
+       <remap from="/image_color" to="$(arg image_topic)" />
+   </node>
+
+</launch>
+
+

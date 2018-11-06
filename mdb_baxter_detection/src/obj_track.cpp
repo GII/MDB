@@ -120,6 +120,7 @@ class obj_track{
 			bool sense;
 
 			if (nh.hasParam("/baxter_sense") and nh.getParam("/baxter_sense", sense)){
+				ROS_INFO_STREAM(sense);
 				if (sense) {
 					obtainMask(segment_table(cimg_ptr, 150, 200), low_thres, high_thres);
 

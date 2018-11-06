@@ -83,6 +83,7 @@ class baxter_policies():
 
 		# Robobo control
 		if self.exp_rec!="ltm": self.robobo_policies = robobo_policies(self)
+		#self.robobo_policies = robobo_policies(self)
 
 		# Obtain the initial arms position and configuration
 		self.baxter_arm.update_init_data()
@@ -1006,6 +1007,7 @@ class baxter_policies():
 			if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data, True, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
 				(dx, dy) = self.polar_to_cartesian(srv.joystick_angle.data, 0.03)
 				if self.baxter_arm.move_xyz(joystick_x+dx, joystick_y+dy, srv.joystick_pos.height.data, False, 'joystick', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
+					#self.robobo_policies.joystick_rob_move(dx, dy, srv.time_to_control.data)
 					rospy.sleep(srv.time_to_control.data)
 					if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data, True, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):
 						if self.baxter_arm.move_xyz(joystick_x, joystick_y, srv.joystick_pos.height.data + self.safe_operation_height, False, 'current', srv.arm_to_move.data, srv.velocity_scale.data, 1.0):

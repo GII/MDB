@@ -3,23 +3,30 @@
 import rospy, sys, cv2
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 
 def nothing(x):
 	pass
 
-class colour_threshold:
+class color_threshold:
 	def __init__(self):
-		rospy.init_node('colour_threshold') # Init node
+		rospy.init_node('color_threshold') # Init node
 		self.bridge = CvBridge() # Create the cv_bridge object
 		
 		# Subscribers
-		self.image_sub = rospy.Subscriber("/camera/rgb/image_rect_color", Image, self.image_callback)
+		#self.image_sub = rospy.Subscriber("/camera/rgb/image_rect_color", Image, self.image_callback)
+		self.camera_image_sb = rospy.Subscriber("/camera/image/compressed", CompressedImage, self.camera_image_cb)
+		
 
 	# Callbacks	
 	def image_callback(self, ros_image):
-			frame=self.imageconv(ros_image)
-			self.core(frame)
+		frame=self.imageconv(ros_image)
+		self.core(frame)
+
+	def camera_image_cb(self, img):
+		np_arr = np.fromstring(img.data, np.uint8)
+		frame = cv2.flip(cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR), 1)
+		self.core(frame)
 
 	# Other functions
 	def imageconv (self, ros_image):
@@ -34,8 +41,8 @@ class colour_threshold:
 	
 	def setValues(self, values):
 		#Save the color threshold values as ROS parameter server parameters
-		rospy.set_param(self.colour+'Low', [values[0][0], values[0][1], values[0][2]])
-		rospy.set_param(self.colour+'High', [values[1][0], values[1][1], values[1][2]])
+		rospy.set_param(self.color+'Low', [values[0][0], values[0][1], values[0][2]])
+		rospy.set_param(self.color+'High', [values[1][0], values[1][1], values[1][2]])
 	
 
 	def hsvCalibration(self,frame,color):
@@ -96,19 +103,19 @@ class colour_threshold:
 		return values
 
 	def core(self, frame):
-		if (rospy.has_param('calibrate_colour')):
-			if (rospy.get_param('calibrate_colour')=="blue"):
-				self.colour="Blue"
-			elif (rospy.get_param('calibrate_colour')=="green"):
-				self.colour="Green"
+		if (rospy.has_param('calibrate_color')):
+			if (rospy.get_param('calibrate_color')=="blue"):
+				self.color="Blue"
+			elif (rospy.get_param('calibrate_color')=="green"):
+				self.color="Green"
 			
-			values = self.hsvCalibration(frame, self.colour)
+			values = self.hsvCalibration(frame, self.color)
 			self.setValues(values)
-			rospy.delete_param('calibrate_colour')
+			rospy.delete_param('calibrate_color')
 
 # Main
 def main(args):
-	colour_threshold()
+	color_threshold()
 	rospy.spin()
 
 if __name__ == '__main__':
@@ -116,5 +123,5 @@ if __name__ == '__main__':
 		main(sys.argv)
 	except RuntimeError, e:
 		rospy.logerr('Something went wrong: %s' % (e.strerrror) )
-	rospy.loginfo('colour_threshold stopped')
+	rospy.loginfo('color_threshold stopped')
 

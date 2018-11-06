@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   #swri_profiler
   tf
+  image_transport
 )
 
 find_package(Boost REQUIRED)
@@ -120,7 +121,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES jni_test
-   CATKIN_DEPENDS roscpp std_msgs mdb_common sensor_msgs roslib message_runtime tf2 tf2_ros cv_bridge tf
+   CATKIN_DEPENDS roscpp std_msgs mdb_common sensor_msgs roslib message_runtime tf2 tf2_ros cv_bridge tf image_transport
 #  DEPENDS system_lib jvm
 )
 
@@ -151,6 +152,10 @@ add_dependencies(ball_track ${catkin_EXPORTED_TARGETS})
 add_executable(box_track src/box_track.cpp)
 target_link_libraries(box_track ${catkin_LIBRARIES})
 add_dependencies(box_track ${catkin_EXPORTED_TARGETS})
+
+add_executable(cylinder_track src/cylinder_track.cpp)
+target_link_libraries(cylinder_track ${catkin_LIBRARIES})
+add_dependencies(cylinder_track ${catkin_EXPORTED_TARGETS})
 
 #add_executable(beacons_track src/beacons_track.cpp)
 #target_link_libraries(beacons_track ${catkin_LIBRARIES})
