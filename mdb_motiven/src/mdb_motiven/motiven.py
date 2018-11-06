@@ -104,20 +104,38 @@ class MOTIVEN(object):
         self.max_policies_exec = 8
         # Goals LTM
         # Establezco lista de goals
-        self.goals_list = ['intrinsic', 'ball_in_box', 'ball_in_robot']
+        self.goals_list = [
+            # 'intrinsic',
+            'ball_in_box',
+            # 'ball_in_robot',
+            'ball_reachable',
+            'ball_reachable_two_hands',
+            'ball_in_hand',
+            # 'ball_in_hand_opposite_box',
+            # 'ball_in_same_hand_as_box',
+            'ball_in_two_hands']
         for goal in self.goals_list:
             self.goal_manager.newGoal(goal)
-        self.active_goal = self.goals_list[1]
+        self.active_goal = 'ball_in_box'
         # MOTIVEN HIGH LEVEL
         self.motiven_high_level = True
         if self.motiven_high_level:
             self.reward_vector = TracesMemory()
             self.traces_buffer2 = TracesBuffer()
-            self.traces_buffer2.setMaxSize(4)
+            self.traces_buffer2.setMaxSize(7)#4
             self.episode2 = Episode()
             self.state_t = 'Unnamed'
             self.state_t1 = 'Unnamed'
-            goal_states = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'Unnamed']
+            goal_states = [
+                'ball_reachable',
+                'ball_reachable_two_hands',
+                'ball_in_hand',
+                # 'ball_in_hand_opposite_box',
+                # 'ball_in_same_hand_as_box',
+                'ball_in_two_hands',
+                # 'ball_in_robot',
+                'ball_in_box',
+                'Unnamed']
             self.reward_dict = dict.fromkeys(goal_states)
             for key in self.reward_dict.keys():
                 self.reward_dict[key] = MeanReward()
@@ -140,26 +158,28 @@ class MOTIVEN(object):
         rospy.init_node('motiven', log_level=getattr(rospy, log_level))
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
-        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=None)
+        self.goal_topic_pb = rospy.Publisher("/mdb/motiven/goal", GoalMsg, latch=True, queue_size=0)
         self.goal_activation_topic_pb = rospy.Publisher(
             "/mdb/motiven/goal_activation",
             GoalActivationMsg,
             latch=True,
-            queue_size=None)
-        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=None)
+            queue_size=0)
+        self.goal_ok_topic_pb = rospy.Publisher("/mdb/motiven/goal_ok", GoalOkMsg, latch=True, queue_size=0)
         if self.ltm:
             while self.goal_topic_pb.get_num_connections() == 0:
                 pass
         # Publish Goal creation
-        for goal in self.goal_manager.goals:
-            self.goal_topic_pb.publish(
-                command='new',
-                id=goal.goal_id,
-                newdata_topic='',
-                execute_service='',
-                get_service='',
-                class_name='',
-                language='python')
+        ### METER FLAG AQUI
+        # for goal in self.goal_manager.goals:
+        #     self.goal_topic_pb.publish(
+        #         command='new',
+        #         id=goal.goal_id,
+        #         newdata_topic='',
+        #         execute_service='',
+        #         get_service='',
+        #         class_name='',
+        #         language='python')
+        ###
         # ROS services
         self.refresh_world_srv = rospy.ServiceProxy('/mdb/baxter/refresh_world', RefreshWorld)
         self.baxter_mov_srv = rospy.ServiceProxy('/baxter_cart_mov', BaxMC)
@@ -220,7 +240,7 @@ class MOTIVEN(object):
             if self.motiven_high_level:
                 self.state_t = self.state_t1
                 self.state_t1 = self.getFinalState(self.sens_t1, self.sens_t)
-                pdb.set_trace()
+                # pdb.set_trace()
             ####
             self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
             if self.reset:
@@ -269,25 +289,20 @@ class MOTIVEN(object):
         # MEMORY MANAGER: Save episode in the pertinent memories and Traces, weak traces and antitraces
         self.memory_manager_ltm()
         # Decide if the agent is improving its behaviour and publish it in topic for LTM
+        # Criterion:
+        # goal_ok indicates if we are on the right track, that is, if a 'utility' improvement is perceived
+        # when changing from the previous state to the current one.
         for goal in self.goal_manager.goals:
-            if self.active_goal == goal.goal_id:
-                if self.episode.getReward():
-                    goal_ok = 1.0
-                elif self.motiven_high_level:
-                    # if self.state_t1 == 'Unnamed':
-                    #     goal_ok = 0.0
-                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(0))
-                    # else:
-                    #     goal_ok = 1.0
-                    #     rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
-                    #             self.reward_dict[self.state_t1].mean_value))
-                    goal_ok = self.reward_dict[self.state_t1].mean_value
-                    rospy.logdebug('Goal_ok. Publishing state activation for ' + self.state_t1 + ' = ' + str(
-                                self.reward_dict[self.state_t1].mean_value))
+            if self.motiven_high_level:
+                if goal.goal_id == self.state_t1:
+                    if self.active_goal == self.state_t1:
+                        goal_ok = 1.0
+                    else:
+                        goal_ok = 0.5
                 else:
-                    goal_ok = self.is_improving_behavior()
+                    goal_ok = 0.0
             else:
-                goal_ok = 0.0
+                goal_ok = 1.0 if self.episode.getReward() else self.is_improving_behavior()
             self.goal_ok_topic_pb.publish(id=goal.goal_id, ok=goal_ok)
             rospy.logdebug('Publishing goal success for ' + goal.goal_id + ' = ' + str(goal_ok))
         # pdb.set_trace()
@@ -326,7 +341,9 @@ class MOTIVEN(object):
         if self.motiven_high_level:
             for goal in self.goal_manager.goals:
                 if goal.goal_id == self.active_goal:
-                    goal.activation = self.reward_dict[self.state_t1].mean_value
+                    goal.activation = self.reward_dict[goal.goal_id].mean_value
+                elif self.reward_dict[goal.goal_id].mean_value >= self.reward_dict[self.state_t1].mean_value:
+                    goal.activation = self.reward_dict[goal.goal_id].mean_value
                 else:
                     goal.activation = 0.0
         else:
@@ -349,7 +366,7 @@ class MOTIVEN(object):
     def select_goal(self):
         """Select the current goal (ad-hoc at the moment)."""
         if self.iterations > 0:
-            self.active_goal = self.goals_list[1]
+            self.active_goal = 'ball_in_box'#self.goals_list[1]
 
     def run(self, log_level='INFO', standalone=True):
         # Load data
@@ -487,7 +504,7 @@ class MOTIVEN(object):
                 self.it_reward += 1
                 self.stop_condition()
                 self.episode.cleanEpisode()
-            self.save_data()
+            # self.save_data()
             self.plot_graphs()
             plt.pause(0.0001)
 
@@ -594,7 +611,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -632,7 +649,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -676,7 +693,12 @@ class MOTIVEN(object):
         self.traces_buffer.addEpisode(self.episode.getEpisode())
         #####
         if self.motiven_high_level:
-            if self.episode2.getSensorialStateT1() != 'Unnamed':
+        #     if self.episode2.getSensorialStateT1() != 'Unnamed':
+        #         self.traces_buffer2.addEpisode(self.episode2.getEpisode())
+            state = self.episode2.getSensorialStateT1()
+            if state != 'Unnamed':
+                if state in self.traces_buffer2.getTrace():
+                    self.traces_buffer2.getContents().pop(self.traces_buffer2.getTrace().index(state))
                 self.traces_buffer2.addEpisode(self.episode2.getEpisode())
         #####
         self.intrinsic_memory.addEpisode(self.episode.getSensorialStateT1())
@@ -709,7 +731,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
@@ -751,7 +773,7 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                self.save_data()
+                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
@@ -1041,9 +1063,9 @@ class MOTIVEN(object):
             rospy.logdebug('Found None value in Perceptions')
         else:
             if perceptions_t1['ball_in_box'] and (not perceptions_t['ball_in_box']):
-                state = 'E7'
-            elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
-                state = 'E6'
+                state = 'ball_in_box'
+            # elif perceptions_t1['ball_with_robot'] and (not perceptions_t['ball_with_robot']):
+            #     state = 'ball_in_robot'
             elif perceptions_t1['ball_in_left_hand'] or perceptions_t1['ball_in_right_hand']:
                 if (
                         perceptions_t1['ball_in_left_hand'] and
@@ -1053,7 +1075,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_right_hand'])
                         )
                 ):
-                    state = 'E5'
+                    state = 'ball_in_two_hands'
                 elif (
                         (
                             perceptions_t1['ball_in_left_hand'] and
@@ -1073,7 +1095,7 @@ class MOTIVEN(object):
                             )
                         )
                 ):
-                    state = 'E4'
+                    state = 'ball_in_hand' #'ball_in_same_hand_as_box'
                 elif perceptions_t1['ball_in_left_hand'] and perceptions_t1['box_ang'] <= 0:
                     if (
                             (not perceptions_t['ball_in_left_hand']) and
@@ -1084,7 +1106,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_left_hand']) or
                             (not perceptions_t['box_ang'] <= 0)
                     ):
-                        state = 'E3'
+                        state = 'ball_in_hand' #'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 elif perceptions_t1['ball_in_right_hand'] and perceptions_t1['box_ang'] > 0:
@@ -1097,7 +1119,7 @@ class MOTIVEN(object):
                             (not perceptions_t['ball_in_right_hand']) or
                             (not perceptions_t['box_ang'] > 0)
                     ):
-                        state = 'E3'
+                        state = 'ball_in_hand' #'ball_in_hand_opposite_box'
                     else:
                         state = 'Unnamed'
                 else:
@@ -1112,12 +1134,12 @@ class MOTIVEN(object):
                         (not abs(perceptions_t['ball_ang']) < 0.05)
                     )
             ):
-                state = 'E2'
+                state = 'ball_reachable_two_hands'
             elif (
                     (not LTMSim.object_too_far(perceptions_t1['ball_dist'], perceptions_t1['ball_ang'])) and
                     (LTMSim.object_too_far(perceptions_t['ball_dist'], perceptions_t['ball_ang']))
             ):
-                state = 'E1'
+                state = 'ball_reachable'
             else:
                 state = 'Unnamed'
         rospy.logdebug('Perceptions correspond to state => ' + str(state))
@@ -1131,3 +1153,6 @@ class MOTIVEN(object):
         for i in range(len(Trace)):
             self.reward_dict[Trace[i][0]].mean_value = (self.reward_dict[Trace[i][0]].mean_value * self.reward_dict[Trace[i][0]].n_values + Trace[i][1]) / (self.reward_dict[Trace[i][0]].n_values + 1)
             self.reward_dict[Trace[i][0]].n_values += 1
+        rospy.logdebug('Reward vector values: ')
+        for key, value in self.reward_dict.iteritems():
+            rospy.logdebug('Goal state ' + key + ' , value ' + str(value.mean_value))

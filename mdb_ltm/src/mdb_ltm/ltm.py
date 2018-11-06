@@ -45,7 +45,8 @@ class LTM(object):
     """
     The Long Term Memory part of the Brain.
 
-    Attributes:
+    Attributes
+    ----------
         nodes       {type_of_node: [node, ...], ...}
         module_names  {type_of_node: python_module_name, ...}
 
@@ -84,7 +85,7 @@ class LTM(object):
         self.current_goal = None
         self.current_policy = None
         self.current_world = 0
-        self.current_reward = 0
+        self.current_success = 0
         self.graph = networkx.Graph()
         self.graph_node_label = {}
         self.graph_node_position = {}
@@ -259,7 +260,9 @@ class LTM(object):
                     else:
                         node_class = self.default_class.get(node_type)
                         if node_class is None:
-                            rospy.logerr('Class name not specified and default value not found while processing a message for creating a new node!')
+                            rospy.logerr(
+                                'Class name not specified and default value not found while processing a message for '
+                                'creating a new node!')
         if node_class is not None:
             self.__add_node(
                 node_type=node_type,
@@ -322,8 +325,9 @@ class LTM(object):
                     self.__write_headers_in_files()
                 # Load simulator / robot configuration channel
                 topic = rospy.get_param(configuration['Control']['ros_name_prefix'] + '_topic')
-                message = self.__class_from_classname(rospy.get_param(configuration['Control']['ros_name_prefix'] + '_msg'))
-                self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=None)
+                message = self.__class_from_classname(
+                    rospy.get_param(configuration['Control']['ros_name_prefix'] + '_msg'))
+                self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
                 # Load experiment configuration
                 self.iterations = configuration['Experiment']['iterations']
                 self.period = configuration['Experiment']['period']
@@ -376,9 +380,13 @@ class LTM(object):
     def __select_goal(self):
         """Find the active goal."""
         for goal in self.goals:
-            goal.update_reward()
+            goal.update_success()
         goal = max(self.goals, key=attrgetter('reward'))
-        rospy.loginfo('Selecting goal => ' + goal.ident)
+        if goal.reward < goal.threshold:
+            goal = None
+            rospy.loginfo('Successful goal => None')
+        else:
+            rospy.loginfo('Successful goal => ' + goal.ident)
         return goal
 
     def __add_antipoint(self, perception):
@@ -391,14 +399,19 @@ class LTM(object):
                 rospy.loginfo('Added anti-point in p-node ' + pnode.ident)
 
     def __add_point(self, perception):
-        """Add a point to the p-node that corresponds with the executed policy."""
-        cnodes = [node for node in self.current_policy.neighbors if node.type == 'CNode' and (node.context_is_on() or node.context_has_reward())]
-        for cnode in cnodes:
-            pnodes = (node for node in cnode.neighbors if node.type == 'PNode')
-            for pnode in pnodes:
-                pnode.add_perception(perception, 1.0)
-                rospy.loginfo('Added point in p-node ' + pnode.ident)
-        if not cnodes:
+        """
+        Add a point to the p-node that corresponds with the executed policy.
+
+        It is assumed that there are only one goal and one forward model active in the LTM at a given moment of time.
+        """
+        cnodes = [node for node in self.current_policy.neighbors if node.type == 'CNode' and node.context_has_reward()]
+        if bool(cnodes):
+            for cnode in cnodes:
+                pnodes = (node for node in cnode.neighbors if node.type == 'PNode')
+                for pnode in pnodes:
+                    pnode.add_perception(perception, 1.0)
+                    rospy.loginfo('Added point in p-node ' + pnode.ident)
+        else:
             pnode = self.__add_node('PNode', self.default_class['PNode'])
             pnode.add_perception(perception, 1.0)
             rospy.loginfo('Added point in p-node ' + pnode.ident)
@@ -409,9 +422,9 @@ class LTM(object):
             rospy.logdebug('New c-node ' + cnode.ident + ' joining ' + pnode.ident + ', ' + forward_model.ident +
                            ', ' + goal.ident + ' and ' + self.current_policy.ident)
 
-    def __update_policies_to_test(self):
+    def __update_policies_to_test(self, drop):
         """Maintenance tasks on the pool of policies used to choose one randomly when needed."""
-        if self.current_reward < self.current_goal.threshold:
+        if drop:
             if self.current_policy in self.policies_to_test:
                 self.policies_to_test.remove(self.current_policy)
         else:
@@ -473,10 +486,16 @@ class LTM(object):
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5)
         networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
         goal = max(self.goals, key=attrgetter('reward'))
-        pyplot.title(
-            'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
-            str(self.iteration) + ' REWARD: ' + str(self.current_reward) + '\nPOLICY: ' + self.current_policy.ident,
-            fontsize=10)
+        if goal.reward == 0:
+            pyplot.title(
+                'GOAL: None WORLD: ' + self.current_world + '\nITERATION: ' +
+                str(self.iteration) + ' REWARD: ' + str(self.current_success) + '\nPOLICY: ' + self.current_policy.ident,
+                fontsize=10)
+        else:
+            pyplot.title(
+                'GOAL: ' + goal.ident + ' WORLD: ' + self.current_world + '\nITERATION: ' +
+                str(self.iteration) + ' REWARD: ' + str(self.current_success) + '\nPOLICY: ' + self.current_policy.ident,
+                fontsize=10)
         # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
         # pyplot.legend(
         #     loc='bottom right', shadow=True, fancybox=True, fontsize=10, labelspacing=3, bbox_to_anchor=(1.30, 0.5))
@@ -500,7 +519,7 @@ class LTM(object):
         """Reset the world if necessary, according to the experiment parameters."""
         changed = False
         self.trial += 1
-        if self.trial == self.trials or self.current_reward >= 0.9:
+        if self.trial == self.trials or self.current_success >= 0.9:
             self.trial = 0
             changed = True
         if (self.iteration % self.period) == 0 or self.restoring:
@@ -509,7 +528,7 @@ class LTM(object):
             self.restoring = False
             changed = True
         if changed:
-            self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
+            self.control_publisher.publish(world=self.current_world, reward=(self.current_success >= 0.9))
         return changed
 
     def run(self, seed=None, log_level='INFO', plot=False):
@@ -528,12 +547,16 @@ class LTM(object):
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
-                self.current_reward = self.current_goal.reward
-                if self.current_reward < self.current_goal.threshold:
-                    self.__add_antipoint(previous_sensing)
-                else:
+                if self.current_goal is not None:
+                    drop_policy = False
+                    self.current_success = self.current_goal.reward
                     self.__add_point(previous_sensing)
-                self.__update_policies_to_test()
+                else:
+                    drop_policy = True
+                    self.current_success = 0.0
+                    if self.current_policy.activation >= self.current_policy.threshold:
+                        self.__add_antipoint(previous_sensing)
+                self.__update_policies_to_test(drop=drop_policy)
                 if plot:
                     self.__show()
                 self.__statistics()
