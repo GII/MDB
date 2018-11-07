@@ -39,7 +39,7 @@ class exp_sim_manager():
 
 		self.spawn_urdf = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
 		self.delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
-		#self.set_model = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+		self.set_model = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 
 		self.table_fixed_pos = Pose(position=Point(x=0.22, y=-1.221, z=0.865))
 
@@ -84,7 +84,7 @@ class exp_sim_manager():
 
 	def handle_mod(self, req):
 		try:
-			#self.set_model(ModelState(model_name=req.model_name.data, pose=req.pose, reference_frame=req.reference_frame.data))
+			self.set_model(ModelState(model_name=req.model_name.data, pose=req.pose, reference_frame=req.reference_frame.data))
 			self.delete_model(req.model_name.data)
 			dx, dy = self.translate_pos(req.sense.angle.data, req.sense.dist.data, self.choose_xd(req.model_name.data), self.choose_yd(req.model_name.data))
 			if self.load_model(Pose(position=Point(x=dx, y=dy, z=self.choose_height(req.model_name.data)+req.sense.height.data)), 'world', req.model_name.data):						

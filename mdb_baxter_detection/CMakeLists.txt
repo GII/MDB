@@ -153,10 +153,6 @@ add_executable(box_track src/box_track.cpp)
 target_link_libraries(box_track ${catkin_LIBRARIES})
 add_dependencies(box_track ${catkin_EXPORTED_TARGETS})
 
-add_executable(cylinder_track src/cylinder_track.cpp)
-target_link_libraries(cylinder_track ${catkin_LIBRARIES})
-add_dependencies(cylinder_track ${catkin_EXPORTED_TARGETS})
-
 #add_executable(beacons_track src/beacons_track.cpp)
 #target_link_libraries(beacons_track ${catkin_LIBRARIES})
 #add_dependencies(beacons_track ${catkin_EXPORTED_TARGETS})

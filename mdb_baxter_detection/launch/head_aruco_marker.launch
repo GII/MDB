@@ -8,8 +8,6 @@
     <arg name="corner_refinement" default="LINES" /> <!-- NONE, HARRIS, LINES, SUBPIX -->
 
    <node pkg="aruco_ros" type="single" name="aruco_single_head">
-        <!--remap from="/camera_info" to="/pano_camera/rgb/camera_info" />
-        <remap from="/image" to="/pano_camera/image_color" /-->
         <remap from="/camera_info" to="/camera/rgb/camera_info"/>
         <remap from="/image" to="/camera/rgb/image_rect_color"/>
 

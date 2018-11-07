@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch> 
    <arg name="decimation" default="1"/> <!-- 1 -->
-   <!--arg name="obj_type" default="ball"/-->
    <arg name="rate" default="5"/>
    <arg name="table_per" default="0.01"/>
    <arg name="stype" default="single"/>
@@ -11,21 +10,13 @@
    <arg name="detect_obj" default="true"/>
 
    <arg name="camera_frame" default="camera_rgb_optical_frame"/>
-   <!--arg name="camera_frame" default="headcamera_rgb_optical_frame"/-->
    <arg name="image_topic" default="/camera/rgb/image_rect_color_drop"/>
-   <!--arg name="image_topic" default="/pano_camera/image_color"/-->
    <arg name="cloud_topic" default="/camera/depth_registered/points"/>
-   <!--arg name="cloud_topic" default="/example/pointcloud"/-->
    <arg name="ref_frame" default="/base" />
-
-   <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.866 0.102 2.026 -0.007 0.708 0.003 0.706 base camera_link 100" required="true"/-->
-   <!-- 10 to 17 + 2 cameras --> <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.074 0.116 0.047 -0.266 -0.272 -0.628 0.649 head_camera camera_link 100" required="true"/-->
-   <!-- 10 to 25 + 2 cameras --> <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.073 0.116 0.047 -0.266 -0.271 -0.658 0.650 head_camera camera_link 100" required="true"/-->
-   <!-- 10 to 25 + 1 camera -->  <!--node name="camera_link_broadcaster" pkg="tf" type="static_transform_publisher" args="0.070 0.064 0.024 -0.279 -0.293 -0.650 0.643 head_camera camera_link 100" required="true"/-->
 
    <node name="drop_node" pkg="topic_tools" type="drop" args="/camera/rgb/image_rect_color 3 4 /camera/rgb/image_rect_color_drop"/>
 
-   <node name="ball_track" pkg="mdb_baxter_detection" type="ball_track" required="true" output="screen" if="$(arg detect_obj)" > <!-- launch-prefix="valgrind"-->
+   <node name="ball_track" pkg="mdb_baxter_detection" type="ball_track" required="true" output="screen" if="$(arg detect_obj)">
        <remap from="/image_color" to="$(arg image_topic)" />
 
        <param name="table_per" type="double" value="$(arg table_per)"/>

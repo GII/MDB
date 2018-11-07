@@ -2,7 +2,8 @@
 <launch>
   <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
-  <arg name="super_throw" default="false" />
+  <arg name="super_throw" default="false"/>
+  <arg name="joystick" default="false"/>
 
   <arg name="cal_xmin" default="0.32"/>
   <arg name="cal_xmax" default="1.34"/>
@@ -15,6 +16,9 @@
   <arg name="motiven_param_file" default="motiven_parameters.yml"/>
   <arg name="robobo_param_file" default="robobo_parameters.yml"/>
 
+  <arg name="joystick_rate" default="15"/>
+  <arg name="joystick_velocity" default="40"/>
+
   <node name="get_joints_state_server" pkg="mdb_baxter_policies"  type="get_joints_state.py" required="true" output="log"/>
   <node name="get_end_state_server" pkg="mdb_baxter_policies"  type="get_end_state.py" required="true" output="log"/>
   <node name="get_gripper_state_server" pkg="mdb_baxter_policies" type="get_gripper_state.py" required="true" output="log"/>
@@ -25,9 +29,11 @@
   <node name="open_grip_left" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
     <param name="arm" type="str" value="left" />
   </node>
+
   <node name="open_grip_right" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
     <param name="arm" type="str" value="right" />
   </node>
+
    <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
     <param name="mode" type="str" value="$(arg mode)" />
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
@@ -43,6 +49,12 @@
 	<param name="throw_param_file" type="str" value="$(arg throw_param_file)"/>
 	<param name="motiven_param_file" type="str" value="$(arg motiven_param_file)"/>
 	<param name="robobo_param_file" type="str" value="$(arg robobo_param_file)"/>
-
   </node>
+
+  <node name="arduino_joystick_module" pkg="mdb_baxter_policies" type="arduino_joystick_module.py" required="true" output="screen" if="$(arg joystick)"/>
+  <node name="robobo_joystick_control" pkg="mdb_baxter_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)"> 
+	<param name="joystick_rate" type="int" value="$(arg joystick_rate)"/>
+	<param name="joystick_velocity" type="int" value="$(arg joystick_velocity)"/>
+  </node>
+
 </launch>
