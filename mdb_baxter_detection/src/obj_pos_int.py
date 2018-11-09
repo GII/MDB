@@ -20,14 +20,13 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-
-import cv2, math, rospy, sys, tf, scipy.interpolate, rospkg, yaml
+import sys
+import rospy
+import scipy.interpolate
+import rospkg 
+import yaml
 import numpy as np
-import sensor_msgs.point_cloud2 as pc2
-from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image, PointCloud2
-from std_msgs.msg import Bool, String
-from mdb_common.msg import ObjDet, MObjDet
+from mdb_common.msg import ObjDet
 from mdb_common.msg import SensData
 
 class obj_pos_int:
@@ -46,11 +45,6 @@ class obj_pos_int:
 		self.read_grid_data_file()
 
 		self.fu, self.fv = self.obtain_interpolation_rbf(rospy.get_param("~function_type"))
-		#self.fu, self.fv = self.obtain_interpolation_int2d("cubic")
-
-		#print [197, 276]
-		#print self.fu(197, 276), self.fv(197, 276)
-
 
 	def read_grid_data_file(self):
 		custom_configuration_file = self.rospack.get_path('mdb_baxter_detection')+"/config/"+rospy.get_param("~overhead_camera_file") 

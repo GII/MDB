@@ -21,9 +21,9 @@
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
 
-import rospy, sys
+import sys
+import rospy
 import numpy as np
-from std_msgs.msg import Bool
 from mdb_common.msg import SensData
 from gazebo_msgs.srv import GetModelState
 from gazebo_msgs.msg import ModelStates

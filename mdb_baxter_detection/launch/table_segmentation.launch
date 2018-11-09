@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <node name="table_segmentation_server" pkg="mdb_baxter_detection"  type="table_segmentation.py" required="true" output="screen"/>
-</launch>

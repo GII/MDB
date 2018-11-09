@@ -5,19 +5,14 @@ project(mdb_baxter_detection)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   std_msgs
   sensor_msgs
+  geometry_msgs
   mdb_common
   image_geometry
   roslib
   message_generation
-  tf2
-  tf2_ros
   cv_bridge
-  eigen_conversions
-  #swri_profiler
-  tf
   image_transport
 )
 
@@ -121,7 +116,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES jni_test
-   CATKIN_DEPENDS roscpp std_msgs mdb_common sensor_msgs roslib message_runtime tf2 tf2_ros cv_bridge tf image_transport
+   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs mdb_common roslib message_runtime cv_bridge image_transport
 #  DEPENDS system_lib jvm
 )
 
@@ -145,13 +140,6 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${EIGEN
 # add_dependencies(mdb_cafer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(ball_track src/ball_track.cpp)
-target_link_libraries(ball_track ${catkin_LIBRARIES})
-add_dependencies(ball_track ${catkin_EXPORTED_TARGETS})
-
-add_executable(box_track src/box_track.cpp)
-target_link_libraries(box_track ${catkin_LIBRARIES})
-add_dependencies(box_track ${catkin_EXPORTED_TARGETS})
 
 #add_executable(beacons_track src/beacons_track.cpp)
 #target_link_libraries(beacons_track ${catkin_LIBRARIES})

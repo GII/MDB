@@ -27,7 +27,7 @@ from baxter_arm import *
 from baxter_display import *
 from exp_senses import *
 from calibration_policies import calibration_policies
-from robobo_policies import robobo_policies
+#from robobo_policies import robobo_policies
 from dynamic_reconfigure import client
 from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped

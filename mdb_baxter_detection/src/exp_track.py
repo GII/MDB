@@ -21,21 +21,16 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import os, sys, rospy, cv2, math
+import sys
+import rospy
+import cv2
 import numpy as np
-from skimage import data, io, draw, morphology, color, measure, img_as_float, img_as_ubyte, util
+from skimage import draw, morphology, color, measure, img_as_float
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64, Bool
 from mdb_common.msg import ObjDet
-from cv_bridge import CvBridge, CvBridgeError
-
-import matplotlib.pyplot as plt
-import colorsys
-
-import skimage.morphology
-
 from geometry_msgs.msg import PointStamped
-
+from cv_bridge import CvBridge, CvBridgeError
 
 class exp_track:
 	def __init__ (self):
@@ -52,7 +47,6 @@ class exp_track:
 		self.do_sense = False
 
 		self.exp_rec = rospy.get_param("~exp_rec")
-		self.head_camera = rospy.get_param("~head_camera")
 
 		self.objects = []
 		self.initialize_objects()
@@ -126,11 +120,6 @@ class exp_track:
 			self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
 		else:
 			self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
-		###
-		#self.objects.append(['robobo',   np.array([19, 67, 125],  dtype='float')/255])
-		#self.objects.append(['robobo',   np.array([34, 86, 130],  dtype='float')/255])
-		#self.objects.append(['robobo',   np.array([111, 134, 140],  dtype='float')/255]
-
 
 	def select_publisher(self, arg):
 		options = {
@@ -149,8 +138,6 @@ class exp_track:
 		return im
 
 	def insert_line(self, im, r0, c0, c, color=[1.0, 1.0, 1.0]):
-		# skimage.draw.line(r0, c0, r1, c1)
-		#rr, cc = draw.line(int(r0), int(c0), int(r0 + evec[0]*scale/2), int(c0 + evec[1]*scale/2))
 		r1 = np.max([ int(r0 + c[0]), 0])
 		c1 = np.max([ int(c0 + c[1]), 0])
 		r1 = np.min([ r1, im.shape[0]])
@@ -170,14 +157,6 @@ class exp_track:
 
 		print im.shape[0], im.shape[1], margin
 		print f_i, f_f, c_i, c_f
-
-		#cv2.imshow("wipe",  im[f_i:f_f,c_i:c_f])
-		#cv2.waitKey(0)
-
-		'''f_i=int(round(im.shape[0]*margin))
-		f_f=int(round((im.shape[0]*1.0)-1))
-		c_i=int(round(im.shape[1]*0.0))
-		c_f=int(round((im.shape[1]*1.0)-1))'''
 
 		#Malla NxN
 		f = np.linspace(f_i,f_f,N, dtype=int)
@@ -241,11 +220,6 @@ class exp_track:
 		h1 = np.argmax(diff_h[:arg_h_medio]) * space
 		h2 = (np.argmax(diff_h[arg_h_medio:]) + arg_h_medio) * space
 
-		'''if self.head_camera:
-			v1 = 0
-			v2 = im.shape[1]
-			h2 = im.shape[0]'''
-
 		v1 = 0
 		v2 = im.shape[1]
 		h1 = 98
@@ -283,18 +257,12 @@ class exp_track:
 
 			total_pixel = len(i)
 			rgb_region = np.hstack([np.reshape(im[i,j,0], [np.size(i), 1]), np.reshape(im[i,j,1], [np.size(i), 1]), np.reshape(im[i,j,2], [np.size(i), 1])])
-			#ii = i[self.region_angledist(rgb_region, rgb_obj) < threshold]
-			#jj = j[self.region_angledist(rgb_region, rgb_obj) < threshold]
 			i = i[self.region_angledist(rgb_region, rgb_obj) < threshold]
 			j = j[self.region_angledist(rgb_region, rgb_obj) < threshold]
 			idx = np.hstack([np.reshape(i, [np.size(i), 1]), np.reshape(j, [np.size(j), 1])])
 
-			#if len(ii) > min_px_size:
-
 			current_per = float(idx.shape[0])/float(total_pixel)
-			#print idx.shape[0], total_pixel, current_per
 			if idx.shape[0] > min_px_size and current_per > percentage:
-				#print "comparacion:", idx.shape[0], min_px_size
 				suma=0
 				for ite in range (0, len(i)):				
 					suma += im[i[ite], j[ite]]
@@ -307,7 +275,7 @@ class exp_track:
 		centro_i =  np.median(idx[:,0])
 		centro_j =  np.median(idx[:,1])
 		area = idx.shape[0]
-		#print area
+
 		dist_idx_centro = np.sqrt(np.sum((idx - [centro_i, centro_j])**2, -1))
 
 		k = idx[dist_idx_centro > area*0.115,:] 
@@ -317,17 +285,8 @@ class exp_track:
 
 	def color_cb (self, img):
 		img_cv = self.image_ros2cv(img)
-		#img_cv = cv2.imread('/home/baxter/Descargas/photo6039835045067336906.jpg')
-		#img_cv = cv2.imread('/home/baxter/Descargas/photo6023781007070703177.jpg')
-		#img_cv = cv2.imread('/home/baxter/Descargas/photo5776302972840553965.jpg')
-		if self.head_camera:
-			im_cv = img_cv[:, :, ::-1]
-			img_float = img_as_float(im_cv)
-			self.track_objects(img_float, np.array(np.array(im_cv, dtype=np.uint8)))
-		else:
-			img_float = img_as_float(img_cv)
-			self.track_objects(img_float, np.array(np.array(img_cv, dtype=np.uint8)))
-
+		img_float = img_as_float(img_cv)
+		self.track_objects(img_float, np.array(np.array(img_cv, dtype=np.uint8)))
 
 	def bg_rec_check (self):
 		if self.iteration_number == 0 or self.iteration_number>self.bg_rec:
@@ -358,11 +317,7 @@ class exp_track:
 				
 				im_out = np.copy(im_cv)  #Para representacion   
 				im_out[np.logical_not(self.mask_table)] = im_out[np.logical_not(self.mask_table)]*0.5
-		
-				for reg, j in zip(regions,xrange(0,regions.__len__())):
-					#Bounding box (min_row, min_col, max_row, max_col)
-					#im_out = self.insert_rectangle(im_out, reg.bbox, color=[255, 0, 0])
-					pass
+	
 
 				robobo = False
 				cylinder = False
@@ -375,8 +330,6 @@ class exp_track:
 					else:
 						idx_all, new_rgb_value = self.detect_object(im, regions, obj, threshold = 0.25, percentage = 0.0)
 					idx_all.sort(key = lambda s: s.shape[0], reverse=True)
-					#for iterator in range (0, len(idx_all)):
-						#print idx_all[iterator].shape[0]
 
 					for idx in idx_all:
 						im_out[idx[:,0],idx[:,1]] = obj[1]*255
@@ -390,8 +343,6 @@ class exp_track:
 						else:					
 							if (obj[0] == "cilindro" and not cylinder) or (obj[0] == "cesta" and not box):
 								im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=False, color=obj[1])
-								#im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=True, color=[1, 1, 1])
-								#print 'Objeto: ' + obj[0] + ', ' + np.str([int(centro_i), int(centro_j)])
 	
 								obj_det = ObjDet()
 								obj_det.u.data = int(centro_j)
@@ -410,7 +361,6 @@ class exp_track:
 									box=True
 
 				###Robobo detection through tag:
-				#print self.c0_val, self.c1_val, self.c2_val, self.cc_val
 				if self.exp_rec == 'mot' and self.c0_val != None and self.c1_val != None and self.c2_val != None and self.cc_val != None and self.tag_detect:
 
 					rr, cc = draw.circle(self.cc_val[1], self.cc_val[0], 3)
