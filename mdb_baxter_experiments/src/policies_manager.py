@@ -21,9 +21,8 @@
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
 import rospy
-import numpy as np
 from mdb_baxter_policies.srv import BaxThrow, BaxGrab, BaxPush, BaxGrabBoth, BaxDropBoth, GetSense, BaxCheckReach, BaxGetCompleteSense, JoystickControl
-from mdb_baxter_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, GetSenseRequest, BaxGetCompleteSenseRequest, BaxCheckReachRequest, JoystickControlRequest
+from mdb_baxter_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, BaxCheckReachRequest, JoystickControlRequest
 from std_msgs.msg import Bool, Float64, String, Int16
 from mdb_common.srv import BaxChange, BaxChangeRequest
 from mdb_common.msg import SensData
@@ -37,6 +36,7 @@ class policies_manager():
 
 		self.velocity = self.select_policies_velocity()
 
+		# Service Proxies
 		self.bax_throw_clnt = rospy.ServiceProxy('/baxter/policy/throw', BaxThrow)  
 		self.bax_grab_clnt = rospy.ServiceProxy('/baxter/policy/grab', BaxGrab) 
 		self.bax_push_clnt = rospy.ServiceProxy('/baxter/policy/push', BaxPush) 
@@ -49,9 +49,10 @@ class policies_manager():
 		self.bax_get_complete_sense_clnt = rospy.ServiceProxy('/baxter/get_complete_sense', BaxGetCompleteSense)
 		self.bax_check_far_reach_clnt = rospy.ServiceProxy('/baxter/check_far_reach', BaxCheckReach)
 
+		# Publishers
 		self.super_throwing_pub = rospy.Publisher("/baxter_throwing/command", Int16, queue_size = 1)
 
-	def select_policies_velocity(self):
+	def select_policies_velocity(self): #S#
 		if self.global_exp.mode == "sim":
 			return 0.5
 		else:
@@ -98,8 +99,7 @@ class policies_manager():
 			'put_object_in_robot':self.bax_grab_clnt,
 			'throw':self.bax_throw_clnt,
 			'ask_nicely':self.bax_ask_help_clnt,
-			'flexsim':self.bax_grab_clnt,
-			'robobo':self.bax_joy_control_clnt,  
+			'joystick':self.bax_joy_control_clnt,  
 		}
 		return options[arg]
 
@@ -113,8 +113,7 @@ class policies_manager():
 			'put_object_in_robot':BaxGrabRequest(),
 			'throw':BaxThrowRequest(),
 			'ask_nicely':BaxChangeRequest(),
-			'flexsim':BaxGrabRequest(),
-			'robobo':JoystickControlRequest(),
+			'joystick':JoystickControlRequest(),
 		}
 		return options[arg]
 
@@ -230,7 +229,7 @@ class policies_manager():
 		else:
 			srv.dest_sens.angle.data = 0.0
 		srv.dest_sens.height.data = self.fixed_height+0.005+self.choose_sweep_height(self.global_exp.obj_type)
-		srv.radius.data = self.choose_push_dist(self.global_exp.obj_type) + 0.02 #global_s.obj_sens.radius.data
+		srv.radius.data = self.choose_push_dist(self.global_exp.obj_type) + 0.02 
 		srv.arm.data = arm
 		srv.scale.data = self.velocity
 		if self.global_exp.world == "gripper_and_low_friction":
@@ -270,9 +269,9 @@ class policies_manager():
 				srv.destination.const_dist = global_s.box_sens.dist
 				srv.destination.angle = global_s.box_sens.angle
 			else: #Destination = Robot (predefined)
-				srv.destination.const_dist.data = 0.47 + 0.08 #self.choose_x_dimension(self.obj_type) #0.47+0.08
+				srv.destination.const_dist.data = 0.47 + 0.08 
 				srv.destination.angle.data = 0.0
-				srv.destination.height.data = self.fixed_height+self.choose_sweep_height("exp_big_obj") #(self.obj_type)
+				srv.destination.height.data = self.fixed_height+self.choose_sweep_height("exp_big_obj") 
 				srv.size.data = 0.15
 				self.global_exp.adopt_expression("focus")
 				resp = self.bax_drop_both_clnt(srv).result.data
@@ -332,44 +331,14 @@ class policies_manager():
 			resp = True
 		return resp
 
-	def policy_flexsim (self, policy_code, global_s, arm, srv):
-		self.global_exp.adopt_open_pose()
-		self.global_exp.bax_restore_arm_pose_clnt(String('left'))
-
-		srv = self.choose_policy_req('grasp_object')
-		srv.object_position.const_dist.data = 0.6
-		srv.object_position.angle.data = 1.2
-		srv.object_position.height.data = -0.02
-		srv.orientation.data = "current"
-		srv.arm.data = "left"
-		srv.scale.data = self.velocity
-		self.global_exp.adopt_expression("focus")
-		resp = self.choose_policy_srv(policy_code)(srv).result.data
-
-		srv = self.choose_policy_req('put_object_in_robot')
-		srv.object_position.const_dist = 0.7
-		srv.object_position.angle.data = 0.0
-		srv.object_position.height.data = -0.02
-		srv.orientation.data = "current"
-		srv.arm.data = 'left'
-		srv.scale.data = self.velocity
-		self.global_exp.adopt_expression("focus")
-		resp = self.choose_policy_srv(policy_code)(srv).result.data
-		return resp
-
-	def policy_robobo(self, policy_code, global_s, arm, srv):
-		#TODO: Include the joystick detection into the experiment sensorization. 
+	def policy_joystick(self, policy_code, global_s, arm, srv):
 		srv.joystick_pos.const_dist = 0.6
 		srv.joystick_pos.angle = 0.785
 		srv.joystick_pos.height.data = 0.09
-
-		#TODO: Where to obtain these information?
 		srv.joystick_angle.data = 0.0
 		srv.time_to_control.data = 0.0
-
 		srv.arm_to_move.data = arm
 		srv.velocity_scale.data = 1.0
-		
 		self.global_exp.adopt_expression("focus")
 		if not self.gripper_sense_data(global_s, arm) > 0.0:
 			resp = self.choose_policy_srv(policy_code)(srv).result.data
@@ -377,7 +346,6 @@ class policies_manager():
 
 		return False
 		
-
 	def choose_policy (self, arg):
 		options = {
 			'grasp_object':self.policy_grasp_object,
@@ -388,12 +356,10 @@ class policies_manager():
 			'put_object_in_robot':self.policy_put_object_in,
 			'throw':self.policy_throw,
 			'ask_nicely':self.policy_ask_nicely,
-			'flexsim':self.policy_flexsim,
-			'robobo':self.policy_robobo,
+			'joystick':self.policy_joystick,
 		}
 		return options[arg]		
 
-	#TODO: Improve the height management
 	def execute_policy(self, policy_code):
 		global_s = self.bax_get_sense_clnt(Bool(True))
 		arm = self.choose_arm(global_s.obj_sens.angle.data, self.gripper_sense_data(global_s,"left") > 0.0, self.gripper_sense_data(global_s,"right") > 0.0 )
@@ -407,7 +373,7 @@ class policies_manager():
 		#Execute policy
 		resp = self.choose_policy(policy_code)(policy_code, global_s, arm, srv)
 
-		#Publish de next sensorization
+		#Publish the next sensorization
 		rospy.loginfo("Publishing sensorization")
 		self.bax_get_complete_sense_clnt(Bool(True), Float64(self.choose_x_dimension('exp_box')), Float64(self.choose_x_dimension(self.global_exp.obj_type)))
 

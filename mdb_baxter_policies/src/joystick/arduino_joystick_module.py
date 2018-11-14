@@ -31,7 +31,7 @@ class arduino_joystick_module():
 
 	def translate_input (self, data):
 		button, coor = data.split('=')
-		x, y = coor.split(':')		
+		x, y = coor.split(':')
 		return int(button), int(x), int(y)
 
 	def pair_device_as_serial (self, port, baudrate):

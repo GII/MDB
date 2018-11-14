@@ -20,8 +20,7 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, cv2, re, math, vlc
-import numpy as np
+import rospy 
 from std_msgs.msg import String
 from mdb_common.srv import ExecPolicy, ExecPolicyRequest
 

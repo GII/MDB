@@ -1,4 +1,0 @@
-std_msgs/Int32 point_number
-std_msgs/String arm
----
-std_msgs/Bool result

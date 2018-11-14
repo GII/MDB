@@ -16,7 +16,6 @@
 
   <node name="get_joints_state_server" pkg="mdb_baxter_policies"  type="get_joints_state.py" required="true" output="log"/>
   <node name="get_end_state_server" pkg="mdb_baxter_policies"  type="get_end_state.py" required="true" output="log"/>
-  <node name="get_gripper_state_server" pkg="mdb_baxter_policies" type="get_gripper_state.py" required="true" output="log"/>
   <node name="get_head_state" pkg="mdb_baxter_policies" type="get_head_state.py" required="true" output="log"/>
 
   <node name="exp_scene_server" pkg="mdb_baxter_policies" type="exp_scene.py" required="true" output="screen"/>

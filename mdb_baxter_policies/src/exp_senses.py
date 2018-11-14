@@ -20,13 +20,14 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, math
+import rospy
+import math
 import numpy as np
-from std_msgs.msg import Float64, Bool, String
+from std_msgs.msg import Float64, Bool
 from mdb_common.msg import SensData
 from mdb_common.srv import GetSenseMotiv
 from mdb_baxter_policies.srv import GetSense, GetSenseFM
-from geometry_msgs.msg import PointStamped, PoseStamped
+from geometry_msgs.msg import PoseStamped
 
 class exp_senses():
 	def __init__(self, global_policies):
@@ -42,8 +43,6 @@ class exp_senses():
 		self.rgrip_ori = 0.0
 		self.rob_grip = 0.0
 
-		self.sobj_sense_sb = rospy.Subscriber("/mdb_baxter/small_obj", SensData, self.obj_sense_cb)
-		self.bobj_sense_sb = rospy.Subscriber("/mdb_baxter/big_obj", SensData, self.obj_sense_cb)
 		self.bobj_sense_sb = rospy.Subscriber("/mdb_baxter/ball", SensData, self.obj_sense_cb)
 		self.box_sense_sb = rospy.Subscriber("/mdb_baxter/box", SensData, self.box_sense_cb)
 		self.rob_sense_sb = rospy.Subscriber("/mdb_baxter/robobo", SensData, self.rob_sense_cb)
@@ -65,8 +64,6 @@ class exp_senses():
 
 		self.lgrip_sense = Float64(0.0)
 		self.rgrip_sense = Float64(0.0)
-		#self.lgrip_sense_pb = rospy.Publisher("/baxter_exp/left_gripper", Float64, queue_size = 1)
-		#self.rgrip_sense_pb = rospy.Publisher("/baxter_exp/left_gripper", Float64, queue_size = 1)
 
 		self.lgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_left_hand", Bool, queue_size = 1)
 		self.rgrip_sense_pb = rospy.Publisher("/mdb/baxter/sensor/ball_in_right_hand", Bool, queue_size = 1)
@@ -194,7 +191,6 @@ class exp_senses():
 		
 	def publish_current_senses (self, box_rad, obj_rad):
 		#rospy.loginfo("Publishing sensorization")
-		#print "\nSENSE: \nobj > ", self.obj_sense,"\nbox > ", self.box_sense, " \ngrippers > ", self.lgrip_sense, self.rgrip_sense 	
 
 		self.obj_dist_pb.publish(Float64(self.obj_sense.dist.data))
 		self.obj_ang_pb.publish(Float64(self.obj_sense.angle.data))

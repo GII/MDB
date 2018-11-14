@@ -21,8 +21,8 @@
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
 import rospy, math
-from com_mytechia_robobo_ros_msgs.srv import Command
-from com_mytechia_robobo_ros_msgs.msg import KeyValue, Status
+from std_msgs.msg import Int8, Int16, Int32 
+from robobo_msgs.srv import MoveWheels, SetSensorFrequency
 from geometry_msgs.msg import Vector3
 
 class robobo_joystick_control():
@@ -31,13 +31,14 @@ class robobo_joystick_control():
 		self.neutral_x = 507.0
 		self.neutral_y = 499.0
 		self.max_velocity = rospy.get_param("~joystick_velocity")
-		self.loop_rate = rospy.get_param("~joystick_rate")
+		self.loop_rate = rospy.Rate(rospy.get_param("~joystick_rate"))
 
 		self.max_module = math.sqrt((self.neutral_x**2)+(self.neutral_y**2))		
 		self.joystick_data = None
 
 		try:
-			self.robobo_command = rospy.ServiceProxy('/command', Command)
+			self.robobo_mW_proxy = rospy.ServiceProxy('/robot/moveWheels', MoveWheels)
+			self.robobo_sSF_proxy = rospy.ServiceProxy('/robot/setSensorFrequency', SetSensorFrequency)
 		except rospy.ServiceException, e:
 			print "Service exception", str(e)
 			exit(1)
@@ -68,24 +69,19 @@ class robobo_joystick_control():
 
 		return left_speed, right_speed
 
-	def execute_command(self, name, parameters, values, command_id):
-		self.robobo_command.wait_for_service()
-		command_name = name
-		command_parameters = []
-		for it in range(0, len(parameters)):
-			command_parameters.append(KeyValue(parameters[it], values[it]))
-		self.robobo_command(command_name, command_id, command_parameters)
-
 	def joystick_rob_move(self, x, y, time):
 		(l_wheel, r_wheel) = self.adquire_wheels_speed(x, y)
-		self.execute_command('MOVE-BLOCKING', ['lspeed', 'rspeed', 'time', 'blockid'], [str(int(l_wheel)), str(int(r_wheel)), str(time), '0'], 0)
-
+		self.robobo_mW_proxy.wait_for_service()
+		self.robobo_mW_proxy(Int8(l_wheel),Int8(r_wheel),Int32(time),Int16(0))
+		
 	def control_robobo(self):
+		self.robobo_sSF_proxy.wait_for_service()
+		self.robobo_sSF_proxy(Int8(3))
 		while not rospy.is_shutdown():
 			if self.joystick_data:
 				rospy.loginfo("command: "+str(self.joystick_data.x)+" "+str(self.joystick_data.y)+" "+str(self.joystick_data.z))
 				(nx, ny) = self.normalize_joystick_values(self.joystick_data.x, self.joystick_data.y)
-				self.joystick_rob_move(ny, nx, 1.5)
+				self.joystick_rob_move(ny, nx, (1.5*1000.0/rospy.get_param("~joystick_rate")))
 			self.loop_rate.sleep()
 			
 if __name__ == '__main__':

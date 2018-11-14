@@ -20,16 +20,17 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, math, vlc, rospkg
+import rospy
+import vlc
+import rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from mdb_baxter_policies.srv import BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, ManagePlanScene
 from mdb_baxter_policies.srv import BaxRestoreArmPoseRequest, BaxChangeFaceRequest, BaxCheckReachRequest, ManagePlanSceneRequest
-from std_msgs.msg import Bool, Float64, String, Int16
+from std_msgs.msg import Bool, Float64, String
 from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment, BaxChangeRequest
 from mdb_baxter_experiments.srv import SimMng, SimMngRequest
 from mdb_common.msg import SensData, ControlMsg
-
 from policies_manager import *
 
 class exp_core():
@@ -38,13 +39,9 @@ class exp_core():
 
 		self.rospack = rospkg.RosPack()
 		self.afile = vlc.MediaPlayer(self.rospack.get_path('mdb_baxter_experiments')+"/audio/TaDa.mp3");
-		self.afile_r = vlc.MediaPlayer(self.rospack.get_path('mdb_baxter_experiments')+"/audio/inceptionhorn.mp3");
 
 		self.mode = rospy.get_param("~mode")
 		self.exp_type = rospy.get_param("~exp_type")
-		self.config_time = rospy.get_param("~config_time")
-
-		self.exp_iteration=1
 
 		self.head_state = None
 		self.world = None
@@ -55,34 +52,36 @@ class exp_core():
 
 		self.policies_manager = policies_manager(self)
 
+		# Service Proxies
 		self.bax_restore_arm_pose_clnt = rospy.ServiceProxy('/baxter/restore', BaxRestoreArmPose)
 		self.bax_change_face_clnt = rospy.ServiceProxy('/baxter/change_face', BaxChangeFace)
-		self.bax_operation_pose_clnt = rospy.ServiceProxy('/baxter/operation_pose', BaxChange)
 		self.bax_open_arms_pose_clnt = rospy.ServiceProxy('/baxter/open_arms_pose', BaxChange)
 		self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', ManagePlanScene)
 		self.bax_reset_grippers_clnt = rospy.ServiceProxy('/baxter/reset_gippers', BaxChange)
+		self.bax_check_close_reach_clnt = rospy.ServiceProxy('/baxter/check_close_reach', BaxCheckReach)
 		self.load_srv = rospy.ServiceProxy('/sim/create_obj', SimMng)
 		self.modify_srv = rospy.ServiceProxy('/sim/modify_obj', SimMng)
 		self.delete_srv = rospy.ServiceProxy('/sim/delete_obj', SimMng)
-		self.bax_check_close_reach_clnt = rospy.ServiceProxy('/baxter/check_close_reach', BaxCheckReach)
 
+		# Service Servers
 		if self.mode == 'real':
 			self.new_exp_srver = rospy.Service("/mdb/baxter/new_experiment", NewExperiment, self.handle_new_exp_real)
 			self.ref_world_srver = rospy.Service("/mdb/baxter/refresh_world", RefreshWorld, self.handle_ref_world_real)
 		else:
 			self.new_exp_srver = rospy.Service("/mdb/baxter/new_experiment", NewExperiment, self.handle_new_exp)
 			self.ref_world_srver = rospy.Service("/mdb/baxter/refresh_world", RefreshWorld, self.handle_ref_world)
-
 		self.exec_pol_srver = rospy.Service("/mdb/baxter/exec_policy", ExecPolicy, self.handle_exec_pol)
 
-		self.scene_clnt(String('head_collision'),String('add'),Float64(0.0), Float64(0.0), Float64(0.0))
-		self.scene_clnt(String('table'),String('remove'),Float64(0.0), Float64(0.0), Float64(0.0))
-
+		# Publishers
 		self.pan_pub = rospy.Publisher("/robot/head/command_head_pan", HeadPanCommand, queue_size = 1)
 
+		# Subscribers
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
 		self.control_sub = rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.control_cb)
 		self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
+
+		self.scene_clnt(String('head_collision'),String('add'),Float64(0.0), Float64(0.0), Float64(0.0))
+		self.scene_clnt(String('table'),String('remove'),Float64(0.0), Float64(0.0), Float64(0.0))
 	
 	def control_cb (self, control_msg):
 		self.world = control_msg.world
@@ -124,14 +123,14 @@ class exp_core():
 		else:
 			return "exp_big_obj"
 
-	def check_items_conflict (self, obj, box_x, box_y, ball_x, ball_y):
+	def check_items_conflict (self, obj, box_x, box_y, ball_x, ball_y): #S#
 		print "check_items_conflict: ", box_x, box_y, ball_x, ball_y
 		if box_x+(self.policies_manager.choose_x_dimension("exp_box")*100) < ball_x-(self.policies_manager.choose_x_dimension(obj)*100) or box_x-(self.policies_manager.choose_x_dimension("exp_box")*100) > ball_x+(self.policies_manager.choose_x_dimension(obj)*100) or box_y+(self.policies_manager.choose_y_dimension("exp_box")*100) < ball_y-(self.policies_manager.choose_y_dimension(obj)*100) or box_y-(self.policies_manager.choose_y_dimension("exp_box")*100) > ball_y+(self.policies_manager.choose_y_dimension(obj)*100):
 			return True
 		else:
 			return False
 		
-	def randomize_positions(self, obj):
+	def randomize_positions(self, obj): #S#
 		table_dim_x_min = 0.22
 		table_dim_x_max = 0.22 + 1.22
 		table_dim_y_min = 0.0		
@@ -181,17 +180,13 @@ class exp_core():
 	def refresh_real(self):
 		if rospy.has_param("/baxter_sense"): rospy.delete_param("/baxter_sense")
 		if rospy.has_param("/check_reward"): rospy.delete_param("/check_reward")
-		#self.pan_to('front', 0.1)
 		self.bax_reset_grippers_clnt(Bool(True), Bool(True))
 		self.obj_type = self.randomize_obj()
 		self.choose_world_image()
-		#rospy.sleep(self.config_time)
 		raw_input("Press Key after configuring the experiment")
 		print "Starting experiment"
 		self.bax_restore_arm_pose_clnt(String('both'))
 		self.adopt_expression("normal") 
-		#self.adopt_operation_pose()
-		#self.pan_to('front', 0.1)
 		self.complete_pan_static()
 
 	def handle_new_exp_real(self, req):
@@ -204,7 +199,7 @@ class exp_core():
 			rospy.loginfo("Sense service call failed: {0}".format(e))
 			return Bool(False)
 				
-	def handle_new_exp(self, req):
+	def handle_new_exp(self, req): #S#
 		self.world = req.world.data
 		self.obj_type =  self.randomize_obj()
 		self.randomize_positions(self.obj_type)
@@ -220,7 +215,7 @@ class exp_core():
 			rospy.loginfo("Delete Model service call failed: {0}".format(e))
 			return Bool(False)
 
-	def refresh_world (self):
+	def refresh_world (self): #S#
 		try:
 			self.delete_srv(SimMngRequest(model_name=String(self.obj_type)))
 			self.delete_srv(SimMngRequest(model_name=String('exp_box')))
@@ -240,7 +235,7 @@ class exp_core():
 			rospy.loginfo("Delete Model service call failed: {0}".format(e))	
 			return False
 
-	def handle_ref_world(self, req):
+	def handle_ref_world(self, req): #S#
 		self.world = req.world.data
 		if self.refresh_world():
 			self.policies_manager.bax_get_complete_sense_clnt(Bool(True), Float64(self.policies_manager.choose_x_dimension('exp_box')), Float64(self.policies_manager.choose_x_dimension(self.obj_type)))
@@ -254,9 +249,6 @@ class exp_core():
 		if req.reward.data == True:
 			self.reward_sound()
 		else:
-			self.afile_r.play()
-			rospy.sleep(3)
-			self.afile_r.stop()
 			self.bax_restore_arm_pose_clnt(String('both'))
 			self.bax_reset_grippers_clnt(Bool(True), Bool(True))
 		self.refresh_real()
@@ -274,33 +266,10 @@ class exp_core():
 	def head_state_cb(self, state):
 		self.head_state = state
 
-	def complete_pan_move_head (self):
-		self.adopt_open_pose()
-		rospy.set_param("/baxter_sense", True)
-		self.adopt_expression("normal")
-		self.pan_to('front', 0.1) 
-		self.adopt_expression("horizon")
-		self.pan_to('left', 0.07) 
-		self.adopt_expression("normal")
-		rospy.sleep(1)
-		self.adopt_expression("horizon2")
-		self.pan_to('right', 0.07)
-		self.adopt_expression("normal")
-		rospy.sleep(1)
-		self.adopt_expression("horizon")
-		self.pan_to('front', 0.07)
-		self.adopt_expression("normal")
-		rospy.sleep(1)
-		rospy.delete_param("/baxter_sense")
-		rospy.sleep(3)
-		#self.adopt_operation_pose()
-		self.bax_restore_arm_pose_clnt(String('both'))
-
 	def complete_pan_static (self):
 		self.adopt_open_pose()
 		rospy.set_param("/baxter_sense", True)
 		self.adopt_expression("normal")
-		#self.pan_to('front', 0.1) 
 		self.adopt_expression("horizon")
 		rospy.sleep(1)
 		self.adopt_expression("horizon2")
@@ -313,13 +282,7 @@ class exp_core():
 		self.adopt_expression("horizon")
 		rospy.sleep(3)
 		self.adopt_expression("normal")
-		#self.adopt_operation_pose()
 		self.bax_restore_arm_pose_clnt(String('both'))
-
-	def adopt_operation_pose (self):
-		req = BaxChangeRequest()
-		req.request.data = True
-		self.bax_operation_pose_clnt(req)
 
 	def adopt_open_pose(self):
 		req = BaxChangeRequest()
@@ -341,12 +304,6 @@ class exp_core():
 		
 	def pan_to (self, pos, speed):			
 		self.pan_pub.publish(HeadPanCommand(self.pan_selection(pos), speed, 0.0))
-		rospy.sleep(0.5)
-		while self.head_state.isTurning:
-			pass	
-
-	def pan_to_pos (self, pos, speed):
-		self.pan_pub.publish(HeadPanCommand(pos, speed, 0.0))
 		rospy.sleep(0.5)
 		while self.head_state.isTurning:
 			pass	

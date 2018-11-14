@@ -9,8 +9,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   sensor_msgs
+  geometry_msgs
   baxter_core_msgs
   mdb_common
+  moveit_msgs
+  shape_msgs
+  gazebo_msgs
   message_generation
 )
 
@@ -70,11 +74,9 @@ find_package(catkin REQUIRED COMPONENTS
    BaxPush.srv
    BaxRestoreArmPose.srv	
    BaxThrow.srv
-   Calibration.srv
    CheckActionValidity.srv
    GetEndState.srv
    GetGripperState.srv
-   GetHandImg.srv
    GetHeadState.srv
    GetJointsState.srv
    GetSense.srv
@@ -132,7 +134,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_baxter
-  CATKIN_DEPENDS roscpp rospy std_msgs mdb_common sensor_msgs baxter_core_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs mdb_common sensor_msgs geometry_msgs baxter_core_msgs moveit_msgs shape_msgs gazebo_msgs message_runtime
 #  DEPENDS system_lib
 )
 

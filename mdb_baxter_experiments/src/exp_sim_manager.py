@@ -20,14 +20,14 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, rospkg
+import rospy
+import rospkg
 import numpy as np
 from gazebo_msgs.srv import SpawnModel, DeleteModel, SetModelState
 from gazebo_msgs.msg import ModelState
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
+from geometry_msgs.msg import Pose, Point
 from mdb_baxter_experiments.srv import SimMng
 from std_msgs.msg import Bool
-
 
 class exp_sim_manager():
 	def __init__(self):
@@ -70,7 +70,7 @@ class exp_sim_manager():
 	def translate_pos (self, angle, dist, xd, yd):
 		dx = dist*np.cos(angle)
 		dy = dist*np.sin(angle)
-		return dx-xd, dy-yd #dx-radius, dy+1.221-radius
+		return dx-xd, dy-yd
 
 	def handle_load(self, req):
 		if req.model_name.data == "exp_table":

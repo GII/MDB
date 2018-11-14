@@ -20,7 +20,7 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, sys
+import rospy
 from std_msgs.msg import Header, Bool
 from moveit_msgs.msg import PlanningScene, AttachedCollisionObject
 from geometry_msgs.msg import Pose

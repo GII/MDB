@@ -20,9 +20,12 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy, math, rospkg, yaml
+import rospy
+import math
+import rospkg
+import yaml
 import numpy as np
-from std_msgs.msg import Bool, Int32, Float64
+from std_msgs.msg import Bool, Int32
 from com_mytechia_robobo_ros_msgs.srv import Command
 from com_mytechia_robobo_ros_msgs.msg import KeyValue
 from mdb_common.srv import BaxChange, BaxMC
