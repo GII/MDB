@@ -54,7 +54,7 @@ class robobo_joystick_control():
 	def is_neutral (self, x, y):
 		result = False
 		if (-50<x<50) and (-50<y<50):
-    			result  = True
+    		result  = True
 		return result	
 
 	def adquire_wheels_speed (self, x, y, turn_coef=3):

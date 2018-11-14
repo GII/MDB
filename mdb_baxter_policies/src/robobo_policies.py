@@ -25,10 +25,9 @@ import math
 import rospkg
 import yaml
 import numpy as np
-from std_msgs.msg import Bool, Int32
-from com_mytechia_robobo_ros_msgs.srv import Command
-from com_mytechia_robobo_ros_msgs.msg import KeyValue
+from std_msgs.msg import Bool, Int32, Int16, Int8
 from mdb_common.srv import BaxChange, BaxMC
+from robobo_msgs.srv import MoveWheels, SetSensorFrequency
 
 class robobo_policies():
 	def __init__(self, global_policies):
@@ -51,7 +50,8 @@ class robobo_policies():
 		self.robobo_mv_b_srver = rospy.Service('/robobo_move_backwards', BaxChange, self.handle_rob_move_backwards)
 
 		try:
-			self.robobo_command = rospy.ServiceProxy('/command', Command)
+			self.robobo_mW_proxy = rospy.ServiceProxy('/robot/moveWheels', MoveWheels)
+			self.robobo_sSF_proxy = rospy.ServiceProxy('/robot/setSensorFrequency', SetSensorFrequency)
 		except rospy.ServiceException, e:
 			print "Service exception", str(e)
 			exit(1)
@@ -87,8 +87,7 @@ class robobo_policies():
 		new_angle = self.global_policies.exp_senses.rob_ori.data + math.radians(robobo_angle)
 		rob_dx, rob_dy = self.global_policies.translate_pos(self.global_policies.exp_senses.rob_sense.angle.data, self.global_policies.exp_senses.rob_sense.dist.data)
 
-		inc_x = distance*np.cos(new_angle)
-		inc_y = distance*np.sin(new_angle)
+		(inc_x, inc_y) = self.global_policies.polar_to_cartesian(new_angle, distance)
 
 		boxdx, boxdy = self.global_policies.translate_pos(self.global_policies.exp_senses.box_sense.angle.data, self.global_policies.exp_senses.box_sense.dist.data)
 		rob_box_dist = self.global_policies.obtain_dist(boxdx-(rob_dx+inc_x), boxdy-(rob_dy+inc_y))
@@ -98,14 +97,18 @@ class robobo_policies():
 		else:
 			return False
 
+	def maximize_robobo_performance(self):
+		self.robobo_sSF_proxy.wait_for_service()
+		self.robobo_sSF_proxy(Int8(3))
+
 	def rotate_robobo(self, time, lspeed):
-		self.robobo_command.wait_for_service()
-		self.execute_command('MOVE', ['lspeed', 'rspeed', 'time'], [str(lspeed), str(-lspeed), str(time)], 0)
+		self.robobo_mW_proxy.wait_for_service()
+		self.robobo_mW_proxy(Int8(lspeed),Int8(-lspeed),Int32(time*1000),Int16(0))
 		rospy.sleep(time)
 
 	def	rob_move_straight(self, time, way):
-		self.robobo_command.wait_for_service()
-		self.execute_command('MOVE', ['lspeed', 'rspeed', 'time'], [str(25*way), str(25*way), str(time)], 0) 
+		self.robobo_mW_proxy.wait_for_service()
+		self.robobo_mW_proxy(Int8(25*way),Int8(25*way),Int32(time*1000),Int16(0))
 		rospy.sleep(time)
 
 	def handle_rob_move_backwards (self, srv):
@@ -176,15 +179,6 @@ class robobo_policies():
 		rospy.sleep(2)
 		return Bool(True)
 
-	def execute_command(self, name, parameters, values, command_id):
-		self.robobo_command.wait_for_service()
-		command_name = name
-		command_parameters = []
-		for it in range(0, len(parameters)):
-			command_parameters.append(KeyValue(parameters[it], values[it]))
-		print command_name, command_id, command_parameters
-		self.robobo_command(command_name, command_id, command_parameters)	
-
 	def adquire_wheels_speed (self, x, y, turn_coef=3):
 		max_velocity = 40
 		#y = -y #it is required because the y is positive to the left in the joystick and the equation considers it to the right
@@ -202,5 +196,6 @@ class robobo_policies():
 
 	def joystick_rob_move(self, x, y, time):
 		(l_wheel, r_wheel) = self.adquire_wheels_speed(x, y)
-		self.execute_command('MOVE-BLOCKING', ['lspeed', 'rspeed', 'time', 'blockid'], [str(int(l_wheel)), str(int(r_wheel)), str(time), '0'], 0)
+		self.robobo_mW_proxy.wait_for_service()
+		self.robobo_mW_proxy(Int8(l_wheel),Int8(r_wheel),Int32(time*1000),Int16(0))
 		

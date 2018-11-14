@@ -30,7 +30,7 @@ from baxter_arm import *
 from baxter_display import *
 from exp_senses import *
 from calibration_policies import calibration_policies
-#from robobo_policies import robobo_policies
+from robobo_policies import *
 from dynamic_reconfigure import client
 from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
@@ -68,6 +68,7 @@ class baxter_policies():
 		self.mode = rospy.get_param("~mode")
 		self.exp_rec = rospy.get_param("~exp_rec")
 		self.super_throw = rospy.get_param("~super_throw")
+		self.use_robobo = rospy.get_param("~use_robobo")
 
 		# Baxter low_level movements
 		self.baxter_arm = baxter_arm()
@@ -82,8 +83,8 @@ class baxter_policies():
 		self.exp_calibration = calibration_policies(self)
 
 		# Robobo control
-		if self.exp_rec!="ltm": self.robobo_policies = robobo_policies(self)
-		#self.robobo_policies = robobo_policies(self)
+		if self.use_robobo: 
+			self.robobo_policies = robobo_policies(self)
 
 		# Obtain the initial arms position and configuration
 		self.baxter_arm.update_init_data()

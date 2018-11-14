@@ -4,6 +4,7 @@
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
   <arg name="super_throw" default="false"/>
   <arg name="joystick" default="false"/>
+  <arg name="use_robobo" default="false"/>
 
   <arg name="cal_xmin" default="0.32"/>
   <arg name="cal_xmax" default="1.34"/>
@@ -37,6 +38,7 @@
     <param name="mode" type="str" value="$(arg mode)" />
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
 	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
+	<param name="use_robobo" type="bool" value="$(arg use_robobo)"/>
 
 	<param name="cal_xmin" type="double" value="$(arg cal_xmin)"/>
 	<param name="cal_xmax" type="double" value="$(arg cal_xmax)"/>
@@ -51,7 +53,7 @@
   </node>
 
   <node name="arduino_joystick_module" pkg="mdb_baxter_policies" type="arduino_joystick_module.py" required="true" output="screen" if="$(arg joystick)"/>
-  <node name="robobo_joystick_control" pkg="mdb_baxter_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)"> 
+  <node name="robobo_joystick_control" pkg="mdb_baxter_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)"/>
 	<param name="joystick_rate" type="int" value="$(arg joystick_rate)"/>
 	<param name="joystick_velocity" type="int" value="$(arg joystick_velocity)"/>
   </node>
