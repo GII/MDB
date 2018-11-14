@@ -67,7 +67,6 @@ find_package(catkin REQUIRED COMPONENTS
    BaxChangeFace.srv
    BaxCheckReach.srv
    BaxDropBoth.srv
-   BaxFMCartesianMove.srv
    BaxGetCompleteSense.srv
    BaxGrab.srv
    BaxGrabBoth.srv

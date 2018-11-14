@@ -42,10 +42,14 @@ class exp_core():
 
 		self.mode = rospy.get_param("~mode")
 		self.exp_type = rospy.get_param("~exp_type")
+		self.exp_rec = rospy.get_param("~exp_rec")
+		self.exp_iteration=1
 
 		self.head_state = None
 		self.world = None
-		self.obj_type = None
+		self.obj_type = None			
+		if self.exp_rec == 'mot':
+			self.obj_type = "exp_small_obj"
 
 		self.ball_pos = None
 		self.box_pos = None
@@ -180,6 +184,7 @@ class exp_core():
 	def refresh_real(self):
 		if rospy.has_param("/baxter_sense"): rospy.delete_param("/baxter_sense")
 		if rospy.has_param("/check_reward"): rospy.delete_param("/check_reward")
+		if self.exp_rec == 'mot' and rospy.has_param("/box_sense"): rospy.delete_param("/box_sense")
 		self.bax_reset_grippers_clnt(Bool(True), Bool(True))
 		self.obj_type = self.randomize_obj()
 		self.choose_world_image()
@@ -188,6 +193,8 @@ class exp_core():
 		self.bax_restore_arm_pose_clnt(String('both'))
 		self.adopt_expression("normal") 
 		self.complete_pan_static()
+		if self.exp_rec == 'mot'
+			self.adopt_open_left_pose()
 
 	def handle_new_exp_real(self, req):
 		self.world = req.world.data

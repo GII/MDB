@@ -36,7 +36,7 @@ from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from mdb_common.msg import OpenGripReq, Candidates
 from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
-from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, BaxFMCartesianMove, ManagePlanScene, JoystickControl
+from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, ManagePlanScene, JoystickControl
 from gazebo_msgs.srv import GetModelState
 
 class baxter_policies():
@@ -115,7 +115,6 @@ class baxter_policies():
 
 		# Motivation
 		self.bax_drop_srver = rospy.Service('/baxter/policy/drop', BaxGrab, self.handle_baxter_drop)
-		self.bax_fm_cart_mov_srver = rospy.Service('/baxter/fm_cart_mov', BaxFMCartesianMove, self.handle_baxter_cartesian_fm_mov)
 		self.bax_cart_mov_srver = rospy.Service('/baxter/cart_mov', BaxMC, self.handle_baxter_cartesian_mov)
 		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
 		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
@@ -1126,15 +1125,6 @@ class baxter_policies():
 
 			return Bool(result)
 		return Bool(True)
-
-	def handle_baxter_cartesian_fm_mov (self, srv):
-		self.baxter_arm.update_data()
-		dx, dy = self.polar_to_cartesian(srv.angle.data, srv.dist.data)
-		pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
-		if self.baxter_arm.move_xyz(pos.x+dx, pos.y+dy, 0.1, False, "init", srv.arm.data, 1.0, 1.0):
-			self.baxter_arm.update_data()
-			return Bool(True)
-		return Bool(False)
 
 	##################################
 	###		    CANDIDATES         ###

@@ -1,5 +1,0 @@
-std_msgs/Float64 angle
-std_msgs/Float64 dist
-std_msgs/String arm
----
-std_msgs/Bool result 

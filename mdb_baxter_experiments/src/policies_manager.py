@@ -45,6 +45,8 @@ class policies_manager():
 		self.bax_drop_both_clnt = rospy.ServiceProxy('/baxter/policy/drop_both', BaxDropBoth) 
 		self.bax_ask_help_clnt = rospy.ServiceProxy('/baxter/policy/ask_for_help', BaxChange) 
 		self.bax_joy_control_clnt = rospy.ServiceProxy('/baxter/policy/joystick', JoystickControl)
+		self.bax_drop_clnt = rospy.ServiceProxy('/baxter/policy/drop', BaxGrab)
+
 		self.bax_get_sense_clnt = rospy.ServiceProxy('/baxter/get_sense', GetSense)
 		self.bax_get_complete_sense_clnt = rospy.ServiceProxy('/baxter/get_complete_sense', BaxGetCompleteSense)
 		self.bax_check_far_reach_clnt = rospy.ServiceProxy('/baxter/check_far_reach', BaxCheckReach)
@@ -99,7 +101,9 @@ class policies_manager():
 			'put_object_in_robot':self.bax_grab_clnt,
 			'throw':self.bax_throw_clnt,
 			'ask_nicely':self.bax_ask_help_clnt,
-			'joystick':self.bax_joy_control_clnt,  
+			'joystick':self.bax_joy_control_clnt, 
+			'drop_object':self.bd_clnt, 
+ 
 		}
 		return options[arg]
 
@@ -114,6 +118,7 @@ class policies_manager():
 			'throw':BaxThrowRequest(),
 			'ask_nicely':BaxChangeRequest(),
 			'joystick':JoystickControlRequest(),
+			'drop_object':BaxGrabRequest(),
 		}
 		return options[arg]
 
@@ -255,14 +260,13 @@ class policies_manager():
 			else: #Destination = Robot (predefined)
 				srv.object_position.const_dist.data = 0.47+0.03
 				srv.object_position.angle.data = 0.0
-				srv.object_position.height.data = self.fixed_height+self.choose_sweep_height(self.global_exp.obj_type)
-				srv.orientation.data = "current"
-				srv.arm.data = arm
-				srv.scale.data = self.velocity
-				self.global_exp.adopt_expression("focus")
-				if not (self.gripper_sense_data(global_s, arm) < 1.0 or (not self.is_same_side(arm, global_s.box_sens.angle.data) and policy_code == 'put_object_in_box')):
-					resp = self.choose_policy_srv(policy_code)(srv).result.data
-
+			srv.object_position.height.data = self.fixed_height+self.choose_sweep_height(self.global_exp.obj_type)
+			srv.orientation.data = "current"
+			srv.arm.data = arm
+			srv.scale.data = self.velocity
+			self.global_exp.adopt_expression("focus")
+			if not (self.gripper_sense_data(global_s, arm) < 1.0 or (not self.is_same_side(arm, global_s.box_sens.angle.data) and policy_code == 'put_object_in_box')):
+				resp = self.choose_policy_srv(policy_code)(srv).result.data
 		elif (global_s.left_grip.data > 0.0 and global_s.right_grip.data > 0.0):
 			srv = BaxDropBothRequest()
 			if policy_code == 'put_object_in_box': #Destination = Box
@@ -271,14 +275,14 @@ class policies_manager():
 			else: #Destination = Robot (predefined)
 				srv.destination.const_dist.data = 0.47 + 0.08 
 				srv.destination.angle.data = 0.0
-				srv.destination.height.data = self.fixed_height+self.choose_sweep_height("exp_big_obj") 
-				srv.size.data = 0.15
-				self.global_exp.adopt_expression("focus")
-				resp = self.bax_drop_both_clnt(srv).result.data
+			srv.destination.height.data = self.fixed_height+self.choose_sweep_height("exp_big_obj") 
+			srv.size.data = 0.15
+			self.global_exp.adopt_expression("focus")
+			resp = self.bax_drop_both_clnt(srv).result.data
 		if self.global_exp.mode=="real" and resp == True:
-				rospy.set_param("/check_reward", True)
-				self.global_exp.complete_pan_static()
-				rospy.delete_param("/check_reward")
+			rospy.set_param("/check_reward", True)
+			self.global_exp.complete_pan_static()
+			rospy.delete_param("/check_reward")
 		return resp
 
 	def policy_throw (self, policy_code, global_s, arm, srv):
@@ -343,8 +347,24 @@ class policies_manager():
 		if not self.gripper_sense_data(global_s, arm) > 0.0:
 			resp = self.choose_policy_srv(policy_code)(srv).result.data
 			return resp
-
 		return False
+
+	def policy_drop_object (self, policy_code, global_s, arm, srv):
+		resp = False
+		srv.object_position.const_dist = global_s.box_sens.dist
+		srv.object_position.angle = global_s.box_sens.angle
+		srv.object_position.height.data = self.fixed_height+self.choose_sweep_height(self.obj_type)
+		srv.orientation.data = "current"
+		srv.arm.data = arm
+		srv.scale.data = self.velocity
+		self.adopt_expression("focus")
+		if self.gripper_sense_data(global_s, arm) >= 1.0:
+			resp = self.choose_policy(policy_code)(srv).result.data
+		if self.mode=="real" and resp == True:
+			rospy.set_param("/check_reward", True)
+			self.complete_pan()
+			rospy.delete_param("/check_reward")
+		return resp
 		
 	def choose_policy (self, arg):
 		options = {
@@ -357,6 +377,7 @@ class policies_manager():
 			'throw':self.policy_throw,
 			'ask_nicely':self.policy_ask_nicely,
 			'joystick':self.policy_joystick,
+			'drop_object':self.policy_drop_object, 
 		}
 		return options[arg]		
 

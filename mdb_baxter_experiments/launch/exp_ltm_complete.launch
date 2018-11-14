@@ -108,6 +108,7 @@
 	 <param name="config_time" type="int" value="$(arg config_time)" />
 	 <param name="fixed_height" type="double" value="$(arg fixed_height)" />
 	 <param name="super_throw" type="bool" value="$(arg super_throw)"/>
+     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
    </node>
 
    <node name="exp_helper" pkg="mdb_baxter_experiments" type="exp_helper.py" required="true" output="screen"/> 
