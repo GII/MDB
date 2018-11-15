@@ -16,7 +16,6 @@
    <arg name="cloud_topic" default="/camera/depth_registered/points"/>
    <arg name="ref_frame" default="/base" />
 
-   <arg name="mode" default="real"/> <!--sim/real-->
    <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
    <arg name="exp_type" default="regular"/>
    <arg name="config_time" default="20" />
@@ -85,7 +84,6 @@
    </node>
 
    <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
-     <param name="mode" type="str" value="$(arg mode)" />
      <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
 	 <param name="super_throw" type="bool" value="$(arg super_throw)"/>
 
@@ -103,7 +101,6 @@
    </node>
 
    <node name="exp_ltm" pkg="mdb_baxter_experiments" type="exp_core.py" required="true" output="screen">
-     <param name="mode" type="str" value="$(arg mode)" />
 	 <param name="exp_type" type="str" value="$(arg exp_type)" />
 	 <param name="config_time" type="int" value="$(arg config_time)" />
 	 <param name="fixed_height" type="double" value="$(arg fixed_height)" />

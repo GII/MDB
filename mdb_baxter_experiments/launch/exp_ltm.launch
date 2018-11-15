@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-   <arg name="mode" default="real"/> <!--sim/real-->
    <arg name="exp_type" default="small"/> <!--regular/big-->
    <arg name="config_time" default="20"/>
    <arg name="fixed_height" default="-0.04"/>
@@ -8,7 +7,6 @@
    <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
 
   <node name="exp_ltm" pkg="mdb_baxter_experiments" type="exp_core.py" required="true" output="screen">
-    <param name="mode" type="str" value="$(arg mode)" />
 	<param name="exp_type" type="str" value="$(arg exp_type)" />
 	<param name="config_time" type="int" value="$(arg config_time)" />
 	<param name="fixed_height" type="double" value="$(arg fixed_height)" />

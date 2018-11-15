@@ -76,7 +76,7 @@ find_package(catkin REQUIRED COMPONENTS
    geometry_msgs 
    mdb_baxter_policies
    mdb_common
-
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

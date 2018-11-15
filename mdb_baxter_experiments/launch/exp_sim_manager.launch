@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <node name="exp_sim_manager" pkg="mdb_baxter_experiments" type="exp_sim_manager.py" required="true" output="screen"/>
-</launch>
