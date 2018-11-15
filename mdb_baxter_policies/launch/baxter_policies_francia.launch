@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
 
   <arg name="cal_xmin" default="0.35"/>

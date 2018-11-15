@@ -61,9 +61,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   SimMng.srv
- )
-
+)
 ## Generate actions in the 'action' folder
 # add_action_files(
 #   FILES
@@ -76,8 +74,9 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    std_msgs
    geometry_msgs 
+   mdb_baxter_policies
    mdb_common
- )
+
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

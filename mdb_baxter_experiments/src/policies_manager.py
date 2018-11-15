@@ -34,7 +34,7 @@ class policies_manager():
 		self.fixed_height = rospy.get_param("~fixed_height")
 		self.super_throw = rospy.get_param("~super_throw")
 
-		self.velocity = self.select_policies_velocity()
+		self.velocity = 0.85 
 
 		# Service Proxies
 		self.bax_throw_clnt = rospy.ServiceProxy('/baxter/policy/throw', BaxThrow)  
@@ -53,12 +53,6 @@ class policies_manager():
 
 		# Publishers
 		self.super_throwing_pub = rospy.Publisher("/baxter_throwing/command", Int16, queue_size = 1)
-
-	def select_policies_velocity(self): #S#
-		if self.global_exp.mode == "sim":
-			return 0.5
-		else:
-			return 0.85
 
 	def select_sweep_angle(self, arg):
 		options = {
@@ -103,7 +97,6 @@ class policies_manager():
 			'ask_nicely':self.bax_ask_help_clnt,
 			'joystick':self.bax_joy_control_clnt, 
 			'drop_object':self.bd_clnt, 
- 
 		}
 		return options[arg]
 
@@ -243,9 +236,7 @@ class policies_manager():
 		self.global_exp.adopt_expression("focus")
 		if not arm == "both":
 			resp = self.choose_policy_srv(policy_code)(srv).result.data
-		if self.global_exp.mode == "sim" and resp:
-			self.global_exp.modify_srv(SimMngRequest(model_name=String(self.global_exp.obj_type), sense=SensData(dist=srv.dest_sens.const_dist, angle=srv.dest_sens.angle, height=Float64(0.0))))
-		if self.global_exp.mode=="real" and resp:
+		if resp:
 			rospy.set_param("/check_reward", True)
 			self.global_exp.complete_pan_static()
 			rospy.delete_param("/check_reward")
@@ -279,7 +270,7 @@ class policies_manager():
 			srv.size.data = 0.15
 			self.global_exp.adopt_expression("focus")
 			resp = self.bax_drop_both_clnt(srv).result.data
-		if self.global_exp.mode=="real" and resp == True:
+		if resp == True:
 			rospy.set_param("/check_reward", True)
 			self.global_exp.complete_pan_static()
 			rospy.delete_param("/check_reward")
@@ -299,39 +290,26 @@ class policies_manager():
 			self.global_exp.complete_pan_static()
 			rospy.delete_param("/check_reward")
 		elif self.global_exp.obj_type == "exp_small_obj" and self.global_exp.world == "gripper_and_low_friction":
-			if self.global_exp.mode == 'sim' and global_s.obj_sens.height.data > 0.0:
-				if not self.bax_check_far_reach_clnt(BaxCheckReachRequest(global_s.box_sens.dist, global_s.box_sens.angle, String(self.global_exp.obj_type))).response.data and self.is_same_side(arm, global_s.box_sens.angle.data):
-					self.global_exp.modify_srv(SimMngRequest(model_name=String(self.global_exp.obj_type), sense=SensData(dist=global_s.box_sens.dist, angle=global_s.box_sens.angle, height=Float64(0.005))))
-				else:
-					self.global_exp.modify_srv(SimMngRequest(model_name=String(self.global_exp.obj_type), sense=SensData(dist=Float64(global_s.box_sens.dist.data+0.35), angle=Float64(self.choose_throw_angle(arm, global_s.box_sens.angle.data)), height=Float64(0.0))))
-					rospy.sleep(1)
-					self.global_exp.bax_reset_grippers_clnt(Bool(True), Bool(True))
-					return True
-			else:
-				srv.sensorization.const_dist.data = self.choose_throw_distance(arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data)
-				srv.sensorization.angle.data = self.choose_throw_angle(arm, global_s.box_sens.angle.data)
-				srv.arm.data = arm
-				self.global_exp.adopt_expression("focus")
-				resp = self.choose_policy_srv(policy_code)(srv).result.data
-				if resp == True:
-					rospy.set_param("/check_reward", True)
-					self.global_exp.complete_pan_static()
-					rospy.delete_param("/check_reward")
+			srv.sensorization.const_dist.data = self.choose_throw_distance(arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data)
+			srv.sensorization.angle.data = self.choose_throw_angle(arm, global_s.box_sens.angle.data)
+			srv.arm.data = arm
+			self.global_exp.adopt_expression("focus")
+			resp = self.choose_policy_srv(policy_code)(srv).result.data
+			if resp == True:
+				rospy.set_param("/check_reward", True)
+				self.global_exp.complete_pan_static()
+				rospy.delete_param("/check_reward")
 		return resp
 
 	def policy_ask_nicely (self, policy_code, global_s, arm, srv):
 		resp = False
 		self.global_exp.pan_to('front', 0.1) 
 		if not ((self.gripper_sense_data(global_s,"left") > 0.0 or self.gripper_sense_data(global_s,"right") > 0.0)):
-			if self.global_exp.mode=="sim":				
-				self.global_exp.modify_srv(SimMngRequest(model_name=String(self.obj_type), sense=SensData(dist=Float64(global_s.obj_sens.dist.data-0.1), angle=global_s.obj_sens.angle, height=Float64(0.0))))
-			if self.global_exp.mode=="real":
-				srv.request.data = True
-				self.choose_policy_srv(policy_code)(srv)
-				rospy.sleep(1)
+			srv.request.data = True
+			self.choose_policy_srv(policy_code)(srv)
+			rospy.sleep(1)
 			self.global_exp.adopt_expression("normal")	
-			if self.global_exp.mode=="real":
-				self.global_exp.complete_pan_static()
+			self.global_exp.complete_pan_static()
 			resp = True
 		return resp
 
@@ -360,7 +338,7 @@ class policies_manager():
 		self.adopt_expression("focus")
 		if self.gripper_sense_data(global_s, arm) >= 1.0:
 			resp = self.choose_policy(policy_code)(srv).result.data
-		if self.mode=="real" and resp == True:
+		if resp == True:
 			rospy.set_param("/check_reward", True)
 			self.complete_pan()
 			rospy.delete_param("/check_reward")

@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="mode" default="real"/> <!--sim/real-->
   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
   <arg name="super_throw" default="false"/>
   <arg name="joystick" default="false"/>
@@ -35,7 +34,6 @@
   </node>
 
    <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
-    <param name="mode" type="str" value="$(arg mode)" />
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
 	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
 	<param name="use_robobo" type="bool" value="$(arg use_robobo)"/>
