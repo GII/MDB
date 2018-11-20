@@ -20,7 +20,7 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import ropsy
+import rospy
 import tf
 import rospkg
 import yaml
@@ -65,7 +65,6 @@ class baxter_policies():
 		self.g_low_fat_d_l = []
 		self.g_high_fat_d_l = []
 
-		self.mode = rospy.get_param("~mode")
 		self.exp_rec = rospy.get_param("~exp_rec")
 		self.super_throw = rospy.get_param("~super_throw")
 		self.use_robobo = rospy.get_param("~use_robobo")
@@ -105,6 +104,9 @@ class baxter_policies():
 		self.bax_drop_both_srver = rospy.Service('/baxter/policy/drop_both', BaxDropBoth, self.handle_baxter_drop_both) 
 		self.bax_ask_srver = rospy.Service('/baxter/policy/ask_for_help', BaxChange, self.handle_baxter_ask_help)
 		self.bax_joystick_control_srver = rospy.Service('/baxter/policy/joystick', JoystickControl, self.handle_joystick_control)
+		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_gippers', BaxChange, self.handle_baxter_reset_grippers)
+		self.bax_check_close_reach_srver = rospy.Service('/baxter/check_close_reach', BaxCheckReach, self.handle_baxter_check_close_reach)
+		self.bax_check_far_reach_srver = rospy.Service('/baxter/check_far_reach', BaxCheckReach, self.handle_baxter_check_far_reach)
 
 		# Common
 		self.bax_restore_srver = rospy.Service('/baxter/restore', BaxRestoreArmPose, self.handle_baxter_restore_pose)
@@ -119,14 +121,6 @@ class baxter_policies():
 		self.bax_cart_mov_srver = rospy.Service('/baxter/cart_mov', BaxMC, self.handle_baxter_cartesian_mov)
 		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
 		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
-
-		# ROS Simulation Service Servers
-		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_gippers', BaxChange, self.handle_baxter_reset_grippers)
-		self.bax_check_close_reach_srver = rospy.Service('/baxter/check_close_reach', BaxCheckReach, self.handle_baxter_check_close_reach)
-		self.bax_check_far_reach_srver = rospy.Service('/baxter/check_far_reach', BaxCheckReach, self.handle_baxter_check_far_reach)
-
-		# ROS Simulation Clients
-		self.get_state_srv = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
 
 		# ROS Service Clients
 		try:
@@ -726,7 +720,7 @@ class baxter_policies():
 						rospy.sleep(0.4)
 						self.baxter_arm.gripper_manager(order[0])
 						rospy.sleep(0.25)
-						#if self.mode == "real" and self.baxter_arm.gripper_is_grip(order[0]) and not self.baxter_arm.gripper_is_grip(order[1]):
+						#if self.baxter_arm.gripper_is_grip(order[0]) and not self.baxter_arm.gripper_is_grip(order[1]):
 							#self.baxter_arm.restore_arm_pose("both")
 							#return Bool(False)
 						if self.approach_one_arm(order[1], self.select_sign(order[1])*approach_dist):
@@ -754,25 +748,6 @@ class baxter_policies():
 	#################################
 	##     Grab with both arms     ##
 	#################################
-
-	def choose_dual_checker(self, arg):
-		options = {
-			'sim':self.check_dual_grab_sim,
-            'real':self.check_dual_grab,
-		}
-		return options[arg]
-
-	''''''
-	def check_dual_grab_sim (self):
-		try:
-			state = self.get_state_srv('exp_big_obj', 'table')
-			if state.pose.position.z > 0.02:
-				return True
-			else:
-				return False
-		except rospy.ServiceException, e:
-			rospy.loginfo("Get Model State service call failed: {0}".format(e))
-	''''''
 
 	def check_dual_grab (self):
 		self.baxter_arm.update_data()
@@ -836,7 +811,7 @@ class baxter_policies():
 		return False
 
 	def handle_baxter_grab_both(self, srv):
-		if not (self.baxter_arm.choose_gripper_state("left") and self.baxter_arm.choose_gripper_state("right")) and not self.choose_dual_checker(self.mode)():
+		if not (self.baxter_arm.choose_gripper_state("left") and self.baxter_arm.choose_gripper_state("right")) and not self.check_dual_grab():
 			obx, oby = self.polar_to_cartesian(srv.sensorization.angle.data, srv.sensorization.const_dist.data)
 			obz = srv.sensorization.height.data
 			self.adquire_dual_grab_configuration()
@@ -847,10 +822,10 @@ class baxter_policies():
 						#self.baxter_arm.gripper_manager("left")
 						#self.baxter_arm.gripper_manager("right")
 						if self.both_arms_cartesian_move([0.0, -0.125, +0.01, 0.0, +0.125, +0.01]):
-							while not self.choose_dual_checker(self.mode)():
+							while not self.check_dual_grab():
 								self.both_arms_cartesian_move([0.0, -0.02, 0.0, 0.0, +0.02, 0.0])
 							if self.both_arms_cartesian_move([0.0, 0.0, 0.10, 0.0, 0.0, 0.10]):
-								#if self.choose_dual_checker(self.mode)():
+								#if self.check_dual_grab():
 								self.exp_senses.assign_gripper_sense('both', 1.0)
 								return Bool(True)
 			self.baxter_arm.restore_arm_pose("both")
@@ -909,7 +884,7 @@ class baxter_policies():
 		return False
 
 	def handle_baxter_drop_both(self, srv):
-		#if self.choose_dual_checker(self.mode)():
+		#if self.check_dual_grab():
 		dx, dy = self.polar_to_cartesian(srv.destination.angle.data, srv.destination.const_dist.data)
 		if self.adquire_dual_drop_configuration(dx, dy, srv.destination.height.data, srv.size.data):
 			print "adquire_dual_drop_configuration"
@@ -920,7 +895,7 @@ class baxter_policies():
 					if self.both_arms_cartesian_move([0.0, 0.0, 0.2, 0.0, 0.0, 0.2]):
 						print "up arms"
 						if self.move_object(dx, 0.0, 0.25, srv.size.data):
-							if not self.choose_dual_checker(self.mode)():
+							if not self.check_dual_grab():
 								self.baxter_arm.restore_arm_pose('both')
 								self.exp_senses.assign_gripper_sense('both', 0.0)
 				return Bool(True)

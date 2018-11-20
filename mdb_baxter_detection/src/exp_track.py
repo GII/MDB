@@ -116,10 +116,10 @@ class exp_track:
 
 	def initialize_objects(self):
 		self.objects.append(['cilindro', np.array(rospy.get_param("~c_rgb"), dtype='float')/255])
-		if self.exp_rec == "mot":
-			self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
-		else:
-			self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
+		#if self.exp_rec == "mot":
+			#self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
+		#else:
+		self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
 
 	def select_publisher(self, arg):
 		options = {
@@ -326,7 +326,7 @@ class exp_track:
 
 				for obj in self.objects:
 					if self.exp_rec == 'mot':
-						idx_all, new_rgb_value = self.detect_object(im, regions, obj, threshold = 0.25)
+						idx_all, new_rgb_value = self.detect_object(im, regions, obj, threshold = 0.25, percentage = 0.0)
 					else:
 						idx_all, new_rgb_value = self.detect_object(im, regions, obj, threshold = 0.25, percentage = 0.0)
 					idx_all.sort(key = lambda s: s.shape[0], reverse=True)

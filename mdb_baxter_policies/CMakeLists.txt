@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   mdb_common
   moveit_msgs
   shape_msgs
-  gazebo_msgs
   message_generation
 )
 
@@ -79,7 +78,7 @@ find_package(catkin REQUIRED COMPONENTS
    GetHeadState.srv
    GetJointsState.srv
    GetSense.srv
-   GetSenseFM.srv
+   GetRobSense.srv
    GridCalibration.srv
    JoystickControl.srv
    ManagePlanScene.srv
@@ -133,7 +132,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_baxter
-  CATKIN_DEPENDS roscpp rospy std_msgs mdb_common sensor_msgs geometry_msgs baxter_core_msgs moveit_msgs shape_msgs gazebo_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs mdb_common sensor_msgs geometry_msgs baxter_core_msgs moveit_msgs shape_msgs message_runtime
 #  DEPENDS system_lib
 )
 

@@ -26,7 +26,7 @@ import numpy as np
 from std_msgs.msg import Float64, Bool
 from mdb_common.msg import SensData
 from mdb_common.srv import GetSenseMotiv
-from mdb_baxter_policies.srv import GetSense, GetSenseFM
+from mdb_baxter_policies.srv import GetSense, GetRobSense
 from geometry_msgs.msg import PoseStamped
 
 class exp_senses():
@@ -70,7 +70,7 @@ class exp_senses():
 
 		self.gs_srver = rospy.Service('/baxter/get_sense', GetSense, self.handle_gs)
 		self.gs_motiv_srver = rospy.Service('/mdb3/baxter/sensors', GetSenseMotiv, self.handle_gs_motiv)
-		self.gs_fm_srver = rospy.Service('/mdb3/baxter/fm_sensors', GetSenseFM, self.handle_gs_fm)
+		self.gs_rob_data_srver = rospy.Service('/baxter/get_rob_data_sens', GetRobSense, self.handle_gs_rob_data)
 
   	### Callbacks ###
 	def mixed_box_cb(self, sense):
@@ -155,14 +155,12 @@ class exp_senses():
 		if (srv.request.data == True):
 			return self.obj_sense, self.box_sense, self.lgrip_sense, self.rgrip_sense 	
 
-	def handle_gs_fm (self, srv):
-		if (srv.request.data == True):
-			(obj_dx, obj_dy) = self.global_policies.polar_to_cartesian(self.obj_sense.angle.data, self.obj_sense.dist.data)
+	def handle_gs_rob_data (self, srv):
+		(box_dx, box_dy) = self.global_policies.polar_to_cartesian(self.box_sense.angle.data, self.box_sense.dist.data)
+		(rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(self.rob_sense.angle.data, self.rob_sense.dist.data)
+		rob_box_dist = self.global_policies.obtain_dist(box_dx-rob_dx, box_dy-rob_dy)
 
-			hand_ball_dist = self.global_policies.obtain_dist(obj_dx-self.global_policies.baxter_arm.larm_state.current_es.pose.position.x, obj_dy-self.global_policies.baxter_arm.larm_state.current_es.pose.position.y)
-			hand_ball_angle = np.arctan2(obj_dy-self.global_policies.baxter_arm.larm_state.current_es.pose.position.y, obj_dx-self.global_policies.baxter_arm.larm_state.current_es.pose.position.x)
-
-			return Float64(hand_ball_dist), Float64(hand_ball_angle)
+		return Float64(box_dx), Float64(box_dy), Float64(rob_dx), Float64(rob_dy), Float64(self.rob_ori.data), Float64(rob_box_dist)
 
 	def choose_gripper_state(self, side):
 		options = {

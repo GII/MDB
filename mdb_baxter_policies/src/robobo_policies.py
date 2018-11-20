@@ -128,7 +128,7 @@ class robobo_policies():
 			self.rotate_robobo(time, lspeed)
 			self.rob_move_straight(0.5, 1)
 
-			if not self.robobo_status:
+			if not self.global_policies.robobo_status:
 
 				predicted_angle = self.global_policies.angle_fix(self.global_policies.exp_senses.rob_ori.data+srv.dest.angle.data)
 				fx = robdx + 0.05*math.cos(predicted_angle)
