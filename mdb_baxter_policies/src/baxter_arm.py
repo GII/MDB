@@ -384,6 +384,41 @@ class baxter_arm():
 
 		return gcp_req
 
+	def move_xyz_concatenate (self, l_plan, r_plan):
+		l_points = l_plan.joint_trajectory.points
+		r_points = r_plan.joint_trajectory.points
+		#Concatenate both solutions into one solution
+		if len(r_points) > len(l_points):
+			r_plan.joint_trajectory.joint_names = l_plan.joint_trajectory.joint_names + r_plan.joint_trajectory.joint_names
+			for ite in range (0, len(l_points)):
+				r_points[ite].positions = l_points[ite].positions + r_points[ite].positions
+				r_points[ite].velocities = l_points[ite].velocities + r_points[ite].velocities
+				r_points[ite].accelerations = l_points[ite].accelerations + r_points[ite].accelerations
+				r_points[ite].effort =  l_points[ite].effort + r_points[ite].effort
+				if (l_points[ite].time_from_start.secs > r_points[ite].time_from_start.secs) or ((l_points[ite].time_from_start.secs == r_points[ite].time_from_start.secs) and (l_points[ite].time_from_start.nsecs == r_points[ite].time_from_start.nsecs)):
+					r_points[ite].time_from_start = l_points[ite].time_from_start				
+			for eti in range (len(l_points), len(r_points)):
+				r_points[eti].positions = l_points[len(l_points)-1].positions + r_points[eti].positions
+				r_points[eti].velocities = l_points[len(l_points)-1].velocities + r_points[eti].velocities
+				r_points[eti].accelerations = l_points[len(l_points)-1].accelerations + r_points[eti].accelerations
+				r_points[eti].effort =  l_points[len(l_points)-1].effort + r_points[eti].effort	
+			return r_plan
+		else: 
+			l_plan.joint_trajectory.joint_names = l_plan.joint_trajectory.joint_names + r_plan.joint_trajectory.joint_names
+			for ite in range (0, len(r_points)):
+				l_points[ite].positions = l_points[ite].positions + r_points[ite].positions
+				l_points[ite].velocities = l_points[ite].velocities + r_points[ite].velocities
+				l_points[ite].accelerations = l_points[ite].accelerations + r_points[ite].accelerations
+				l_points[ite].effort =  l_points[ite].effort + r_points[ite].effort
+				if (r_points[ite].time_from_start.secs > l_points[ite].time_from_start.secs) or ((r_points[ite].time_from_start.secs == l_points[ite].time_from_start.secs) and (r_points[ite].time_from_start.nsecs == l_points[ite].time_from_start.nsecs)):
+					l_points[ite].time_from_start = r_points[ite].time_from_start
+			for eti in range(len(r_points), len(l_points)):
+				l_points[eti].positions = l_points[eti].positions + r_points[len(r_points)-1].positions
+				l_points[eti].velocities = l_points[eti].velocities + r_points[len(r_points)-1].velocities
+				l_points[eti].accelerations = l_points[eti].accelerations + r_points[len(r_points)-1].accelerations
+				l_points[eti].effort =  l_points[eti].effort + r_points[len(r_points)-1].effort
+		return l_plan
+
 	#Moves the arm to a specific waypoint in the robot 3d space and opens/closes the gripper if desired
 	def move_xyz (self, x, y, z, pick, code, side, scale, perc):
 		self.wait_to_move()
