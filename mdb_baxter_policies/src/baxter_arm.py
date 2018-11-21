@@ -465,6 +465,12 @@ class baxter_arm():
 	################
 	### Grippers ###
 	################
+
+	def gripper_state_update(self, side, value):
+		if (side == 'right'):
+			self.rgripper_state = value		
+		elif (side == 'left'):
+			self.lgripper_state = value
 	
 	def gripper_manager(self, side):
 		if self.choose_gripper_state(side):
