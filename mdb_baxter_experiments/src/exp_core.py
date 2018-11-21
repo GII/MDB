@@ -89,7 +89,7 @@ class exp_core():
 			rospy.sleep(3)
 			self.afile_r.stop()
 			self.bax_restore_arm_pose_clnt(String('both'))
-			self.bax_reset_grippers_clnt(Bool(True), Bool(True))
+			self.bax_reset_grippers_clnt(Bool(True))
 		self.refresh()
 		try:
 			self.policies_manager.bax_get_complete_sense_clnt(Bool(True), Float64(self.policies_manager.choose_x_dimension('exp_box')), Float64(self.policies_manager.choose_x_dimension(self.obj_type)))
@@ -133,7 +133,7 @@ class exp_core():
 		if rospy.has_param("/baxter_sense"): rospy.delete_param("/baxter_sense")
 		if rospy.has_param("/check_reward"): rospy.delete_param("/check_reward")
 		if self.exp_rec == 'mot' and rospy.has_param("/box_sense"): rospy.delete_param("/box_sense")
-		self.bax_reset_grippers_clnt(Bool(True), Bool(True))
+		self.bax_reset_grippers_clnt(Bool(True))
 		self.obj_type = self.randomize_obj()
 		self.choose_world_image()
 		raw_input("Press Key after configuring the experiment")
@@ -161,7 +161,7 @@ class exp_core():
 			self.reward_sound()
 		else:
 			self.bax_restore_arm_pose_clnt(String('both'))
-			self.bax_reset_grippers_clnt(Bool(True), Bool(True))
+			self.bax_reset_grippers_clnt(Bool(True))
 		self.refresh()
 		try:
 			self.policies_manager.bax_get_complete_sense_clnt(Bool(True), Float64(self.policies_manager.choose_x_dimension('exp_box')), Float64(self.policies_manager.choose_x_dimension(self.obj_type)))

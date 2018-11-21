@@ -43,8 +43,6 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 add_message_files(
   DIRECTORY msg
   FILES
-  BeaconData.msg
-  BSensData.msg
   Candidates.msg
   Candidates_single.msg
   CMReq.msg

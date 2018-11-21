@@ -1,4 +1,3 @@
 std_msgs/Bool request
-std_msgs/Bool hackademia17success
 ---
 std_msgs/Bool result 

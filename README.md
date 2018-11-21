@@ -107,15 +107,3 @@ To launch the tools for the real untucked robot run:
 1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
 1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch mode:=real`
 1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch mode:=real`
-
-To launch the tools for the simulated robot run:
-
-1. Simulated baxter: `roslaunch baxter_gazebo baxter_world.launch`
-1. Operation pose: `rosrun baxter_tools tuck_arms.py -u`
-1. Trajectory server: `rosrun baxter_interface joint_trajectory_action_server.py`
-1. Moveit: `roslaunch baxter_moveit_config baxter_grippers.launch`
-1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
-1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch`
-1. Virtual sensors: `roslaunch gii_baxter_detection simulator_sense.launch`
-1. Simulation manager: `roslaunch gii_baxter_exp exp_sim_manager.launch`
-1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch`
