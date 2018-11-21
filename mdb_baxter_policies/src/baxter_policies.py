@@ -104,7 +104,7 @@ class baxter_policies():
 		self.bax_drop_both_srver = rospy.Service('/baxter/policy/drop_both', BaxDropBoth, self.handle_baxter_drop_both) 
 		self.bax_ask_srver = rospy.Service('/baxter/policy/ask_for_help', BaxChange, self.handle_baxter_ask_help)
 		self.bax_joystick_control_srver = rospy.Service('/baxter/policy/joystick', JoystickControl, self.handle_joystick_control)
-		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_gippers', BaxChange, self.handle_baxter_reset_grippers)
+		self.bax_reset_grippers_srver = rospy.Service('/baxter/reset_grippers', BaxChange, self.handle_baxter_reset_grippers)
 		self.bax_check_close_reach_srver = rospy.Service('/baxter/check_close_reach', BaxCheckReach, self.handle_baxter_check_close_reach)
 		self.bax_check_far_reach_srver = rospy.Service('/baxter/check_far_reach', BaxCheckReach, self.handle_baxter_check_far_reach)
 
@@ -121,6 +121,9 @@ class baxter_policies():
 		self.bax_cart_mov_srver = rospy.Service('/baxter/cart_mov', BaxMC, self.handle_baxter_cartesian_mov)
 		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
 		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
+
+		self.bax_change_l_gripper_srver = rospy.Service('/baxter/change_l_gripper_state', BaxChange, self.handle_change_l_gripper_state)
+		self.bax_change_r_gripper_srver = rospy.Service('/baxter/change_r_gripper_state', BaxChange, self.handle_change_r_gripper_state)
 
 		# ROS Service Clients
 		try:
@@ -989,6 +992,18 @@ class baxter_policies():
 			self.baxter_arm.lgripper_state = False
 			self.baxter_arm.rgripper_state = False
 			self.exp_senses.assign_gripper_sense('both', 0.0)
+			return Bool(True)
+		return Bool(False)
+
+	def handle_change_l_gripper_state(self, srv):
+		if (srv.request.data == True):
+			self.baxter_arm.gripper_manager('left')
+			return Bool(True)
+		return Bool(False)
+
+	def handle_change_r_gripper_state(self, srv):
+		if (srv.request.data == True):
+			self.baxter_arm.gripper_manager('right')
 			return Bool(True)
 		return Bool(False)
 
