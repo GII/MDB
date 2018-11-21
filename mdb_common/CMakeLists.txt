@@ -44,7 +44,6 @@ add_message_files(
   DIRECTORY msg
   FILES
   Candidates.msg
-  Candidates_single.msg
   CMReq.msg
   CNodeMsg.msg
   ControlMsg.msg
@@ -52,8 +51,6 @@ add_message_files(
   GoalActivationMsg.msg
   GoalMsg.msg
   GoalOkMsg.msg
-  MObjDet.msg
-  ObjDet.msg
   PNodeMsg.msg
   OpenGripReq.msg
   PickDist.msg
@@ -73,7 +70,6 @@ add_service_files(
    GetSURCertainty.srv
    NewExperiment.srv
    RefreshWorld.srv
-   TabSeg.srv
 )
 
 ## Generate actions in the 'action' folder
