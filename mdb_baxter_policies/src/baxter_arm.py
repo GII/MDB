@@ -538,11 +538,7 @@ class baxter_arm():
 
 	def gripper_state_update(self, side, value):
 		if (side == 'right'):
-<<<<<<< HEAD
 			self.rgripper_state = value
-=======
-			self.rgripper_state = value		
->>>>>>> 1f99c0f07ebdc90be7a8f86162d8b1fe10f7664f
 		elif (side == 'left'):
 			self.lgripper_state = value
 	
