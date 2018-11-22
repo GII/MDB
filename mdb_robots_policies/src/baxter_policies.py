@@ -36,7 +36,7 @@ from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from mdb_common.msg import OpenGripReq, Candidates
 from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
-from mdb_baxter_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, ManagePlanScene, JoystickControl
+from mdb_robots_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, ManagePlanScene, JoystickControl
 from gazebo_msgs.srv import GetModelState
 
 class baxter_policies():
@@ -253,7 +253,7 @@ class baxter_policies():
 	####################
 
 	def readtcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~throw_param_file")
+		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~throw_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'speed':
@@ -501,7 +501,7 @@ class baxter_policies():
 	##################
 
 	def readgcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~grab_param_file")
+		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~grab_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'angles':
@@ -1179,7 +1179,7 @@ class baxter_policies():
 	##################################
 
 	def readmcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~motiven_param_file")
+		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~motiven_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'right_arm_angle':

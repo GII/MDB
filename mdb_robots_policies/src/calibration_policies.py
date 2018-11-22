@@ -27,7 +27,7 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
 from mdb_common.msg import ObjDet
-from mdb_baxter_policies.srv import GridCalibration
+from mdb_robots_policies.srv import GridCalibration
 
 class calibration_policies():
 	def __init__(self, global_policies):

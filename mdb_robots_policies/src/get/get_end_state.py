@@ -21,7 +21,7 @@
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
 import rospy
-from mdb_baxter_policies.srv import GetEndState
+from mdb_robots_policies.srv import GetEndState
 from baxter_core_msgs.msg import EndpointState
 
 class get_end_state():

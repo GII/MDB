@@ -19,21 +19,21 @@
   <arg name="joystick_rate" default="15"/>
   <arg name="joystick_velocity" default="40"/>
 
-  <node name="get_joints_state_server" pkg="mdb_baxter_policies"  type="get_joints_state.py" required="true" output="log"/>
-  <node name="get_end_state_server" pkg="mdb_baxter_policies"  type="get_end_state.py" required="true" output="log"/>
-  <node name="get_head_state" pkg="mdb_baxter_policies" type="get_head_state.py" required="true" output="log"/>
+  <node name="get_joints_state_server" pkg="mdb_robots_policies"  type="get_joints_state.py" required="true" output="log"/>
+  <node name="get_end_state_server" pkg="mdb_robots_policies"  type="get_end_state.py" required="true" output="log"/>
+  <node name="get_head_state" pkg="mdb_robots_policies" type="get_head_state.py" required="true" output="log"/>
 
-  <node name="exp_scene_server" pkg="mdb_baxter_policies" type="exp_scene.py" required="true" output="screen"/>
+  <node name="exp_scene_server" pkg="mdb_robots_policies" type="exp_scene.py" required="true" output="screen"/>
 
-  <node name="open_grip_left" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
+  <node name="open_grip_left" pkg="mdb_robots_policies" type="open_grip.py" required="true" output="screen">
     <param name="arm" type="str" value="left" />
   </node>
 
-  <node name="open_grip_right" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
+  <node name="open_grip_right" pkg="mdb_robots_policies" type="open_grip.py" required="true" output="screen">
     <param name="arm" type="str" value="right" />
   </node>
 
-   <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
+   <node name="baxter_policies" pkg="mdb_robots_policies" type="baxter_policies.py" required="true" output="screen">
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
 	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
 	<param name="use_robobo" type="bool" value="$(arg use_robobo)"/>
@@ -50,8 +50,8 @@
 	<param name="robobo_param_file" type="str" value="$(arg robobo_param_file)"/>
   </node>
 
-  <node name="arduino_joystick_module" pkg="mdb_baxter_policies" type="arduino_joystick_module.py" required="true" output="screen" if="$(arg joystick)"/>
-  <node name="robobo_joystick_control" pkg="mdb_baxter_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)">
+  <node name="arduino_joystick_module" pkg="mdb_robots_policies" type="arduino_joystick_module.py" required="true" output="screen" if="$(arg joystick)"/>
+  <node name="robobo_joystick_control" pkg="mdb_robots_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)">
 	<param name="joystick_rate" type="int" value="$(arg joystick_rate)"/>
 	<param name="joystick_velocity" type="int" value="$(arg joystick_velocity)"/>
   </node>

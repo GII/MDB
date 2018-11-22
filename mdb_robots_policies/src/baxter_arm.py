@@ -31,7 +31,7 @@ from geometry_msgs.msg import Pose, Point, Quaternion, PoseStamped
 from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
 from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest
-from mdb_baxter_policies.srv import GetJointsState, GetEndState
+from mdb_robots_policies.srv import GetJointsState, GetEndState
 from baxter_interface.gripper import Gripper
 
 class baxter_arm():

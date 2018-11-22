@@ -44,7 +44,7 @@ class display():
 		return imageros
 
 	def read_expressions(self):
-		path_expressions = self.rospack.get_path('mdb_baxter_policies')+'/face/'
+		path_expressions = self.rospack.get_path('mdb_robots_policies')+'/face/'
 
 		self.exp_dict["normal"] = cv2.imread(path_expressions+'face_normal_d.png', 1)
 		self.exp_dict["focus"] = cv2.imread(path_expressions+'face_focused_d.png', 1)

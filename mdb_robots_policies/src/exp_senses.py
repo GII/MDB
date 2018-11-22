@@ -26,7 +26,7 @@ import numpy as np
 from std_msgs.msg import Float64, Bool
 from mdb_common.msg import SensData
 from mdb_common.srv import GetSenseMotiv
-from mdb_baxter_policies.srv import GetSense, GetRobSense
+from mdb_robots_policies.srv import GetSense, GetRobSense
 from geometry_msgs.msg import PoseStamped
 
 class exp_senses():
