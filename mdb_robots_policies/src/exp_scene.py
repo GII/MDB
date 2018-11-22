@@ -25,7 +25,7 @@ from std_msgs.msg import Header, Bool
 from moveit_msgs.msg import PlanningScene, AttachedCollisionObject
 from geometry_msgs.msg import Pose
 from shape_msgs.msg import SolidPrimitive
-from mdb_baxter_policies.srv import ManagePlanScene
+from mdb_robots_policies.srv import ManagePlanScene
 
 class exp_scene():
 	def __init__(self):

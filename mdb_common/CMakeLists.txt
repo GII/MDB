@@ -41,7 +41,6 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 
 ## Generate messages in the 'msg' folder
 add_message_files(
-  DIRECTORY msg
   FILES
   Candidates.msg
   CMReq.msg
@@ -52,6 +51,7 @@ add_message_files(
   GoalMsg.msg
   GoalOkMsg.msg
   PNodeMsg.msg
+  ObjDet.msg
   OpenGripReq.msg
   PickDist.msg
   PNodeMsg.msg

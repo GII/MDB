@@ -141,7 +141,7 @@ class exp_core():
 		self.bax_restore_arm_pose_clnt(String('both'))
 		self.adopt_expression("normal") 
 		self.complete_pan_static()
-		if self.exp_rec == 'mot'
+		if self.exp_rec == 'mot':
 			self.adopt_open_left_pose()
 
 	def handle_new_exp(self, req):
