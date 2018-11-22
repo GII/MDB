@@ -25,8 +25,8 @@ import vlc
 import rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
-from mdb_baxter_policies.srv import BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, ManagePlanScene
-from mdb_baxter_policies.srv import BaxRestoreArmPoseRequest, BaxChangeFaceRequest, BaxCheckReachRequest, ManagePlanSceneRequest
+from mdb_robots_policies.srv import BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, ManagePlanScene
+from mdb_robots_policies.srv import BaxRestoreArmPoseRequest, BaxChangeFaceRequest, BaxCheckReachRequest, ManagePlanSceneRequest
 from std_msgs.msg import Bool, Float64, String
 from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment, BaxChangeRequest
 from mdb_common.msg import SensData, ControlMsg
@@ -37,7 +37,7 @@ class exp_core():
 		rospy.init_node("exp_core")
 
 		self.rospack = rospkg.RosPack()
-		self.afile = vlc.MediaPlayer(self.rospack.get_path('mdb_baxter_experiments')+"/audio/TaDa.mp3");
+		self.afile = vlc.MediaPlayer(self.rospack.get_path('mdb_robots_experiments')+"/audio/TaDa.mp3");
 
 		self.exp_type = rospy.get_param("~exp_type")
 		self.exp_rec = rospy.get_param("~exp_rec")

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_baxter_experiments)
+project(mdb_robots_experiments)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 # add_definitions(-std=c++11)
@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   baxter_core_msgs
   mdb_common
-  mdb_baxter_detection
+  mdb_robots_detection
   message_generation
 )
 
@@ -74,7 +74,7 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    std_msgs
    geometry_msgs 
-   mdb_baxter_policies
+   mdb_robots_policies
    mdb_common
 )
 
@@ -110,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_baxter_experiments
-  CATKIN_DEPENDS rospy std_msgs sensor_msgs geometry_msgs baxter_core_msgs mdb_common mdb_baxter_detection message_runtime
+  CATKIN_DEPENDS rospy std_msgs sensor_msgs geometry_msgs baxter_core_msgs mdb_common mdb_robots_detection message_runtime
 #  DEPENDS system_lib
 )
 

@@ -21,8 +21,8 @@
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
 import rospy
-from mdb_baxter_policies.srv import BaxThrow, BaxGrab, BaxPush, BaxGrabBoth, BaxDropBoth, GetSense, BaxCheckReach, BaxGetCompleteSense, JoystickControl
-from mdb_baxter_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, BaxCheckReachRequest, JoystickControlRequest
+from mdb_robots_policies.srv import BaxThrow, BaxGrab, BaxPush, BaxGrabBoth, BaxDropBoth, GetSense, BaxCheckReach, BaxGetCompleteSense, JoystickControl
+from mdb_robots_policies.srv import BaxThrowRequest, BaxGrabRequest, BaxPushRequest, BaxGrabBothRequest, BaxDropBothRequest, BaxChangeFaceRequest, BaxCheckReachRequest, JoystickControlRequest
 from std_msgs.msg import Bool, Float64, String, Int16
 from mdb_common.srv import BaxChange, BaxChangeRequest
 from mdb_common.msg import SensData

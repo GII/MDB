@@ -35,9 +35,9 @@
 
    <node name="drop_node" pkg="topic_tools" type="drop" args="$(arg original_image_topic) 3 4 $(arg image_topic)"/>
 
-   <include file="$(find mdb_baxter_detection)/launch/head_aruco_marker.launch" if="$(arg tag)"/> 
+   <include file="$(find mdb_robots_detection)/launch/head_aruco_marker.launch" if="$(arg tag)"/> 
 
-   <node name="exp_track" pkg="mdb_baxter_detection" type="exp_track.py" required="true" output="screen" unless="$(arg debug)">
+   <node name="exp_track" pkg="mdb_robots_detection" type="exp_track.py" required="true" output="screen" unless="$(arg debug)">
        <remap from="/image_color" to="$(arg image_topic)" />
        <param name="exp_rec" type="str" value="$(arg exp_rec)" />
        <param name="head_camera" type="bool" value="$(arg head_camera)"/> 
@@ -47,7 +47,7 @@
 	   <rosparam param="b_rgb">[66, 55, 127]</rosparam>
    </node>
 
-   <node name="ball_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_obj)">
+   <node name="ball_pos" pkg="mdb_robots_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_obj)">
        <param name="obj_type" type="str" value="ball"/>
 	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
 	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
@@ -55,35 +55,35 @@
 
    </node>
 
-	<node name="box_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_box)">
+	<node name="box_pos" pkg="mdb_robots_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg detect_box)">
        <param name="obj_type" type="str" value="box"/>
 	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
 	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
        <param name="function_type" type="str" value="$(arg function_type)"/>
    </node>
 
-	<node name="robobo_pos" pkg="mdb_baxter_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg tag)">
+	<node name="robobo_pos" pkg="mdb_robots_detection" type="obj_pos_int.py" required="true" output="screen" if="$(arg tag)">
        <param name="obj_type" type="str" value="robobo"/>
 	   <param name="camera_frame" type="str" value="$(arg camera_frame)"/>
 	   <param name="overhead_camera_file" type="str" value="$(arg overhead_camera_file)" />
        <param name="function_type" type="str" value="$(arg function_type)"/>
 	</node>
-   <node name="get_joints_state_server" pkg="mdb_baxter_policies"  type="get_joints_state.py" required="true" output="log"/>
-   <node name="get_end_state_server" pkg="mdb_baxter_policies"  type="get_end_state.py" required="true" output="log"/>
-   <node name="get_gripper_state_server" pkg="mdb_baxter_policies" type="get_gripper_state.py" required="true" output="log"/>
-   <node name="get_head_state" pkg="mdb_baxter_policies" type="get_head_state.py" required="true" output="log"/>
+   <node name="get_joints_state_server" pkg="mdb_robots_policies"  type="get_joints_state.py" required="true" output="log"/>
+   <node name="get_end_state_server" pkg="mdb_robots_policies"  type="get_end_state.py" required="true" output="log"/>
+   <node name="get_gripper_state_server" pkg="mdb_robots_policies" type="get_gripper_state.py" required="true" output="log"/>
+   <node name="get_head_state" pkg="mdb_robots_policies" type="get_head_state.py" required="true" output="log"/>
 
-   <node name="exp_scene_server" pkg="mdb_baxter_policies" type="exp_scene.py" required="true" output="screen"/>
+   <node name="exp_scene_server" pkg="mdb_robots_policies" type="exp_scene.py" required="true" output="screen"/>
 
-   <node name="open_grip_left" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
+   <node name="open_grip_left" pkg="mdb_robots_policies" type="open_grip.py" required="true" output="screen">
      <param name="arm" type="str" value="left" />
    </node>
 
-   <node name="open_grip_right" pkg="mdb_baxter_policies" type="open_grip.py" required="true" output="screen">
+   <node name="open_grip_right" pkg="mdb_robots_policies" type="open_grip.py" required="true" output="screen">
      <param name="arm" type="str" value="right" />
    </node>
 
-   <node name="baxter_policies" pkg="mdb_baxter_policies" type="baxter_policies.py" required="true" output="screen">
+   <node name="baxter_policies" pkg="mdb_robots_policies" type="baxter_policies.py" required="true" output="screen">
      <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
 	 <param name="super_throw" type="bool" value="$(arg super_throw)"/>
 
@@ -100,7 +100,7 @@
 
    </node>
 
-   <node name="exp_ltm" pkg="mdb_baxter_experiments" type="exp_core.py" required="true" output="screen">
+   <node name="exp_ltm" pkg="mdb_robots_experiments" type="exp_core.py" required="true" output="screen">
 	 <param name="exp_type" type="str" value="$(arg exp_type)" />
 	 <param name="config_time" type="int" value="$(arg config_time)" />
 	 <param name="fixed_height" type="double" value="$(arg fixed_height)" />
@@ -108,5 +108,5 @@
      <param name="exp_rec" type="str" value="$(arg exp_rec)" />	
    </node>
 
-   <node name="exp_helper" pkg="mdb_baxter_experiments" type="exp_helper.py" required="true" output="screen"/> 
+   <node name="exp_helper" pkg="mdb_robots_experiments" type="exp_helper.py" required="true" output="screen"/> 
 </launch>
