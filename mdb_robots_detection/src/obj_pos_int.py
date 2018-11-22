@@ -47,7 +47,7 @@ class obj_pos_int:
 		self.fu, self.fv = self.obtain_interpolation_rbf(rospy.get_param("~function_type"))
 
 	def read_grid_data_file(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_detection')+"/config/"+rospy.get_param("~overhead_camera_file") 
+		custom_configuration_file = self.rospack.get_path('mdb_robots_detection')+"/config/"+rospy.get_param("~overhead_camera_file") 
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'data':

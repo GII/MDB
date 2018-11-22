@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_baxter_detection)
+project(mdb_robot_detection)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cv_bridge
   image_transport
+  aruco_ros
 )
 
 find_package(Boost REQUIRED)
@@ -116,7 +117,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES jni_test
-   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs mdb_common roslib message_runtime cv_bridge image_transport
+   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs mdb_common roslib message_runtime cv_bridge image_transport aruco_ros
 #  DEPENDS system_lib jvm
 )
 
