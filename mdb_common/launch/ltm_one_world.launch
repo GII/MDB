@@ -2,8 +2,8 @@
 	<arg name="backup" default="ltm.backup"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_motiven_one_world.yaml"/>
 	<arg name="log_level" default="DEBUG"/>
-	<arg name="debug" default="True"/>
-	<arg name="simulator" default="True"/>
+	<arg name="debug" default="False"/>
+	<arg name="simulator" default="False"/>
 	<arg name="motiven" default="True"/>
 	<arg name="plot" default="True"/>
 	<arg name="plot_arg" value="" unless="$(arg plot)"/>

@@ -60,7 +60,7 @@ class exp_core():
 		self.bax_change_face_clnt = rospy.ServiceProxy('/baxter/change_face', BaxChangeFace)
 		self.bax_open_arms_pose_clnt = rospy.ServiceProxy('/baxter/open_arms_pose', BaxChange)
 		self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', ManagePlanScene)
-		self.bax_reset_grippers_clnt = rospy.ServiceProxy('/baxter/reset_gippers', BaxChange)
+		self.bax_reset_grippers_clnt = rospy.ServiceProxy('/baxter/reset_grippers', BaxChange)
 		self.bax_check_close_reach_clnt = rospy.ServiceProxy('/baxter/check_close_reach', BaxCheckReach)
 
 		# Service Servers
@@ -85,9 +85,6 @@ class exp_core():
 		if control_msg.reward == True:
 			self.reward_sound()
 		else:
-			self.afile_r.play()
-			rospy.sleep(3)
-			self.afile_r.stop()
 			self.bax_restore_arm_pose_clnt(String('both'))
 			self.bax_reset_grippers_clnt(Bool(True))
 		self.refresh()

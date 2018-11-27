@@ -1104,7 +1104,7 @@ class baxter_policies():
 			pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
 			self.exp_senses.rgrip_ori = self.angle_fix(self.exp_senses.rgrip_ori)
 
-			(x, y) = self.polar_to_cartesian(self.exp_senses.rgrip_ori, srv.dest_const_dist.data)
+			(x, y) = self.polar_to_cartesian(self.exp_senses.rgrip_ori, srv.dest.const_dist.data)
 			z = srv.dest.height.data
 			result = False
 

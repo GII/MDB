@@ -155,9 +155,6 @@ class exp_track:
 		c_i=int(round((im.shape[1])*(margin)))
 		c_f=int(round((im.shape[1])*(1.0-(margin))))
 
-		print im.shape[0], im.shape[1], margin
-		print f_i, f_f, c_i, c_f
-
 		#Malla NxN
 		f = np.linspace(f_i,f_f,N, dtype=int)
 		c = np.linspace(c_i,c_f,N, dtype=int)
