@@ -96,7 +96,7 @@ class policies_manager():
 			'throw':self.bax_throw_clnt,
 			'ask_nicely':self.bax_ask_help_clnt,
 			'joystick':self.bax_joy_control_clnt, 
-			'drop_object':self.bd_clnt, 
+			'drop_object':self.bax_drop_clnt, 
 		}
 		return options[arg]
 
