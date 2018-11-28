@@ -47,7 +47,6 @@ class open_grip():
 
 	def state_cb(self, state):
 		if self.angle != None and self.arm == self.arm_check  and self.arm+"_w1" in state.name[:] and state.position[self.select_arm_angle(self.arm)]<self.angle:
-			print self.angle, self.arm, self.arm_check, state.position[self.select_arm_angle(self.arm)], self.angle
 			print "opening grip "+self.arm
 			self.gripper.open()
 			self.angle = None

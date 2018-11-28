@@ -147,8 +147,6 @@ class exp_senses():
 				obj_dx = robg_x
 				obj_dy = robg_y
 
-			print 'rob_obj: ', rob_ball_dist, 'hand_obj: ', hand_ball_dist, 'box_obj: ', box_ball_dist
-
 			return Float64(box_ball_dist), Float64(hand_ball_dist), Float64(rob_ball_dist), Float64(obj_dx), Float64(obj_dy), Float64(box_dx), Float64(box_dy), Float64(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x), Float64(self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y), Float64(rob_dx), Float64(rob_dy), Float64(self.rgrip_ori), Float64(self.rob_ori.data)
 
 	def handle_gs(self, srv):

@@ -275,7 +275,6 @@ class baxter_arm():
 
 		self.choose_arm_group(side).set_joint_value_target(group_variable_values)
 		plan = self.choose_arm_group(side).plan()
-		#print plan
 		self.change_velocity(plan, scale)
 		self.execute_kp(plan, wait)
 
@@ -511,16 +510,12 @@ class baxter_arm():
 			l_plan_c = self.change_velocity(l_plan, scale)
 			r_plan_c = self.change_velocity(r_plan, scale)
 
-		print (l_plan != None)
-		print (r_plan != None)
-
 		b_plan = None
 		if (l_plan and r_plan):
 			b_plan = self.move_xyz_concatenate(l_plan, r_plan)		
 		if b_plan:
 			try:
 				pet = self.execute_kp(b_plan, True)
-				print pet.error_code.val
 				if (pet.error_code.val==1 or pet.error_code.val==-4) and pick:
 					self.lgripper_state = self.gripper_manager(self.lgripper, self.lgripper_state)
 					self.rgripper_state = self.gripper_manager(self.rgripper, self.rgripper_state)		
@@ -551,14 +546,12 @@ class baxter_arm():
 			self.gripper_state_update(side, True)
 
 	def gripper_instate_open (self, side):
-		print self.choose_gripper_instate(side).position
 		if (self.choose_gripper_instate(side).position > 90.0):
 			return True
 		else:
 			return False
 
 	def gripper_instate_close (self, side):
-		print self.choose_gripper_instate(side).position
 		if (self.choose_gripper_instate(side).position < 90.0):
 			return True
 		else:
