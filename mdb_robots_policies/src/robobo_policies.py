@@ -57,7 +57,7 @@ class robobo_policies():
 			exit(1)
 
 	def readtcfile(self):
-		custom_configuration_file = self.rospack.get_path('mdb_baxter_policies')+"/config/"+rospy.get_param("~robobo_param_file")
+		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~robobo_param_file")
 		config = yaml.load(open(custom_configuration_file))
 		for k in config.keys():
 			if k == 'angle_time':

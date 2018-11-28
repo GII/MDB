@@ -1,4 +1,4 @@
-<?xml version="1.0"?>f
+<?xml version="1.0"?>
 <launch>
   <arg name="joystick" default="true"/>
   <arg name="joystick_rate" default="3"/>
