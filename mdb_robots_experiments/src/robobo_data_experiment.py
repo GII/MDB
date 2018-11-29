@@ -45,11 +45,15 @@ class robobo_data_experiment():
 		self.image_number = 0
 		self.first_iteration = True
 		self.do_continue = False
-		self.action_nature = 'best' #'random' #best
+
+		self.distance_action_threshold = 0.40
+		self.reward_action_threshold = 0.05
+		self.action_nature = 'mixed' #random, best, mixed
+
 
 		#Ground Truth
-		self.goal_positions = []
-		self.robobo_positions = []
+		self.target_positions = []
+		self.ground_truth_states = []
 		self.images_path = []
 
 		#Preprocessed Data
@@ -97,20 +101,20 @@ class robobo_data_experiment():
 	def obtain_dist(self, x, y):
 		return np.sqrt((x**2)+(y**2))
 
-	def candidate_actions (self, exp_data, limit=120, distance=0.07, threshold=0.05):
+	def candidate_actions (self, exp_data, limit=120, distance=0.07, reward_action_threshold=0.05, distance_action_threshold=0.40):
 		robobo_l_angle = np.random.uniform(limit, -limit)
-		future_dist = self.check_robobo_validity(exp_data, robobo_l_angle, distance, threshold)
+		future_dist = self.check_robobo_validity(exp_data, robobo_l_angle, distance, reward_action_threshold, distance_action_threshold)
 		if future_dist != False:
 			return robobo_l_angle, future_dist
 		else:
 			return False, False
 
-	def check_robobo_validity(self, exp_data, robobo_angle, distance=0.07, threshold=0.05):
+	def check_robobo_validity(self, exp_data, robobo_angle, distance=0.07, reward_action_threshold=0.05, distance_action_threshold=0.40):
 		new_angle = exp_data.rob_ori.data + math.radians(robobo_angle)
 		(inc_x, inc_y) = self.polar_to_cartesian(new_angle, distance)
 		future_rob_box_dist = self.obtain_dist(exp_data.box_dx.data-(exp_data.rob_dx.data+inc_x), exp_data.box_dy.data-(exp_data.rob_dy.data+inc_y))
 
-		if ((exp_data.rob_dx.data+inc_x > self.area_limit_l[0]) and (exp_data.rob_dx.data+inc_x<self.area_limit_l[1]) and (exp_data.rob_dy.data+inc_y<self.area_limit_l[2]) and (exp_data.rob_dy.data+inc_y>self.area_limit_l[3]) and (future_rob_box_dist > threshold)):
+		if ((exp_data.rob_dx.data+inc_x > self.area_limit_l[0]) and (exp_data.rob_dx.data+inc_x<self.area_limit_l[1]) and (exp_data.rob_dy.data+inc_y<self.area_limit_l[2]) and (exp_data.rob_dy.data+inc_y>self.area_limit_l[3]) and (future_rob_box_dist > reward_action_threshold) and future_rob_box_dist < distance_action_threshold):
 			return future_rob_box_dist
 		else:
 			return False
@@ -119,6 +123,7 @@ class robobo_data_experiment():
 		options = {
 			'random':self.select_random_action,
 			'best':self.select_best_action,
+			'mixed':self.select_mixed_action,
 		}
 		return options[arg]
 
@@ -128,7 +133,7 @@ class robobo_data_experiment():
 		actions_checked = 0
 
 		while actions_checked < number_actions and not rospy.is_shutdown():
-			(singular_action, singular_distance) = self.candidate_actions(exp_data)
+			(singular_action, singular_distance) = self.candidate_actions(exp_data, reward_action_threshold = self.reward_action_threshold, distance_action_threshold = self.distance_action_threshold)
 			if singular_action != False:
 				if actions_checked == 0:
 					final_action = singular_action
@@ -144,27 +149,33 @@ class robobo_data_experiment():
 		action_found = False
 
 		while not action_found and not rospy.is_shutdown():
-			(singular_action, singular_distance) = self.candidate_actions(exp_data)
+			(singular_action, singular_distance) = self.candidate_actions(exp_data, reward_action_threshold = self.reward_action_threshold, distance_action_threshold = self.distance_action_threshold)
 			if singular_action != False:
 				final_action = singular_action
 				action_found = True
 		return final_action	
 
-	def check_reward (self, distance, threshold=0.05):
-		if distance < threshold:
+	def select_mixed_action(self, exp_data, number_actions=10):
+		if np.random.uniform()>0.2:
+			return self.select_best_action(exp_data, number_actions)
+		else:
+			return self.select_random_action(exp_data, number_actions)
+
+	def check_reward (self, distance, reward_threshold=0.10):
+		if distance < reward_threshold:
 		 	return True
 		else:
 			return False
 
 	def manage_data (self, sensor_data, action, reward):
-		self.robobo_positions.append([sensor_data.rob_dx.data, sensor_data.rob_dy.data]) 
+		self.ground_truth_states.append([sensor_data.rob_dx.data, sensor_data.rob_dy.data, sensor_data.rob_ori.data]) 
 		self.images_path.append(self.exp_name+"/record_"+str(self.experiment_number).zfill(3)+"/frame"+str(self.image_number).zfill(6))
 		cv2.imwrite(self.exp_name+"/record_"+str(self.experiment_number).zfill(3)+"/frame"+str(self.image_number).zfill(6)+".jpg", self.current_img_cv)	
 		self.actions.append(action)
 		self.rewards.append(reward)
 
 		if self.first_iteration:
-			self.goal_positions.append([sensor_data.box_dx.data, sensor_data.box_dy.data]) 
+			self.target_positions.append([sensor_data.box_dx.data, sensor_data.box_dy.data]) 
 			self.episode_starts.append(True)
 			self.first_iteration = False
 		else:
@@ -176,7 +187,7 @@ class robobo_data_experiment():
 		self.do_continue = False
 
 	def save_data (self):
-		np.savez(self.exp_name+'/ground_truth', goal_positions=self.goal_positions, robobo_positions=self.robobo_positions, images_path=self.images_path)
+		np.savez(self.exp_name+'/ground_truth', target_positions=self.target_positions, ground_truth_states=self.ground_truth_states, images_path=self.images_path)
 		np.savez(self.exp_name+'/preprocessed_data', episode_starts=self.episode_starts, rewards=self.rewards, actions=self.actions)	
 
 	def reinitialize(self):
