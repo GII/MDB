@@ -6,6 +6,8 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 from mdb_ltm.node import Node
 
 

@@ -6,6 +6,8 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import yaml
 
 
@@ -68,7 +70,7 @@ class FilePNodes(File):
         """Write the header of the file."""
         super(FilePNodes, self).write_header()
         self.file_object.write('Iteration\tIdent\t')
-        for perception in self.ltm.perceptions.itervalues():
+        for perception in self.ltm.perceptions.values():
             self.file_object.write(perception.ident + '\t')
         self.file_object.write('Confidence\n')
 
@@ -76,18 +78,18 @@ class FilePNodes(File):
         """Write P-nodes."""
         if self.ltm.iteration % self.data == 0:
             for pnode in self.ltm.p_nodes:
-                for point in xrange(0, pnode.size):
+                for point in range(0, pnode.size):
                     self.file_object.write(str(self.ltm.iteration) + '\t' + pnode.ident + '\t')
-                    for perception in xrange(0, pnode.n_perceptions):
+                    for perception in range(0, pnode.n_perceptions):
                         self.file_object.write(str(pnode.members[perception, point]) + '\t')
                     self.file_object.write(str(pnode.memberships[point]) + '\n')
 
     def close(self):
         """Close de underlying file."""
         for pnode in self.ltm.p_nodes:
-            for point in xrange(0, pnode.size):
+            for point in range(0, pnode.size):
                 self.file_object.write(str(self.ltm.iteration) + '\t' + pnode.ident + '\t')
-                for perception in xrange(0, pnode.n_perceptions):
+                for perception in range(0, pnode.n_perceptions):
                     self.file_object.write(str(pnode.members[perception, point]) + '\t')
                 self.file_object.write(str(pnode.memberships[point]) + '\n')
         super(FilePNodes, self).write_header()

@@ -6,6 +6,8 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import os.path
 from copy import copy
 from operator import attrgetter
@@ -56,22 +58,22 @@ class LTM(object):
         """Constructor."""
         self.file_name = None
         self.files = []
-        self.nodes = {
-            'Perception': {},
-            'PNode': [],
-            'CNode': [],
-            'Goal': [],
-            'ForwardModel': [],
-            'Policy': []}
-        self.module_names = {
-            'Perception': 'perception',
-            'PNode': 'p_node',
-            'CNode': 'c_node',
-            'Goal': 'goal',
-            'ForwardModel': 'forward_model',
-            'Policy': 'policy'}
-        self.default_class = {}
-        self.default_ros_name_prefix = {}
+        self.nodes = dict(
+            Perception=dict(),
+            PNode=[],
+            CNode=[],
+            Goal=[],
+            ForwardModel=[],
+            Policy=[])
+        self.module_names = dict(
+            Perception='perception',
+            PNode='p_node',
+            CNode='c_node',
+            Goal='goal',
+            ForwardModel='forward_model',
+            Policy='policy')
+        self.default_class = dict()
+        self.default_ros_name_prefix = dict()
         self.there_are_goals = threading.Event()
         self.control_publisher = None
         self.restoring = False
@@ -87,8 +89,8 @@ class LTM(object):
         self.current_world = 0
         self.current_success = 0
         self.graph = networkx.Graph()
-        self.graph_node_label = {}
-        self.graph_node_position = {}
+        self.graph_node_label = dict()
+        self.graph_node_position = dict()
         super(LTM, self).__init__()
 
     def __getstate__(self):
@@ -134,7 +136,7 @@ class LTM(object):
         """Return a new LTM object after loading a previous LTM memory dump from a file."""
         if file_name != None:
             if os.path.isfile(file_name):
-                print 'Loading a previous LTM memory dump from ' + file_name + '...'
+                print('Loading a previous LTM memory dump from ' + file_name + '...')
                 ltm = yaml.load(open(file_name, 'r'), Loader=yaml.CLoader)
                 ltm.files = []
                 ltm.there_are_goals = threading.Event()
@@ -153,11 +155,11 @@ class LTM(object):
                                 node.init_ros()
                 ltm.restoring = True
             else:
-                print file_name + ' does not exist, the name will be used to store a new LTM...'
+                print(file_name + ' does not exist, the name will be used to store a new LTM...')
                 ltm = LTM()
         else:
             file_name = 'ltm_dump'
-            print 'Using ' + file_name + ' to store a new LTM dump...'
+            print('Using ' + file_name + ' to store a new LTM dump...')
             ltm = LTM()
         ltm.file_name = file_name
         return ltm
@@ -178,7 +180,7 @@ class LTM(object):
                 self.graph_node_position[same_blood] = [0, idx + 1]
         elif node.type == 'PNode':
             for idx, same_blood in enumerate(self.nodes[node.type]):
-                posx = idx / 3
+                posx = idx // 3
                 posy = idx % 3
                 self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy]
         elif node.type == 'Goal':
@@ -192,7 +194,7 @@ class LTM(object):
                 self.graph_node_position[same_blood] = [9, idx + 1]
         elif node.type == 'CNode':
             for idx, same_blood in enumerate(self.nodes[node.type]):
-                posx = idx / 3
+                posx = idx // 3
                 posy = idx % 3
                 self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy + 8]
 
@@ -221,7 +223,7 @@ class LTM(object):
             if node.type == 'Perception':
                 node.neighbors = self.nodes['Goal'] + self.nodes['ForwardModel'] + self.nodes['Policy']
             else:
-                node.neighbors = self.nodes['Perception'].values()
+                node.neighbors = list(self.nodes['Perception'].values())
         else:
             node.neighbors = neighbors
         for neighbor in node.neighbors:
@@ -342,7 +344,7 @@ class LTM(object):
         """Update the value of every perception."""
         rospy.loginfo('Reading perceptions...')
         sensing = []
-        for perception in self.perceptions.itervalues():
+        for perception in self.perceptions.values():
             perception.read()
             rospy.logdebug('Reading ' + perception.ident + ' = ' + str(perception.raw))
             sensing.append(perception.value)
@@ -504,7 +506,7 @@ class LTM(object):
 
     def sensorial_changes(self):
         """Return false if all perceptions have the same value as the previous step. True otherwise."""
-        for perception in self.perceptions.itervalues():
+        for perception in self.perceptions.values():
             difference = abs(perception.value - perception.old_value)
             if difference >= 0.01:
                 return True
@@ -523,7 +525,7 @@ class LTM(object):
             self.trial = 0
             changed = True
         if (self.iteration % self.period) == 0 or self.restoring:
-            self.current_world = self.worlds[(self.iteration / self.period) % len(self.worlds)]
+            self.current_world = self.worlds[(self.iteration // self.period) % len(self.worlds)]
             self.trial = 0
             self.restoring = False
             changed = True
