@@ -1,5 +1,0 @@
-std_msgs/Bool request
----
-std_msgs/Float64 obj_grip_dist
-std_msgs/Float64 obj_grip_angle
-

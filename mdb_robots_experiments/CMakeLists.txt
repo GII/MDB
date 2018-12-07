@@ -1,10 +1,22 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_common)
+project(mdb_robots_experiments)
+
+## Add support for C++11, supported in ROS Kinetic and newer
+# add_definitions(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  std_msgs 
+  geometry_msgs
+  sensor_msgs
+  baxter_core_msgs
+  mdb_common
+  mdb_robots_detection
+  message_generation
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -40,38 +52,16 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Candidates.msg
-  CMReq.msg
-  CNodeMsg.msg
-  ControlMsg.msg
-  ForwardModelMsg.msg
-  GoalActivationMsg.msg
-  GoalMsg.msg
-  GoalOkMsg.msg
-  PNodeMsg.msg
-  ObjDet.msg
-  OpenGripReq.msg
-  PickDist.msg
-  PNodeMsg.msg
-  PolicyMsg.msg
-  SensData.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-   FILES
-   BaxChange.srv
-   BaxMC.srv
-   CandAct.srv
-   ExecPolicy.srv
-   GetSenseMotiv.srv
-   GetSURCertainty.srv
-   NewExperiment.srv
-   RefreshWorld.srv
-)
-
+# add_service_files(
+#   FILES
+#)
 ## Generate actions in the 'action' folder
 # add_action_files(
 #   FILES
@@ -80,11 +70,9 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-   DEPENDENCIES
-   std_msgs
-   sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -117,8 +105,8 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES mdb_cafer_msgs
-   CATKIN_DEPENDS std_msgs sensor_msgs message_runtime
+#  LIBRARIES mdb_baxter_experiments
+  CATKIN_DEPENDS rospy std_msgs sensor_msgs geometry_msgs baxter_core_msgs mdb_common mdb_robots_detection message_runtime
 #  DEPENDS system_lib
 )
 
@@ -128,27 +116,37 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
-# add_library(mdb_cafer_msgs
-#   src/${PROJECT_NAME}/mdb_cafer_msgs.cpp
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/mdb_baxter_experiments.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(mdb_cafer_msgs ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(mdb_cafer_msgs_node src/mdb_cafer_msgs_node.cpp)
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# add_executable(${PROJECT_NAME}_node src/mdb_baxter_experiments_node.cpp)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(mdb_cafer_msgs_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(mdb_cafer_msgs_node
+# target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -167,7 +165,7 @@ catkin_package(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS mdb_cafer_msgs mdb_cafer_msgs_node
+# install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -186,20 +184,13 @@ catkin_package(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-install(DIRECTORY config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-)
-
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_mdb_cafer_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_mdb_baxter_experiments.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

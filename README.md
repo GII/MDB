@@ -100,22 +100,8 @@ Now, to test moveit:
 To launch the tools for the real untucked robot run:
 
 1. Xtion camera: `roslaunch openni2_launch openni2.launch rgb_frame_id:=camera_rgb_optical_frame depth_frame_id:=camera_depth_optical_frame depth_registration:=true auto_exposure:=false auto_white_balance:=false`
-1. Dinamic tf between the camera and the robot: `roslaunch gii_baxter_detection camera_tf_link.launch`
-1. Robot sensors: `roslaunch gii_baxter_detection robot_sense.launch decimation:=1`
+1. Robots sensors: `roslaunch mdb_robots_detection exp_sense_int.launch`
 1. Trajectory server: `rosrun baxter_interface joint_trajectory_action_server.py`
 1. Moveit: `roslaunch baxter_moveit_config baxter_grippers.launch`
-1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
-1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch mode:=real`
-1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch mode:=real`
-
-To launch the tools for the simulated robot run:
-
-1. Simulated baxter: `roslaunch baxter_gazebo baxter_world.launch`
-1. Operation pose: `rosrun baxter_tools tuck_arms.py -u`
-1. Trajectory server: `rosrun baxter_interface joint_trajectory_action_server.py`
-1. Moveit: `roslaunch baxter_moveit_config baxter_grippers.launch`
-1. Getter auxiliary nodes: `roslaunch gii_baxter_moveit getters.launch`
-1. Policies: `roslaunch gii_baxter_moveit baxter_policies.launch`
-1. Virtual sensors: `roslaunch gii_baxter_detection simulator_sense.launch`
-1. Simulation manager: `roslaunch gii_baxter_exp exp_sim_manager.launch`
-1. Experiment manager: `roslaunch gii_baxter_exp exp_ltm_paris17.launch`
+1. Robots policies: `roslaunch mdb_robots_policies baxter_policies.launch`
+1. Experiment manager: `roslaunch mdb_robots_experiments exp_ltm.launch`

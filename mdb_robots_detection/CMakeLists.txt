@@ -1,10 +1,31 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_common)
+project(mdb_robots_detection)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
+find_package(catkin REQUIRED COMPONENTS
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  mdb_common
+  image_geometry
+  roslib
+  message_generation
+  cv_bridge
+  image_transport
+  aruco_ros
+)
+
+find_package(Boost REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT EIGEN3_FOUND)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+endif()
+
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FLAGS}") #-Wall -fPIC
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -40,37 +61,15 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Candidates.msg
-  CMReq.msg
-  CNodeMsg.msg
-  ControlMsg.msg
-  ForwardModelMsg.msg
-  GoalActivationMsg.msg
-  GoalMsg.msg
-  GoalOkMsg.msg
-  PNodeMsg.msg
-  ObjDet.msg
-  OpenGripReq.msg
-  PickDist.msg
-  PNodeMsg.msg
-  PolicyMsg.msg
-  SensData.msg
-)
+# add_message_files(
+#    FILES 
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-   FILES
-   BaxChange.srv
-   BaxMC.srv
-   CandAct.srv
-   ExecPolicy.srv
-   GetSenseMotiv.srv
-   GetSURCertainty.srv
-   NewExperiment.srv
-   RefreshWorld.srv
-)
+# add_service_files(
+#   FILES
+#   TabSeg.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -80,11 +79,11 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-   DEPENDENCIES
-   std_msgs
-   sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#    std_msgs  
+#    sensor_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -117,9 +116,9 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES mdb_cafer_msgs
-   CATKIN_DEPENDS std_msgs sensor_msgs message_runtime
-#  DEPENDS system_lib
+#  LIBRARIES jni_test
+   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs mdb_common roslib message_runtime cv_bridge image_transport aruco_ros
+#  DEPENDS system_lib jvm
 )
 
 ###########
@@ -129,26 +128,53 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
 
 ## Declare a C++ library
-# add_library(mdb_cafer_msgs
-#   src/${PROJECT_NAME}/mdb_cafer_msgs.cpp
+# add_library(mdb_cafer
+#   src/${PROJECT_NAME}/mdb_cafer.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(mdb_cafer_msgs ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(mdb_cafer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(mdb_cafer_msgs_node src/mdb_cafer_msgs_node.cpp)
+
+#add_executable(beacons_track src/beacons_track.cpp)
+#target_link_libraries(beacons_track ${catkin_LIBRARIES})
+#add_dependencies(beacons_track ${catkin_EXPORTED_TARGETS})
+
+#add_executable(panoramas src/panoramas.cpp)
+#target_link_libraries(panoramas ${catkin_LIBRARIES})
+#add_executable(wave_ple src/wave_ple.cpp)
+#target_link_libraries(wave_ple ${catkin_LIBRARIES} yaml-cpp.so)
+
+#add_executable(db_manager_node_ple src/db_manager_node.cpp)
+#target_link_libraries(db_manager_node_ple ${catkin_LIBRARIES} yaml-cpp.so)
+
+#add_executable(MMSim src/MMs.cpp)
+#target_link_libraries(MMSim cafer_core jvm ${catkin_LIBRARIES})
+#add_dependencies(MMSim cafer_core_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+#add_executable(Core src/Core.cpp)
+#target_link_libraries(Core cafer_core jvm ${catkin_LIBRARIES} ${Boost_INCLUDE_DIRS})
+#add_dependencies(Core cafer_core_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+#add_executable(Sim src/Sim.cpp)
+#target_link_libraries(Sim cafer_core jvm ${catkin_LIBRARIES})
+#add_dependencies(Sim cafer_core_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+#add_executable(example src/example.cpp)
+#target_link_libraries(example ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(mdb_cafer_msgs_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(mdb_cafer_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(mdb_cafer_msgs_node
+# target_link_libraries(mdb_cafer_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -167,7 +193,7 @@ catkin_package(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS mdb_cafer_msgs mdb_cafer_msgs_node
+# install(TARGETS mdb_cafer mdb_cafer_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -186,20 +212,13 @@ catkin_package(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-install(DIRECTORY config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-)
-
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_mdb_cafer_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_mdb_cafer.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

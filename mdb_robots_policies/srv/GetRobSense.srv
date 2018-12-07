@@ -1,0 +1,8 @@
+std_msgs/Bool request
+---
+std_msgs/Float64 box_dx
+std_msgs/Float64 box_dy
+std_msgs/Float64 rob_dx
+std_msgs/Float64 rob_dy
+std_msgs/Float64 rob_ori
+std_msgs/Float64 rob_box_dist

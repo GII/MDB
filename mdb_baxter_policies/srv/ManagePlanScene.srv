@@ -1,7 +1,0 @@
-std_msgs/String element
-std_msgs/String action
-std_msgs/Float64 x
-std_msgs/Float64 y
-std_msgs/Float64 z
----
-std_msgs/Bool resp
