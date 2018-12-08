@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import math
 import numpy as np
 from matplotlib import pyplot as plt
@@ -102,23 +104,27 @@ class Sim(object):
         self.ax.add_patch(self.baxter_figure_4)
         self.ax.add_patch(self.baxter_figure_5)
 
-    def ball_set_pos(self, (x, y)):
+    def ball_set_pos(self, pos):
         """Set the ball center position"""
+        (x, y) = pos
         self.ball.center = (x, y)
         # self.fig.canvas.draw()
 
-    def box1_set_pos(self, (x, y)):
+    def box1_set_pos(self, pos):
         """Set the box1 center position"""
+        (x, y) = pos
         self.box1.xy = (x - self.box1.get_width() / 2, y - self.box1.get_height() / 2)
         # self.fig.canvas.draw()
 
-    def box2_set_pos(self, (x, y)):
+    def box2_set_pos(self, pos):
         """Set the box2 center position"""
+        (x, y) = pos
         self.box2.xy = (x - self.box2.get_width() / 2, y - self.box2.get_height() / 2)
         # self.fig.canvas.draw()
 
-    def robobo_set_pos(self, (x, y)):
+    def robobo_set_pos(self, pos):
         """Set the Robobo! center position (and its actuator) checking if it is inside its movement limits"""
+        (x, y) = pos
         w = self.robobo.get_width()
         h = self.robobo.get_height()
         # New x, y position
@@ -181,8 +187,9 @@ class Sim(object):
     ##    self.baxter_rarm._angle = angle
     ##    self.fig.canvas.draw()
 
-    def baxter_larm_set_pos(self, (x, y)):
+    def baxter_larm_set_pos(self, pos):
         """Set the Baxter's left arm center position (and its actuator) checking if it is inside its movement limits"""
+        (x, y) = pos
         w = self.baxter_larm.get_width()
         h = self.baxter_larm.get_height()
         # New x, y position
@@ -217,11 +224,11 @@ class Sim(object):
 
     def box1_get_pos(self):
         """Return the position of the center of the box1"""
-        return tuple(map(sum, zip(self.box1.xy, (self.box1.get_width() / 2, self.box1.get_height() / 2))))
+        return tuple(map(sum, list(zip(self.box1.xy, (self.box1.get_width() / 2, self.box1.get_height() / 2)))))
 
     def box2_get_pos(self):
         """Return the position of the center of the box2"""
-        return tuple(map(sum, zip(self.box2.xy, (self.box2.get_width() / 2, self.box2.get_height() / 2))))
+        return tuple(map(sum, list(zip(self.box2.xy, (self.box2.get_width() / 2, self.box2.get_height() / 2)))))
 
     def robobo_get_pos(self):
         """Return the position of the center of the Robobo!"""
@@ -301,12 +308,16 @@ class Sim(object):
         """Return the angle of the left arm of the Baxter robot"""
         return self.baxter_larm._angle
 
-    def get_distance(self, (x1, y1), (x2, y2)):
+    def get_distance(self, p1, p2):
         """Return the distance between two points"""
+        (x1, y1) = p1
+        (x2, y2) = p2
         return math.sqrt(pow(x2 - x1, 2) + (pow(y2 - y1, 2)))
 
-    def get_relative_angle(self, (x1, y1), (x2, y2)):
+    def get_relative_angle(self, p1, p2):
         """Return the relative angle betwen two points"""
+        (x1, y1) = p1
+        (x2, y2) = p2
         return math.atan2(y2 - y1, x2 - x1) * 180 / math.pi
 
     # def move_baxter_rarm(self, vel=10):
@@ -414,8 +425,9 @@ class Sim(object):
         else:
             self.ball_position = None
 
-    def check_limits(self, (x, y), robot_type):
+    def check_limits(self, pos, robot_type):
         """Check if the next position of one of the robots is inside its movement limits"""
+        (x, y) = pos
         # Set limits for robots movements
         lim_robobo_x = (100, 2400)#(100, 1250)  # (x_min,x_max)
         lim_robobo_y = (50, 800)#(50, 950)

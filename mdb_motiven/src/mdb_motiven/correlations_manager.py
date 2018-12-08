@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 from mdb_motiven.correlations import Correlations
 
 
@@ -18,7 +20,6 @@ class CorrelationsManager(object):
     """
 
     def __init__(self):
-
         self.correlations = []
         self.threshold = 0.1  # Threshold to know when to give reward to the sub-correlations
 
@@ -35,7 +36,6 @@ class CorrelationsManager(object):
             if self.correlations[i].goal == active_goal:
                 surs_asoc_active_goal += 1
                 index_last_sur_asoc = i
-
         if surs_asoc_active_goal == 0:  # Condition 1
             self.correlations.append(Correlations(None, active_goal))
             # self.correlations[-1].figure.canvas.set_window_title('SUR' + ' ' + str(len(self.correlations) - 1))
@@ -44,8 +44,6 @@ class CorrelationsManager(object):
             self.correlations.append(Correlations(None, active_goal))
             # self.correlations[-1].figure.canvas.set_window_title('SUR' + ' ' + str(len(self.correlations) - 1))
             # rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
-
-
         # if len(self.correlations) == 0:
         #     self.correlations.append(Correlations(None))
         #     self.correlations[-1].figure.canvas.set_window_title('Correlation' + ' ' + str(len(self.correlations) - 1))
@@ -73,25 +71,20 @@ class CorrelationsManager(object):
         #     if certainty > max_certainty:
         #         max_certainty = certainty
         #         active_corr = i
-
         corr_sensor, corr_type = self.correlations[active_corr].getActiveCorrelation(p, active_goal)
-
         return corr_sensor, corr_type  # active_corr, corr_sensor, corr_type
 
     def getActiveCorrelationPrueba(self, p, active_goal):
-
         # active_corr = len(self.correlations)-1
         for i in range(len(self.correlations)):  # Index last sur asociada al goal, que debe ser la que no este consolidada
             if self.correlations[i].goal == active_goal:
                 active_corr = i
-
         max_certainty = 0
         for i in range(len(self.correlations)):
             certainty = self.correlations[i].getCertainty(p, active_goal)
             if certainty > max_certainty:
                 max_certainty = certainty
                 active_corr = i
-
         return active_corr
 
     # def getActiveCorrelation(self, p):
@@ -117,7 +110,6 @@ class CorrelationsManager(object):
         :return: reward
         """
         i_r = self.correlations[active_corr].i_reward
-
         # if i_r is None:
         #     reward = self.simulator.getReward()
         # elif self.correlations[i_r].getCertainty() > self.threshold:
@@ -127,7 +119,6 @@ class CorrelationsManager(object):
             reward = 1
         else:
             reward = 0
-
         return reward
 
     def assignRewardAssigner(self, active_corr, p, active_goal, scenario=0):

@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 from mdb_motiven.episodic_buffer import EpisodicBuffer
 
 class TracesBuffer(EpisodicBuffer):
@@ -14,7 +16,7 @@ class TracesBuffer(EpisodicBuffer):
 
     def rewardAssignment(self):
         reward = 1.0
-        for i in reversed(range(len(self.buffer))):
+        for i in reversed(list(range(len(self.buffer)))):
             self.buffer[i][-1] = reward
             reward -= 1.0 / self.maxSize  # reward -= 1.0 / len(self.buffer)
 
@@ -38,7 +40,7 @@ class TracesBuffer(EpisodicBuffer):
     def getAntiTrace(self):
         """Return the antitrace values needed to use in the Correlations,
         the sensorization in t+1 obtained using the extrinsic motivation"""
-        for i in reversed(range(len(self.buffer))):
+        for i in reversed(list(range(len(self.buffer)))):
             if self.buffer[i][4] == 'Int':
                 break
         antiTrace = self.buffer[i:][2]

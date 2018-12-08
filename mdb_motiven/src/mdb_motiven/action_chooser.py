@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import numpy as np
 
 
@@ -30,9 +32,7 @@ class ActionChooser(object):
         for i in range(n):
             robobo_angle = np.random.uniform(self.l_sup, self.l_inf)
             baxter_l_angle = np.random.uniform(self.l_sup, self.l_inf)
-
             candidate_actions.append((robobo_angle, baxter_l_angle))
-
         return candidate_actions
 
     def chooseAction(self, candidate_actions):
@@ -42,8 +42,6 @@ class ActionChooser(object):
         (act_robobo, act_baxter_l, act_baxter_r, valuation)
         :return: action: Tuple with the action (3 angles) chosen to apply
         """
-
         # In a first approximation, the action chosen is the one with the best valuation, the last of the list
         action = list(candidate_actions[-1])  # Convert into a list to remove the valuation value
-
         return action[0]

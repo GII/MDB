@@ -4,6 +4,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import math
 import pdb
 import numpy as np
@@ -71,15 +73,11 @@ class DistancesCertainty(object):
                             d_pos = min(d_pos, d)
                         else:
                             d_neg = min(d_neg, -d)
-
                 if d_pos > N_GR / 2:
                     d_pos = -1
-
                 if d_neg > N_GR / 2:
                     d_neg = -1
-
                 D[i][k] = max(d_pos, d_neg)
-
         return D
 
     def getDr(self, T):
@@ -127,9 +125,7 @@ class DistancesCertainty(object):
 
     def getWeight(self, MinDistancesMap, percentile, T, n_traces, p):
         """Return the weights of the trace points in any point p"""
-
         hn, h = self.get_hn(MinDistancesMap, percentile, T, n_traces, p)
-
         W = []
         for i in range(len(hn)):
             norm_value = []
@@ -138,7 +134,6 @@ class DistancesCertainty(object):
                 norm_value.append(hn[i][j] / (self.Lsup[j] - self.Linf[j]))
                 norm_value_aux.append(h[j][i] / (self.Lsup[j] - self.Linf[j]))
             W.append(max(0, 1.0 - np.linalg.norm(norm_value)) / (np.linalg.norm(norm_value_aux) + self.epsilon))
-
         return W
 
     def getCertaintyValue(self, p):

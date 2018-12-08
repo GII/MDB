@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import pdb
 import rospy  # ROS
 
@@ -91,7 +93,7 @@ class Correlations(object):
                 p_corr = 1  # Positive correlation
                 n_corr = 1  # Negative correlation
                 same_value = 0  # Number of times a sensor has the same value in two consecutive episodes
-                for j in reversed(range(len(Trace) - self.min_ep, len(Trace))):
+                for j in reversed(list(range(len(Trace) - self.min_ep, len(Trace)))):
                     # No es necesario llegar al 0 porque estoy contemplandolo ya en el [j-1]
                     if p_corr:  # The case when positive correlation is active
                         if Trace[j][i] > Trace[j - 1][i]:
@@ -399,7 +401,7 @@ class Correlations(object):
         if not self.established:
             rospy.logdebug('New ' + str(corr_type) + ' Trace in sensor ' + str(sensor))
             # Guardo solo hasta donde se cumple la correlacion
-            for i in reversed(range(len(Trace))):
+            for i in reversed(list(range(len(Trace)))):
                 if corr_type == 'neg':
                     if Trace[i][sensor - 1] >= Trace[i - 1][sensor - 1]:
                         break
@@ -520,7 +522,7 @@ class Correlations(object):
         if not self.established:
             rospy.logdebug('New ' + str(corr_type) + ' WeakTrace in sensor ' + str(sensor))
             # Guardo solo hasta donde se cumple la correlacion
-            for i in reversed(range(len(Trace))):
+            for i in reversed(list(range(len(Trace)))):
                 if corr_type == 'neg':
                     if Trace[i][sensor - 1] >= Trace[i - 1][sensor - 1]:
                         break

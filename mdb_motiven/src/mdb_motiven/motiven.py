@@ -4,13 +4,15 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import math
 import threading
 import pickle
 # We need this if we want to debug due to every callback is a thread.
 import pdb
 import numpy
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from matplotlib import pyplot as plt
 # ROS
 import rospy
@@ -137,7 +139,7 @@ class MOTIVEN(object):
                 'ball_in_box',
                 'Unnamed']
             self.reward_dict = dict.fromkeys(goal_states)
-            for key in self.reward_dict.keys():
+            for key in self.reward_dict:
                 self.reward_dict[key] = MeanReward()
         # ROS stuff
         self.motivation_pb = None
@@ -273,7 +275,7 @@ class MOTIVEN(object):
         # Check if a new correlation is needed or established
         self.correlations_manager.newSUR(self.active_goal)
         if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
-            self.correlations_manager.assignRewardAssigner(self.active_corr, self.sens_t1.values(), self.active_goal)
+            self.correlations_manager.assignRewardAssigner(self.active_corr, list(self.sens_t1.values()), self.active_goal)
         # Como conozco el reward???
         if self.sens_t1[self.active_goal]:
             self.reward = 1
@@ -281,7 +283,7 @@ class MOTIVEN(object):
             rospy.logdebug('Reward obtained for ' + self.active_goal)
         else:
             self.reward = 0
-        self.episode.setEpisode(self.sens_t.values(), policy_id.data, self.sens_t1.values(), self.reward)
+        self.episode.setEpisode(list(self.sens_t.values()), policy_id.data, list(self.sens_t1.values()), self.reward)
         #####
         if self.motiven_high_level:
             self.episode2.setEpisode(self.state_t, policy_id.data, self.state_t1, self.reward)
@@ -390,8 +392,8 @@ class MOTIVEN(object):
                     sensorization.obj_box_dist.data * 1000))
 
                 if self.iterations > 0:
-                    print '*************************'
-                    print "Predicted state: ", candidate_state
+                    print('*************************')
+                    print('Predicted state: ', candidate_state)
 
                 self.motivation_pb.publish(String(
                     'Motivation: ' + str(self.active_mot) +
@@ -419,7 +421,7 @@ class MOTIVEN(object):
                 movement_req.scale.data = 1.0
                 try:
                     self.baxter_mov_srv(movement_req)  # self.simulator.baxter_larm_action(action)
-                except rospy.ServiceException, e:
+                except rospy.ServiceException as e:
                     rospy.logerr("Movement service call failed: {0}".format(e))
                 ######
                 movement_req = BaxMCRequest()
@@ -432,7 +434,7 @@ class MOTIVEN(object):
                     movement_req.valid = action.robobo_valid
                 try:
                     self.robobo_mov_srv(movement_req)
-                except rospy.ServiceException, e:
+                except rospy.ServiceException as e:
                     rospy.logerr("Movement service call failed: {0}".format(e))
                 self.world_rules()
 
@@ -447,8 +449,8 @@ class MOTIVEN(object):
                         sensorization.obj_box_dist.data * 1000))
                 self.episode.setReward(self.reward)
 
-                print "Real state: ", self.episode.getSensorialStateT1()
-                print '*************************'
+                print('Real state: ', self.episode.getSensorialStateT1())
+                print('*************************')
 
                 ###########################
                 if self.iterations > 0:
@@ -562,7 +564,7 @@ class MOTIVEN(object):
         if self.use_motiv_manager:
             if self.correlations_manager.correlations[self.active_corr].goal != self.active_goal:
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    list(self.sens_t1.values()),
                     self.active_goal)
             self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
                 tuple(self.sens_t1.values()),
@@ -686,7 +688,7 @@ class MOTIVEN(object):
                         rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                         rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                         self.use_motiv_manager = 1
-                        print "ANTITRAZA \n"
+                        print('ANTITRAZA \n')
 
     def memory_manager_ltm(self):
         # Save episode in the pertinent memories
@@ -722,7 +724,7 @@ class MOTIVEN(object):
                 self.correlations_manager.correlations[self.active_corr].correlationEvaluator(
                     self.traces_buffer.getTrace())
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    list(self.sens_t1.values()),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Intrinsic Motivation')
                 # pdb.set_trace()
@@ -763,7 +765,7 @@ class MOTIVEN(object):
                     self.corr_sensor,
                     self.corr_type)
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                    self.sens_t1.values(),
+                    list(self.sens_t1.values()),
                     self.active_goal)
                 rospy.loginfo('Goal reward when Extrinsic Motivation')
                 # pdb.set_trace()
@@ -813,13 +815,13 @@ class MOTIVEN(object):
                                 self.corr_sensor,
                                 self.corr_type)
                             self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
-                                self.sens_t1.values(),
+                                list(self.sens_t1.values()),
                                 self.active_goal)
                             # self.reinitialize_memories()
                             rospy.loginfo('Antitrace in sensor %s of type %s', self.corr_sensor, self.corr_type)
                             rospy.loginfo('Sens_t %s, sens_t1 %s, diff %s', sens_t, sens_t1, dif)
                             self.use_motiv_manager = 1
-                            print "ANTITRAZA \n"
+                            print('ANTITRAZA\n')
                             self.n_policies_exec = 0
                     else:
                         self.n_policies_exec = 0  # Si sigo bien la SUR reinicio el numero de policies ejecutadas
@@ -828,12 +830,12 @@ class MOTIVEN(object):
         """Return the reward checking if the ball is inside one of the boxes."""
         sens = self.get_sens_srv(Bool(True))
         if sens.obj_box_dist.data * 1000 < self.min_dist_box and self.ball_gripper:  # distance ball-box1
-            print 'Baxter ACTION Drop'
+            print('Baxter ACTION Drop')
             self.baxter_policy_srv(String('drop_object'))
             self.reward = 1
         elif sens.obj_grip_dist.data * 1000 < self.min_dist_robot and not self.ball_gripper:
         # and (sens.obj_x.data < 0.8 and sens.obj_y.data < 0.05 and sens.obj_y.data > -0.73):  # dist ball-baxter_larm
-            print '\nBAXTER ACTION PICK', sens.obj_grip_dist.data, '\n'
+            print('\nBAXTER ACTION PICK', sens.obj_grip_dist.data, '\n')
             rospy.loginfo(self.ball_gripper)
             if self.ball_robobo:
                 self.robobo_mov_back_srv(Bool(True), Bool(True))
@@ -842,7 +844,7 @@ class MOTIVEN(object):
             self.baxter_policy_srv(String('grasp_object'))
             self.ball_gripper = True
         elif sens.obj_rob_dist.data * 1000 < self.min_dist_robot and not self.ball_robobo and not self.ball_gripper:
-            print 'ROBOBO ACTION PICK'
+            print('ROBOBO ACTION PICK')
             self.robobo_pick_srv(Bool(True), Bool(True))
             self.ball_robobo = True
             self.ball_gripper = False  # Not needed
@@ -908,8 +910,8 @@ class MOTIVEN(object):
         ax.set_ylabel('Iterations needed to reach the goal')
         ax.grid()
         ax2 = ax.twinx()
-        print "range(n_reward)", range(n_reward), 'iter_goal', iter_goal
-        ax2.plot(range(n_reward), iter_goal, marker='.', markersize=1.0, color='green', linewidth=1.0, label='active')
+        print('range(n_reward)', list(range(n_reward)), 'iter_goal', iter_goal)
+        ax2.plot(list(range(n_reward)), iter_goal, marker='.', markersize=1.0, color='green', linewidth=1.0, label='active')
         ax2.set_ylabel('Number of iterations')
         # plt.xlim(0, 40000)
         # plt.show()
@@ -929,8 +931,8 @@ class MOTIVEN(object):
         media_aux = self.calc_sma(reward_matrix[:window - 1], window_aux)
         media_sum = media_aux + media[window - 1:]
         # plt.plot(iter, media_sum, marker='.', color='cyan', linewidth=0.5, label='simple moving average')
-        print "media_sum", media_sum
-        ax.plot(range(n_reward), media_sum, marker='.', markersize=2.0, color='cyan', linewidth=2.0,
+        print('media_sum', media_sum)
+        ax.plot(list(range(n_reward)), media_sum, marker='.', markersize=2.0, color='cyan', linewidth=2.0,
                 label='simple moving average')
         # print media_sum
         # print media_sum[-1]
@@ -962,7 +964,7 @@ class MOTIVEN(object):
 
     def calc_sma(self, data, smaPeriod):
         j = next(i for i, x in enumerate(data) if x is not None)
-        our_range = range(len(data))[j + smaPeriod - 1:]
+        our_range = list(range(len(data)))[j + smaPeriod - 1:]
         empty_list = [None] * (j + smaPeriod - 1)
         sub_result = [numpy.mean(data[i - smaPeriod + 1:i + 1]) for i in our_range]
         return list(empty_list + sub_result)
@@ -1058,7 +1060,7 @@ class MOTIVEN(object):
     #####
     def getFinalState(self, perceptions_t1, perceptions_t):
         """Method to translate perceptions into final states"""
-        if (None in perceptions_t.values()) or (None in perceptions_t1.values()):
+        if (None in list(perceptions_t.values())) or (None in list(perceptions_t1.values())):
             state = 'Unnamed'
             rospy.logdebug('Found None value in Perceptions')
         else:
@@ -1154,5 +1156,5 @@ class MOTIVEN(object):
             self.reward_dict[Trace[i][0]].mean_value = (self.reward_dict[Trace[i][0]].mean_value * self.reward_dict[Trace[i][0]].n_values + Trace[i][1]) / (self.reward_dict[Trace[i][0]].n_values + 1)
             self.reward_dict[Trace[i][0]].n_values += 1
         rospy.logdebug('Reward vector values: ')
-        for key, value in self.reward_dict.iteritems():
+        for key, value in self.reward_dict.items():
             rospy.logdebug('Goal state ' + key + ' , value ' + str(value.mean_value))

@@ -5,6 +5,8 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
 import math
 
 
@@ -16,7 +18,7 @@ class ForwardModel(object):
     action in the actual State Space.
     """
 
-    def predictedState(self, candidate_action, (bax_l_pos, bax_l_angle, rob_pos, rob_angle, ball_pos, ball_situation, box1_pos, desp_vel)):
+    def predictedState(self, candidate_action, state):
         """Return the predicted sensorization vector calculated as a function of the actual states and the particular
         actions applied to the robots.
 
@@ -33,14 +35,12 @@ class ForwardModel(object):
         :param h: height of the rectangle that represents the robot and the rectangle that represents the robot actuator
         :return: sens:Tuple containing the distances between the ball and the robots' actuators and the reward
         """
-
-        # Predicted Baxter left arm position after applying the particular action
+        (bax_l_pos, bax_l_angle, rob_pos, rob_angle, ball_pos, ball_situation, box1_pos, desp_vel) = state
         rob_act_new_pos  = self.get_act_new_pos(rob_pos, rob_angle, candidate_action, 'robobo', desp_vel)
         # Predicted Baxter left arm position after applying the particular action
         bax_l_act_new_pos = self.get_act_new_pos(bax_l_pos, bax_l_angle, candidate_action, 'baxter', desp_vel)
         # Predicted ball position attending to its former situation
         ball_new_pos = self.get_ball_pos(ball_pos, ball_situation, rob_act_new_pos, bax_l_act_new_pos)
-
         sens = self.get_sensorization(rob_act_new_pos, bax_l_act_new_pos, ball_new_pos, box1_pos)
         return sens
 
@@ -77,11 +77,13 @@ class ForwardModel(object):
 
         return dist_rob_ball, dist_baxt_larm_ball, dist_ball_box1
 
-    def get_distance(self, (x1, y1), (x2, y2)):
+    def get_distance(self, p1, p2):
         """Return the distance between two points (x1, y1) and (x2, y2)"""
+        (x1, y1) = p1
+        (x2, y2) = p2
         return math.sqrt(pow(x2 - x1, 2) + (pow(y2 - y1, 2)))
 
-    def get_act_new_pos(self, (x, y), angle, rel_angle, robot, vel=0.05*1000):
+    def get_act_new_pos(self, pos, angle, rel_angle, robot, vel=0.05*1000):
         """Returns the new position of the actuator of the robot.
 
         :param x, y: Tuple containing the position (x, y) of the center of the robot
@@ -94,15 +96,7 @@ class ForwardModel(object):
         :param vel: velocity of movement (default = 10)
         :return: Tuple containing the new position (x, y) of the center of the robot actuator
         """
-        # angle += rel_angle
-        #
-        # x_new, y_new = self.get_new_pos((x, y), vel, angle, w, h)
-        #
-        # x_act, y_act = (x_new + w * math.cos(angle * math.pi / 180), y_new + w * math.sin(angle * math.pi / 180))
-        #
-        # xc_act = x_act + w_act / 2 * math.cos(angle * math.pi / 180) - h_act / 2 * math.sin(angle * math.pi / 180)
-        # yc_act = y_act + w_act / 2 * math.sin(angle * math.pi / 180) + h_act / 2 * math.cos(angle * math.pi / 180)
-
+        (x, y) = pos
         if robot == 'baxter':
             if rel_angle.baxter_valid.data == False:
                 x_act = x

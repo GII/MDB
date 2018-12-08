@@ -5,6 +5,9 @@ Available from (we are still thinking about this...)
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import *
+
 class Episode(object):
     """
     Class that represents an Episode.
