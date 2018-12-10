@@ -6,13 +6,13 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import *
+from builtins import * #noqa
 import numpy as np
 
 
 class ActionChooser(object):
     """Class that implements an Action  Chooser.
-    
+
     This Action Chooser is in charge of creating the candidate actions to evaluate in the Candidate State Evaluator.
     At the same time, it is fed by the candidate actions ordered according to a valuation given by the Candidate
     State Evaluator and chooses the one it considers the best.
@@ -24,7 +24,7 @@ class ActionChooser(object):
 
     def getCandidateActions(self, n=25):
         """Return a list of candidate actions to apply in the robots.
-        
+
         :param n: int that indicates the number of candidate actions generated (default 20 actions)
         :return: candidate_actions: a list of tuples of candidate actions. Each tuple contains 3 different angles (one for each robot)
         """
@@ -37,8 +37,8 @@ class ActionChooser(object):
 
     def chooseAction(self, candidate_actions):
         """Return the action selected according to some criterion.
-        
-        :param candidate_actions: List of tuples with actions ordered according to a valuation 
+
+        :param candidate_actions: List of tuples with actions ordered according to a valuation
         (act_robobo, act_baxter_l, act_baxter_r, valuation)
         :return: action: Tuple with the action (3 angles) chosen to apply
         """

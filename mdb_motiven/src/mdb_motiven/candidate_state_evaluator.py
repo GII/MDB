@@ -6,7 +6,7 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import *
+from builtins import * #noqa
 import numpy as np
 
 import rospy
@@ -30,7 +30,7 @@ class CandidateStateEvaluator(object):
 
     def getEvaluation(self, candidates, corr_sens, tipo, SimData, sensoriz_t):
         """Return the list os candidates actions sorted according to their value
-        
+
         :param candidates: list o candidate actions
         :param corr_sens: number of the correlated sensor. 1 - sensor 1, 2 - sensor 2 ... n-sensor n
         :param tipo: type of the correlation: positive ('pos') or negative ('neg')
@@ -49,7 +49,7 @@ class CandidateStateEvaluator(object):
 
     def getValuation(self, candidate, sensor, tipo, SimData, sens_t):
         """Return the valuation for each individual candidate
-        
+
         :param candidate: candidate action to evaluate
         :param sensor:  number of the correlated sensor. 1 - sensor 1, 2 - sensor 2 ... n-sensor n
         :param tipo: type of the correlation: positive ('pos') or negative ('neg')

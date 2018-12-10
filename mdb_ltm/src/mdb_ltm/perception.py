@@ -6,8 +6,8 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import *
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
 import threading
 import rospy
 from mdb_ltm.node import Node
@@ -32,15 +32,15 @@ class Perception(Node):
         self.sensor_semaphore = None
         self.new_value = None
         self.init_threading()
-        self.topic = rospy.get_param(ros_name_prefix + '_topic')
-        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + '_msg'))
+        self.topic = rospy.get_param(ros_name_prefix + "_topic")
+        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_msg"))
         self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state['sensor_semaphore']
-        del state['new_value']
+        del state["sensor_semaphore"]
+        del state["new_value"]
         return state
 
     def init_threading(self):
@@ -50,7 +50,7 @@ class Perception(Node):
 
     def init_ros(self):
         """Create publishers and make subscriptions."""
-        rospy.logdebug('Subscribing to %s...', self.topic)
+        rospy.logdebug("Subscribing to %s...", self.topic)
         rospy.Subscriber(self.topic, self.message, callback=self.read_callback)
 
     def read_callback(self, reading):

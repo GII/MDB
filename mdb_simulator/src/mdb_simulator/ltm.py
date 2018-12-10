@@ -7,7 +7,7 @@ Distributed under GPLv3.
 """
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import *
+from builtins import * #noqa
 import os.path
 import math
 import pdb
