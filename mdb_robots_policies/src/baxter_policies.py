@@ -35,7 +35,7 @@ from dynamic_reconfigure import client
 from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from mdb_common.msg import OpenGripReq, Candidates
-from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse
+from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse, BaxCart
 from mdb_robots_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, ManagePlanScene, JoystickControl
 from gazebo_msgs.srv import GetModelState
 
@@ -122,8 +122,11 @@ class baxter_policies():
 		self.bax_candidate_actions_srver = rospy.Service ("/baxter/candidate_actions", CandAct, self.handle_cand_act)
 		self.bax_check_action_validity_srver = rospy.Service("/baxter/check_action_val", CheckActionValidity, self.handle_check_action_validity)
 
+		# Alex
 		self.bax_change_l_gripper_srver = rospy.Service('/baxter/change_l_gripper_state', BaxChange, self.handle_change_l_gripper_state)
 		self.bax_change_r_gripper_srver = rospy.Service('/baxter/change_r_gripper_state', BaxChange, self.handle_change_r_gripper_state)
+		rospy.Service('/baxter/move_xyz', BaxCart, self.handle_move_xyz)
+		rospy.Service('/baxter/move_polar', BaxMC, self.handle_move_polar)
 
 		# ROS Service Clients
 		try:
@@ -1089,16 +1092,58 @@ class baxter_policies():
 		self.exp_senses.rgrip_ori = -self.obtain_wrist_offset(arm)
 		print "Current gripper orientation: ", self.exp_senses.rgrip_ori
 
+	def handle_move_xyz(self, srv):
+
+		if srv.valid.data == True:
+			#Update the current gripper orientation
+			self.update_gripper_orientation(srv.arm.data)
+
+			#Move the gripper towards the destination
+			pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
+			print "pos ini robot", pos.x, pos.y, pos.z
+			self.exp_senses.rgrip_ori = self.angle_fix(self.exp_senses.rgrip_ori)
+
+			result = False
+
+			if self.baxter_arm.move_xyz(srv.dest.x.data, srv.dest.y.data, srv.dest.z.data, srv.grip.data, srv.orientation.data, srv.arm.data, srv.scale.data, 1.0):
+				self.baxter_arm.update_data()
+				#Update the current gripper orientation
+				self.update_gripper_orientation()
+				result = True
+
+			return Bool(result)
+		return Bool(True)
+
+	def handle_move_polar(self, srv):
+		if srv.valid.data == True:
+			# Update the current gripper orientation
+			self.update_gripper_orientation(srv.arm.data)
+
+			(x, y) = self.polar_to_cartesian(srv.dest.angle.data, srv.dest.const_dist.data)
+
+			z = srv.dest.height.data
+			result = False
+
+			if self.baxter_arm.move_xyz(x, y, z, False, srv.orientation.data, srv.arm.data,
+										srv.scale.data, 1.0):
+				self.baxter_arm.update_data()
+				# Update the current gripper orientation
+				self.update_gripper_orientation()
+				result = True
+
+			return Bool(result)
+		return Bool(True)
+
 	def handle_baxter_cartesian_mov(self, srv):
 		if srv.valid.data == True:
 			#Update the current gripper orientation
-			self.update_gripper_orientation()
+			self.update_gripper_orientation(srv.arm.data)
 
 			#Orient the gripper towards the destination
 			self.aim_gripper(srv.arm.data, srv.dest.angle.data)
 
 			#Update the current gripper orientation
-			self.update_gripper_orientation()
+			self.update_gripper_orientation(srv.arm.data)
 
 			#Move the gripper towards the destination
 			pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
