@@ -377,6 +377,7 @@ class MOTIVEN(object):
             self.load_data()
         self.ltm = not standalone
         self.init_ros_staff(log_level)
+        self.publish_goal_activations()
         if not self.ltm:
             self.stop = 0
             self.iterations = 0
