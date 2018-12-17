@@ -6,16 +6,13 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
 from mdb_ltm.node import Node
 
 
 class ForwardModel(Node):
-    """
-    A model of the environment (including the own robot) for a given set of sensors, so it can be used for prediction.
-
-    Attributes:
-
-    """
+    """A model of the environment (including the own robot) for a given set of sensors, so it can be used for prediction."""
 
     def __init__(self, **kwargs):
         """Constructor."""

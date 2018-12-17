@@ -74,7 +74,9 @@ class exp_core():
 		# Subscribers
 		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
 		self.control_sub = rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.control_cb)
-		self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
+
+		if not rospy.get_param("~helper"):
+			self.executed_policy_sub = rospy.Subscriber("/mdb/ltm/executed_policy", String, self.executed_policy_cb)
 
 		self.scene_clnt(String('head_collision'),String('add'),Float64(0.0), Float64(0.0), Float64(0.0))
 		self.scene_clnt(String('table'),String('remove'),Float64(0.0), Float64(0.0), Float64(0.0))

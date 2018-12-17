@@ -6,6 +6,8 @@ Copyright 2017-18 Richard J. Duro, Jose A. Becerra.
 Distributed under GPLv3.
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import * #noqa
 import os.path
 import math
 import pdb
@@ -250,7 +252,7 @@ class LTMSim(object):
         rospy.logdebug('Command received...')
         self.world = data.world
         self.__random_perceptions()
-        for ident, publisher in self.publishers.iteritems():
+        for ident, publisher in self.publishers.items():
             rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
 
@@ -259,7 +261,7 @@ class LTMSim(object):
         rospy.logdebug('Executing policy %s...', data.data)
         getattr(self, data.data + '_policy')()
         self.__update_goal_sensors()
-        for ident, publisher in self.publishers.iteritems():
+        for ident, publisher in self.publishers.items():
             rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
             # pdb.set_trace()
             publisher.publish(self.perceptions[ident])

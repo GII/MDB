@@ -1198,8 +1198,6 @@ class baxter_policies():
 			candidate = Candidates()
 			(candidate.baxter_action, candidate.baxter_valid) = self.baxter_candidates(srv)
 			if self.self.exp_rec!="ltm": (candidate.robobo_action, candidate.robobo_valid) = self.robobo_policies.candidate_actions(srv)
-
-			print "Action number: ", candidate_n, " baxter_valid: ", candidate.baxter_valid.data, " robobo_valid: ", candidate.robobo_valid.data
 			if (candidate.baxter_valid.data == True and candidate.robobo_valid.data == True):
 				response.candidates.append(candidate)
 				candidate_n+=1
@@ -1261,10 +1259,7 @@ class baxter_policies():
 
 		first = self.baxter_arm.choose_gripper_state(srv.arm.data)
 
-		print "\nObject distance: ", sens.const_dist.data, "Limit: ", far
-
 		if sens.const_dist.data < far:
-			print "Normal drop"
 			if self.normal_reach_drop(dx, dy, srv):
 				self.assign_grab_grip(srv.arm.data, first)
 				return Bool(True)
@@ -1275,7 +1270,6 @@ class baxter_policies():
 				return Bool(False)
 
 		elif sens.const_dist.data > far:
-			print "Far drop"
 			if self.far_reach_drop(dx, dy, srv):
 				self.assign_grab_grip(srv.arm.data, first)
 				return Bool(True)

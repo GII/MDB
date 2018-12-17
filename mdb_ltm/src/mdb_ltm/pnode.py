@@ -6,6 +6,8 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
 import numpy
 import rospy
 import pandas as pd
@@ -34,12 +36,12 @@ class PNode(Node):
         """Add a new point to the p-node."""
         newpoint = numpy.matrix(perception).T
         if self.size > 0:
-            distances_to_newpoint = numpy.linalg.norm(self.members[:,0:self.size] - newpoint, axis=0)
+            distances_to_newpoint = numpy.linalg.norm(self.members[:, 0 : self.size] - newpoint, axis=0)
             pos_closest = numpy.argmin(distances_to_newpoint)
             closest = self.members[:, pos_closest]
             if numpy.linalg.norm(newpoint - closest) == 0.0:
                 if confidence <= 0.0:
-                    rospy.logerr('Adding twice the same anti-point, this should not happen ever!!!')
+                    rospy.logerr("Adding twice the same anti-point, this should not happen ever!!!")
         if self.size < self.real_size:
             self.members[:, self.size] = newpoint
             self.memberships[self.size] = confidence
@@ -47,7 +49,8 @@ class PNode(Node):
         else:
             self.members[:, pos_closest] = newpoint
             self.memberships[pos_closest] = confidence
-            rospy.logdebug('p-node ' + self.ident + 'full!')
+            rospy.logdebug("p-node " + self.ident + "full!")
+
 
 class PNodeActClosest(PNode):
     """
@@ -62,11 +65,11 @@ class PNodeActClosest(PNode):
     def update_activation(self, perception=None, **kwargs):
         """Calculate the new activation value."""
         if perception is None:
-            rospy.logerr('No data when updating the activation of a p-node. This should not happen!')
+            rospy.logerr("No data when updating the activation of a p-node. This should not happen!")
             self.activation = 0.0
         else:
-            members = self.members[:,0:self.size]
-            memberships = self.memberships[0:self.size]
+            members = self.members[:, 0 : self.size]
+            memberships = self.memberships[0 : self.size]
             newpoint = numpy.matrix(perception).T
             distances_to_newpoint = numpy.linalg.norm(members - newpoint, axis=0)
             pos_closest = numpy.argmin(distances_to_newpoint)
@@ -95,11 +98,11 @@ class PNodeActCentroid(PNode):
     def update_activation(self, perception=None, **kwargs):
         """Calculate the new activation value."""
         if perception is None:
-            rospy.logerr('No data when updating the activation of a p-node. This should not happen!')
+            rospy.logerr("No data when updating the activation of a p-node. This should not happen!")
             self.activation = 0.0
         else:
-            members = self.members[:,0:self.size]
-            memberships = self.memberships[0:self.size]
+            members = self.members[:, 0 : self.size]
+            memberships = self.memberships[0 : self.size]
             newpoint = numpy.matrix(perception).T
             distances_to_newpoint = numpy.linalg.norm(members - newpoint, axis=0)
             pos_closest = numpy.argmin(distances_to_newpoint)
@@ -145,11 +148,11 @@ class PNodeActCentroidAndNormal(PNode):
     def update_activation(self, perception=None, **kwargs):
         """Calculate the new activation value."""
         if perception is None:
-            rospy.logerr('No data when updating the activation of a p-node. This should not happen!')
+            rospy.logerr("No data when updating the activation of a p-node. This should not happen!")
             self.activation = 0.0
         else:
-            members = self.members[:,0:self.size]
-            memberships = self.memberships[0:self.size]
+            members = self.members[:, 0 : self.size]
+            memberships = self.memberships[0 : self.size]
             newpoint = numpy.matrix(perception).T
             distances_to_newpoint = numpy.linalg.norm(members - newpoint, axis=0)
             pos_closest = numpy.argmin(distances_to_newpoint)
@@ -164,14 +167,17 @@ class PNodeActCentroidAndNormal(PNode):
                 dist_antipoint_centroid = numpy.linalg.norm(v_antipoint_centroid)
                 dist_newpoint_centroid = numpy.linalg.norm(v_newpoint_centroid)
                 # https://en.wikipedia.org/wiki/Vector_projection
-                separation = numpy.linalg.norm(v_antipoint_centroid - numpy.inner(
-                    v_newpoint_centroid,
-                    numpy.inner(v_antipoint_centroid, v_newpoint_centroid) / numpy.inner(
-                        v_newpoint_centroid, v_newpoint_centroid)))
-                if (
-                        (dist_newpoint_centroid < dist_antipoint_centroid) or
-                        (numpy.random.uniform() < dist_antipoint_centroid * separation / dist_newpoint_centroid)
-                    ): # yapf: disable
+                separation = numpy.linalg.norm(
+                    v_antipoint_centroid
+                    - numpy.inner(
+                        v_newpoint_centroid,
+                        numpy.inner(v_antipoint_centroid, v_newpoint_centroid)
+                        / numpy.inner(v_newpoint_centroid, v_newpoint_centroid),
+                    )
+                )
+                if (dist_newpoint_centroid < dist_antipoint_centroid) or (
+                    numpy.random.uniform() < dist_antipoint_centroid * separation / dist_newpoint_centroid
+                ):  # yapf: disable
                     distances_to_newpoint = distances_to_newpoint[memberships > 0.0]
                     pos_closest = numpy.argmin(distances_to_newpoint)
                     positive_memberships = memberships[memberships > 0.0]
@@ -180,21 +186,32 @@ class PNodeActCentroidAndNormal(PNode):
                     self.activation = -1
         super(PNodeActCentroidAndNormal, self).update_activation(**kwargs)
 
+
 class PNodeDNN(PNode):
     """Calculate the new activation value using the output of a DNN."""
 
     def __init__(self, **kwargs):
         """Constructor."""
         # TODO: almost everything is hardcoded for today
-        self.headers = ['ball_in_right_hand', 'ball_dist', 'box_size', 'ball_in_left_hand', 'box_ang', 'ball_ang', 'box_dist', 'ball_size']
+        self.headers = [
+            "ball_in_right_hand",
+            "ball_dist",
+            "box_size",
+            "ball_in_left_hand",
+            "box_ang",
+            "ball_ang",
+            "box_dist",
+            "ball_size",
+        ]
         self.feature_columns = [tf.feature_column.numeric_column(i) for i in self.headers]
         self.net = tf.estimator.DNNClassifier(
             hidden_units=[20, 10, 5],
             feature_columns=self.feature_columns,
-            model_dir='pnode00_03000',
+            model_dir="pnode00_03000",
             n_classes=2,
-            optimizer='Adam',
-            activation_fn=tf.nn.relu)
+            optimizer="Adam",
+            activation_fn=tf.nn.relu,
+        )
         super(PNodeDNN, self).__init__(**kwargs)
 
     def add_perception(self, perception, confidence):
@@ -204,20 +221,17 @@ class PNodeDNN(PNode):
     def update_activation(self, perception=None, **kwargs):
         """Calculate the new activation value."""
         if perception is None:
-            rospy.logerr('No data when updating the activation of a p-node. This should not happen!')
+            rospy.logerr("No data when updating the activation of a p-node. This should not happen!")
             self.activation = 0.0
         else:
             predict_data = pd.DataFrame([perception], columns=self.headers)
             predict_input_fn = tf.estimator.inputs.pandas_input_fn(
-                x=predict_data,
-                batch_size=1,
-                num_epochs=1,
-                shuffle=False,
-                target_column='Confidence')
+                x=predict_data, batch_size=1, num_epochs=1, shuffle=False, target_column="Confidence"
+            )
             predictions = list(self.net.predict(input_fn=predict_input_fn))
             prediction = predictions[0]
-            if prediction['class_ids'] == 1:
-                self.activation = prediction['probabilities'][1]
+            if prediction["class_ids"] == 1:
+                self.activation = prediction["probabilities"][1]
             else:
                 self.activation = -1.0
         super(PNodeDNN, self).update_activation(**kwargs)

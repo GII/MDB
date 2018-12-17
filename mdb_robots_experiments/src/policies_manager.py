@@ -96,7 +96,7 @@ class policies_manager():
 			'throw':self.bax_throw_clnt,
 			'ask_nicely':self.bax_ask_help_clnt,
 			'joystick':self.bax_joy_control_clnt, 
-			'drop_object':self.bd_clnt, 
+			'drop_object':self.bax_drop_clnt, 
 		}
 		return options[arg]
 
@@ -231,7 +231,6 @@ class policies_manager():
 		srv.arm.data = arm
 		srv.scale.data = self.velocity
 		if self.global_exp.world == "gripper_and_low_friction":
-			print "Do grip"
 			srv.grip.data = True
 		self.global_exp.adopt_expression("focus")
 		if not arm == "both":

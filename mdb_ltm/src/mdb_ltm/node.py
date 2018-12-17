@@ -6,16 +6,13 @@ Copyright 2017 Richard J. Duro, Jose A. Becerra.
 Distributed under the (yes, we are still thinking about this too...).
 """
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
 import rospy
 
 
 class Node(object):
-    """
-    An MDB element.
-
-    Attributes:
-
-    """
+    """An MDB element."""
 
     def __init__(self, ident, node_type, threshold=0.1, ltm=None, **kwargs):
         """Constructor."""
@@ -30,7 +27,7 @@ class Node(object):
     @staticmethod
     def class_from_classname(class_name):
         """Return a class object from a class name."""
-        module_string, _, class_string = class_name.rpartition('.')
+        module_string, _, class_string = class_name.rpartition(".")
         node_module = __import__(module_string, fromlist=[class_string])
         node_class = getattr(node_module, class_string)
         return node_class
@@ -43,5 +40,5 @@ class Node(object):
         """
         if self.activation < self.threshold:
             self.activation = 0.0
-        rospy.logdebug(self.type + ' activation for ' + self.ident + ' = ' + str(self.activation))
+        rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
         super(Node, self).__init__(**kwargs)
