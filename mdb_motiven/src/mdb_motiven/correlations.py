@@ -7,7 +7,6 @@ Distributed under the (yes, we are still thinking about this too...).
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import * #noqa
-import pdb
 import rospy  # ROS
 
 from matplotlib import pyplot as plt
@@ -87,7 +86,6 @@ class Correlations(object):
         """
         # print "Correlation evaluator"
         # print "len trace: ", len(Trace)
-        # pdb.set_trace()
         if len(Trace) >= self.min_ep:
             for i in range(self.n_sensor):
                 p_corr = 1  # Positive correlation
@@ -118,10 +116,8 @@ class Correlations(object):
                 # If there is a correlation, save it in the pertinent correlation trace memory
                 if p_corr:  # Si esto esta bien corregirlo, porque es redundante
                     self.addWeakTrace(Trace, i + 1, 'pos')
-                    # pdb.set_trace()
                 elif n_corr:
                     self.addWeakTrace(Trace, i + 1, 'neg')
-                    # pdb.set_trace()
 
     def getActiveCorrelation(self, p, active_goal):
         """

@@ -13,14 +13,14 @@ from mdb_simulator.ltm import LTMSim
 
 def start_ltm_simulator():
     """Create a LTM simulator object and run it."""
-    parser = argparse.ArgumentParser(description='This script starts a very simple simulator to run LTM experiments')
-    parser.add_argument('-c', '--config_file', help='Configuration file in yaml format')
-    parser.add_argument('-l', '--log_level', help='ROS log level (DEBUG, INFO, WARN, ERROR or FATAL)')
+    parser = argparse.ArgumentParser(description="This script starts a very simple simulator to run LTM experiments")
+    parser.add_argument("-c", "--config_file", help="Configuration file in yaml format")
+    parser.add_argument("-l", "--log_level", help="ROS log level (DEBUG, INFO, WARN, ERROR or FATAL)")
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
     ltm = LTMSim()
     ltm.run(**kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_ltm_simulator()

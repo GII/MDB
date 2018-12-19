@@ -6,14 +6,14 @@ Copyright 2017-18 Richard J. Duro, Jose A. Becerra.
 Distributed under GPLv3.
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
 import os.path
 import math
-import pdb
 import yaml
 import numpy
 import rospy
+
 
 class LTMSim(object):
     """A very simple events-based simulator for LTM experiments."""
@@ -31,7 +31,7 @@ class LTMSim(object):
     @staticmethod
     def __class_from_classname(class_name):
         """Return a class object from a class name."""
-        module_string, _, class_string = class_name.rpartition('.')
+        module_string, _, class_string = class_name.rpartition(".")
         node_module = __import__(module_string, fromlist=[class_string])
         node_class = getattr(node_module, class_string)
         return node_class
@@ -109,202 +109,203 @@ class LTMSim(object):
 
     def __update_goal_sensors(self):
         """Update goal sensors' values."""
-        if (self.perceptions['ball_dist'] == self.perceptions['box_dist']) and (self.perceptions['ball_ang'] == self.perceptions['box_ang']):
-            self.perceptions['ball_in_box'] = True
+        if (self.perceptions["ball_dist"] == self.perceptions["box_dist"]) and (
+            self.perceptions["ball_ang"] == self.perceptions["box_ang"]
+        ):
+            self.perceptions["ball_in_box"] = True
         else:
-            self.perceptions['ball_in_box'] = False
-        dist, ang = self.calculate_closest_position(self.perceptions['ball_ang'])
-        if (self.perceptions['ball_dist'] == dist) and (self.perceptions['ball_ang'] == ang):
-            self.perceptions['ball_with_robot'] = True
+            self.perceptions["ball_in_box"] = False
+        dist, ang = self.calculate_closest_position(self.perceptions["ball_ang"])
+        if (self.perceptions["ball_dist"] == dist) and (self.perceptions["ball_ang"] == ang):
+            self.perceptions["ball_with_robot"] = True
         else:
-            self.perceptions['ball_with_robot'] = False
+            self.perceptions["ball_with_robot"] = False
 
     def __random_perceptions(self):
         """Randomize the state of the environment."""
         # Sizes
         if numpy.random.uniform() > 0.3:
-            self.perceptions['ball_size'] = 0.03
-            self.perceptions['box_size'] = 0.12
+            self.perceptions["ball_size"] = 0.03
+            self.perceptions["box_size"] = 0.12
         else:
-            self.perceptions['ball_size'] = 0.07
-            self.perceptions['box_size'] = 0.12
+            self.perceptions["ball_size"] = 0.07
+            self.perceptions["box_size"] = 0.12
         # Ball position
         valid = False
         while not valid:
             ball_y = numpy.random.uniform(low=-1.07, high=1.07)
             ball_x = numpy.random.uniform(low=0.37, high=1.29)
-            self.perceptions['ball_dist'] = numpy.linalg.norm([ball_y, ball_x])
-            self.perceptions['ball_ang'] = numpy.arctan2(ball_y, ball_x)
-            valid = not self.object_too_close(self.perceptions['ball_dist'], self.perceptions['ball_ang'])
+            self.perceptions["ball_dist"] = numpy.linalg.norm([ball_y, ball_x])
+            self.perceptions["ball_ang"] = numpy.arctan2(ball_y, ball_x)
+            valid = not self.object_too_close(self.perceptions["ball_dist"], self.perceptions["ball_ang"])
         # Box position
         valid = False
         while not valid:
             box_y = numpy.random.uniform(low=-1.07, high=1.07)
             box_x = numpy.random.uniform(low=0.37, high=1.29)
-            self.perceptions['box_dist'] = numpy.linalg.norm([box_y, box_x])
-            self.perceptions['box_ang'] = numpy.arctan2(box_y, box_x)
-            valid = not self.object_too_close(self.perceptions['box_dist'], self.perceptions['box_ang'])
+            self.perceptions["box_dist"] = numpy.linalg.norm([box_y, box_x])
+            self.perceptions["box_ang"] = numpy.arctan2(box_y, box_x)
+            valid = not self.object_too_close(self.perceptions["box_dist"], self.perceptions["box_ang"])
         # Hands
-        self.perceptions['ball_in_left_hand'] = False
-        self.perceptions['ball_in_right_hand'] = False
+        self.perceptions["ball_in_left_hand"] = False
+        self.perceptions["ball_in_right_hand"] = False
         # Goal sensors
         self.__update_goal_sensors()
 
     def grasp_object_policy(self):
         """Grasp an object with a gripper."""
         if (
-                self.world == 'gripper_and_low_friction' and
-                (not self.object_too_far(self.perceptions['ball_dist'], self.perceptions['ball_ang'])) and
-                self.ball_is_small(self.perceptions['ball_size']) and
-                (not self.perceptions['ball_in_left_hand']) and
-                (not self.perceptions['ball_in_right_hand'])
-            ): # yapf: disable
-            if self.perceptions['ball_ang'] > 0.0:
-                self.perceptions['ball_in_left_hand'] = True
+            self.world == "gripper_and_low_friction"
+            and (not self.object_too_far(self.perceptions["ball_dist"], self.perceptions["ball_ang"]))
+            and self.ball_is_small(self.perceptions["ball_size"])
+            and (not self.perceptions["ball_in_left_hand"])
+            and (not self.perceptions["ball_in_right_hand"])
+        ):  # yapf: disable
+            if self.perceptions["ball_ang"] > 0.0:
+                self.perceptions["ball_in_left_hand"] = True
             else:
-                self.perceptions['ball_in_right_hand'] = True
+                self.perceptions["ball_in_right_hand"] = True
 
     def grasp_with_two_hands_policy(self):
         """Grasp an object using both arms."""
         if (
-                self.object_pickable_withtwohands(self.perceptions['ball_dist'], self.perceptions['ball_ang']) and
-                (
-                    (self.world == 'no_gripper_and_high_friction') or
-                    (not self.ball_is_small(self.perceptions['ball_size']))
-                ) and
-                (not self.perceptions['ball_in_left_hand']) and
-                (not self.perceptions['ball_in_right_hand'])
-            ): # yapf: disable
-            self.perceptions['ball_in_left_hand'] = True
-            self.perceptions['ball_in_right_hand'] = True
+            self.object_pickable_withtwohands(self.perceptions["ball_dist"], self.perceptions["ball_ang"])
+            and (
+                (self.world == "no_gripper_and_high_friction")
+                or (not self.ball_is_small(self.perceptions["ball_size"]))
+            )
+            and (not self.perceptions["ball_in_left_hand"])
+            and (not self.perceptions["ball_in_right_hand"])
+        ):  # yapf: disable
+            self.perceptions["ball_in_left_hand"] = True
+            self.perceptions["ball_in_right_hand"] = True
 
     def change_hands_policy(self):
         """Exchange an object from one hand to the other one."""
-        if self.perceptions['ball_in_left_hand'] and (not self.perceptions['ball_in_right_hand']):
-            self.perceptions['ball_in_left_hand'] = False
-            self.perceptions['ball_in_right_hand'] = True
-            self.perceptions['ball_ang'] = -self.perceptions['ball_ang']
-        elif (not self.perceptions['ball_in_left_hand']) and self.perceptions['ball_in_right_hand']:
-            self.perceptions['ball_in_left_hand'] = True
-            self.perceptions['ball_in_right_hand'] = False
-            self.perceptions['ball_ang'] = -self.perceptions['ball_ang']
+        if self.perceptions["ball_in_left_hand"] and (not self.perceptions["ball_in_right_hand"]):
+            self.perceptions["ball_in_left_hand"] = False
+            self.perceptions["ball_in_right_hand"] = True
+            self.perceptions["ball_ang"] = -self.perceptions["ball_ang"]
+        elif (not self.perceptions["ball_in_left_hand"]) and self.perceptions["ball_in_right_hand"]:
+            self.perceptions["ball_in_left_hand"] = True
+            self.perceptions["ball_in_right_hand"] = False
+            self.perceptions["ball_ang"] = -self.perceptions["ball_ang"]
 
     def sweep_object_policy(self):
         """Sweep an object to the front of the robot."""
         if (
-                (not self.object_too_far(self.perceptions['ball_dist'], self.perceptions['ball_ang'])) and
-                (not self.perceptions['ball_in_left_hand']) and
-                (not self.perceptions['ball_in_right_hand'])
-            ): # yapf: disable
-            if (
-                    (self.world == 'no_gripper_and_high_friction') or
-                    (not self.ball_is_small(self.perceptions['ball_size']))
-                ): # yapf: disable
-                self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.__send_object_twohandsreachable(self.perceptions['ball_dist'])
+            (not self.object_too_far(self.perceptions["ball_dist"], self.perceptions["ball_ang"]))
+            and (not self.perceptions["ball_in_left_hand"])
+            and (not self.perceptions["ball_in_right_hand"])
+        ):  # yapf: disable
+            if (self.world == "no_gripper_and_high_friction") or (
+                not self.ball_is_small(self.perceptions["ball_size"])
+            ):  # yapf: disable
+                self.perceptions["ball_dist"], self.perceptions["ball_ang"] = self.__send_object_twohandsreachable(
+                    self.perceptions["ball_dist"]
+                )
             else:
-                self.perceptions['ball_ang'] = -numpy.sign(self.perceptions['ball_ang']) * 0.4
+                self.perceptions["ball_ang"] = -numpy.sign(self.perceptions["ball_ang"]) * 0.4
 
     def put_object_in_box_policy(self):
         """Put an object into the box."""
-        if (
-                (not self.object_too_far(self.perceptions['box_dist'], self.perceptions['box_ang'])) and
-                (
-                    ((self.perceptions['box_ang'] > 0.0) and self.perceptions['ball_in_left_hand']) or
-                    ((self.perceptions['box_ang'] <= 0.0) and self.perceptions['ball_in_right_hand'])
-                )
-            ): # yapf: disable
-            self.perceptions['ball_dist'] = self.perceptions['box_dist']
-            self.perceptions['ball_ang'] = self.perceptions['box_ang']
-            self.perceptions['ball_in_left_hand'] = False
-            self.perceptions['ball_in_right_hand'] = False
+        if (not self.object_too_far(self.perceptions["box_dist"], self.perceptions["box_ang"])) and (
+            ((self.perceptions["box_ang"] > 0.0) and self.perceptions["ball_in_left_hand"])
+            or ((self.perceptions["box_ang"] <= 0.0) and self.perceptions["ball_in_right_hand"])
+        ):  # yapf: disable
+            self.perceptions["ball_dist"] = self.perceptions["box_dist"]
+            self.perceptions["ball_ang"] = self.perceptions["box_ang"]
+            self.perceptions["ball_in_left_hand"] = False
+            self.perceptions["ball_in_right_hand"] = False
 
     def put_object_in_robot_policy(self):
         """Put an object as close to the robot as possible."""
-        if self.perceptions['ball_in_left_hand'] or self.perceptions['ball_in_right_hand']:
-            self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.calculate_closest_position(self.perceptions['ball_ang'])
-            self.perceptions['ball_in_left_hand'] = False
-            self.perceptions['ball_in_right_hand'] = False
+        if self.perceptions["ball_in_left_hand"] or self.perceptions["ball_in_right_hand"]:
+            self.perceptions["ball_dist"], self.perceptions["ball_ang"] = self.calculate_closest_position(
+                self.perceptions["ball_ang"]
+            )
+            self.perceptions["ball_in_left_hand"] = False
+            self.perceptions["ball_in_right_hand"] = False
 
     def throw_policy(self):
         """Throw an object."""
-        if self.perceptions['ball_in_left_hand'] or self.perceptions['ball_in_right_hand']:
-            if (
-                    self.object_too_far(self.perceptions['box_dist'], self.perceptions['box_ang']) and
-                    (
-                        (self.perceptions['box_ang'] > 0.0 and self.perceptions['ball_in_left_hand']) or
-                        (self.perceptions['box_ang'] <= 0.0 and self.perceptions['ball_in_right_hand'])
-                    )
-                ): # yapf: disable
-                self.perceptions['ball_dist'] = self.perceptions['box_dist']
-                self.perceptions['ball_ang'] = self.perceptions['box_ang']
+        if self.perceptions["ball_in_left_hand"] or self.perceptions["ball_in_right_hand"]:
+            if self.object_too_far(self.perceptions["box_dist"], self.perceptions["box_ang"]) and (
+                (self.perceptions["box_ang"] > 0.0 and self.perceptions["ball_in_left_hand"])
+                or (self.perceptions["box_ang"] <= 0.0 and self.perceptions["ball_in_right_hand"])
+            ):  # yapf: disable
+                self.perceptions["ball_dist"] = self.perceptions["box_dist"]
+                self.perceptions["ball_ang"] = self.perceptions["box_ang"]
             else:
-                self.perceptions['ball_dist'], self.perceptions['ball_ang'] = self.__send_object_outofreach(self.perceptions['ball_ang'])
-            self.perceptions['ball_in_left_hand'] = False
-            self.perceptions['ball_in_right_hand'] = False
+                self.perceptions["ball_dist"], self.perceptions["ball_ang"] = self.__send_object_outofreach(
+                    self.perceptions["ball_ang"]
+                )
+            self.perceptions["ball_in_left_hand"] = False
+            self.perceptions["ball_in_right_hand"] = False
 
     def ask_nicely_policy(self):
         """Ask someone to bring the object closer to us."""
-        if self.object_too_far(self.perceptions['ball_dist'], self.perceptions['ball_ang']):
-            self.perceptions['ball_dist'] = 1.13
+        if self.object_too_far(self.perceptions["ball_dist"], self.perceptions["ball_ang"]):
+            self.perceptions["ball_dist"] = 1.13
 
     def __new_command_callback(self, data):
         """Process a command."""
-        rospy.logdebug('Command received...')
+        rospy.logdebug("Command received...")
         self.world = data.world
         self.__random_perceptions()
         for ident, publisher in self.publishers.items():
-            rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
+            rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
 
     def __new_action_callback(self, data):
         """Whenever a policy is selected to be executed by the LTM, the simulator executes it and publishes the new perceptions."""
-        rospy.logdebug('Executing policy %s...', data.data)
-        getattr(self, data.data + '_policy')()
+        rospy.logdebug("Executing policy %s...", data.data)
+        getattr(self, data.data + "_policy")()
         self.__update_goal_sensors()
         for ident, publisher in self.publishers.items():
-            rospy.logdebug('Publishing ' + ident + ' = ' + str(self.perceptions[ident]))
-            # pdb.set_trace()
+            rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident]))
             publisher.publish(self.perceptions[ident])
 
     def __configure_sensors(self, sensors):
         """Configure the ROS publishers where publish sensor values."""
         for sensor in sensors:
-            self.perceptions[sensor['id']] = 0
-            topic = rospy.get_param(sensor['ros_name_prefix'] + '_topic')
-            message = self.__class_from_classname(rospy.get_param(sensor['ros_name_prefix'] + '_msg'))
-            rospy.logdebug('I will publish to %s...', topic)
-            self.publishers[sensor['id']] = rospy.Publisher(topic, message, latch=True, queue_size=0)
+            self.perceptions[sensor["id"]] = 0
+            topic = rospy.get_param(sensor["ros_name_prefix"] + "_topic")
+            message = self.__class_from_classname(rospy.get_param(sensor["ros_name_prefix"] + "_msg"))
+            rospy.logdebug("I will publish to %s...", topic)
+            self.publishers[sensor["id"]] = rospy.Publisher(topic, message, latch=True, queue_size=0)
 
     def __configure_simulation(self, simulation):
         """Configure the ROS topic where listen for commands to be executed."""
-        self.ident = simulation['id']
-        topic = rospy.get_param(simulation['ros_name_prefix'] + '_topic')
-        message = self.__class_from_classname(rospy.get_param(simulation['ros_name_prefix'] + '_msg'))
-        rospy.logdebug('Subscribing to %s...', topic)
+        self.ident = simulation["id"]
+        topic = rospy.get_param(simulation["ros_name_prefix"] + "_topic")
+        message = self.__class_from_classname(rospy.get_param(simulation["ros_name_prefix"] + "_msg"))
+        rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.__new_command_callback)
-        topic = rospy.get_param(simulation['executed_policy_prefix'] + '_topic')
-        message = self.__class_from_classname(rospy.get_param(simulation['executed_policy_prefix'] + '_msg'))
-        rospy.logdebug('Subscribing to %s...', topic)
+        topic = rospy.get_param(simulation["executed_policy_prefix"] + "_topic")
+        message = self.__class_from_classname(rospy.get_param(simulation["executed_policy_prefix"] + "_msg"))
+        rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.__new_action_callback)
 
     def __load_configuration(self, log_level, config_file):
         """Load configuration from a file."""
-        rospy.init_node('ltm_simulator', log_level=getattr(rospy, log_level))
+        rospy.init_node("ltm_simulator", log_level=getattr(rospy, log_level))
         if config_file is None:
-            rospy.logerr('No configuration file for the LTM simulator specified!')
+            rospy.logerr("No configuration file for the LTM simulator specified!")
         else:
             if not os.path.isfile(config_file):
-                rospy.logerr(config_file + ' does not exist!')
+                rospy.logerr(config_file + " does not exist!")
             else:
-                rospy.loginfo('Loading configuration from %s...', config_file)
-                config = yaml.load(open(config_file, 'r'), Loader=yaml.CLoader)
-                self.__configure_sensors(config['Simulator']['Sensors'])
+                rospy.loginfo("Loading configuration from %s...", config_file)
+                config = yaml.load(open(config_file, "r"), Loader=yaml.CLoader)
+                self.__configure_sensors(config["Simulator"]["Sensors"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
-                self.__configure_simulation(config['Control'])
+                self.__configure_simulation(config["Control"])
 
-    def run(self, log_level='INFO', config_file=None, **kwargs):
+    def run(self, log_level="INFO", config_file=None, **kwargs):
         """Start the LTM simulator."""
         self.__load_configuration(log_level, config_file)
-        rospy.loginfo('Starting LTM Simulator...')
+        rospy.loginfo("Starting LTM Simulator...")
         rospy.spin()
-        rospy.loginfo('Ending LTM Simulator...')
+        rospy.loginfo("Ending LTM Simulator...")
+

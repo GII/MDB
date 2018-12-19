@@ -1,6 +1,6 @@
 Experiment:
-    iterations: 30000
-    period: 400
+    iterations: 10000
+    period: 500
     trials: 200
     worlds: ['gripper_and_low_friction', 'no_gripper_and_high_friction']
 Control:
@@ -17,12 +17,12 @@ LTM:
             id: pnodes
             class: mdb_ltm.file.FilePNodes
             file: pnodes.txt
-            data: 3000
+            data: 1000
         -
             id: ltm_dump
             class: mdb_ltm.file.FileLTMPeriodicDump
             file: ltm_dump
-            data: 3000
+            data: 1000
     Connectors:
         -
             data: PNode
@@ -90,11 +90,11 @@ LTM:
             -
                 id: ball_in_box
                 class: mdb_ltm.goal.GoalBallInBox
-                data: [1.0, 200]
+                data: [1.0, 250]
             -
                 id: ball_with_robot
                 class: mdb_ltm.goal.GoalBallWithRobot
-                data: [0.0, 200]
+                data: [0.0, 250]
         ForwardModel:
             -
                 id: gripper_and_low_friction

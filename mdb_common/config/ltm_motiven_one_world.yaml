@@ -1,6 +1,6 @@
 Experiment:
-    iterations: 60000
-    period: 60000
+    iterations: 10000
+    period: 10000
     trials: 200
     worlds: ['gripper_and_low_friction']
 Control:
@@ -17,12 +17,12 @@ LTM:
             id: pnodes
             class: mdb_ltm.file.FilePNodes
             file: pnodes.txt
-            data: 3000
+            data: 1000
         -
             id: ltm_dump
             class: mdb_ltm.file.FileLTMPeriodicDump
             file: ltm_dump
-            data: 3000
+            data: 1000
     Connectors:
         -
             data: PNode

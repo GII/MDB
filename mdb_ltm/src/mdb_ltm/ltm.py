@@ -135,7 +135,7 @@ class LTM(object):
                 ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
                 ltm.files = []
                 ltm.there_are_goals = threading.Event()
-                # Unfortunatly, implementing __setstate__ didn't work, so I was forced to do this by hand.
+                # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
                 # I think construct_yaml_object is the guilty, because when __setstate__ exists,
                 # it calls construct_mapping with deep=True
                 for perception in ltm.nodes["Perception"].values():
@@ -363,7 +363,7 @@ class LTM(object):
             node.update_activation()
 
     def __random_policy(self):
-        """Select a random policy. In order to avoid problems with random numbers' generation, we use a pool."""
+        """Select a random policy. In order to avoid problems with random numbers" generation, we use a pool."""
         if self.policies_to_test == []:
             self.policies_to_test = copy(self.policies)
         policy = self.policies_to_test[numpy.random.randint(len(self.policies_to_test))]
@@ -526,7 +526,7 @@ class LTM(object):
             )
         # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
         # pyplot.legend(
-        #     loc='bottom right', shadow=True, fancybox=True, fontsize=10, labelspacing=3, bbox_to_anchor=(1.30, 0.5))
+        #     loc="bottom right", shadow=True, fancybox=True, fontsize=10, labelspacing=3, bbox_to_anchor=(1.30, 0.5))
         # You will not get any graph on the screen without this line
         pyplot.pause(0.0001)
 
@@ -593,4 +593,3 @@ class LTM(object):
                     sensing = self.__read_perceptions()
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
-
