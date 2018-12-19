@@ -43,6 +43,7 @@ find_package(catkin REQUIRED std_msgs sensor_msgs message_generation)
 add_message_files(
   FILES
   Candidates.msg
+  CartReq.msg
   CMReq.msg
   CNodeMsg.msg
   ControlMsg.msg
@@ -62,6 +63,7 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   BaxCart.srv
    BaxChange.srv
    BaxMC.srv
    CandAct.srv
