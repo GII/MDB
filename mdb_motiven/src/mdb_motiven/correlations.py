@@ -27,7 +27,7 @@ class Correlations(object):
     """
 
     def __init__(self, rewardAssigner, goal_id):
-        self.n_sensor = 10  # Number of sensors. Useful to know how many possible correlations there are
+        self.n_sensor = 12  # Number of sensors. Useful to know how many possible correlations there are
         self.min_ep = 2#5  # Minimum number of episodes to consider the correlation possible
         self.same_values_accepted = 1  # Number of sensor admitted to be equal
 
@@ -53,6 +53,10 @@ class Correlations(object):
         self.S9_pos = DistancesCertainty()
         self.S10_neg = DistancesCertainty()
         self.S10_pos = DistancesCertainty()
+        self.S11_neg = DistancesCertainty()
+        self.S11_pos = DistancesCertainty()
+        self.S12_neg = DistancesCertainty()
+        self.S12_pos = DistancesCertainty()
 
         self.corr_active = 0  # 1 - Sensor 1, 2 - Sensor 2, ... n- sensor n, 0 - no hay correlacion
         self.corr_type = ''  # 'pos' - Correlacion positiva, 'neg' - Correlacion negativa, '' - no hay correlacion
@@ -74,7 +78,7 @@ class Correlations(object):
 
         self.Tb = 8  # 20#8  # Number of goals without antitraces needed to consider the correlation established
 
-        self.figure = plt.figure()
+        # self.figure = plt.figure()
         # self.figure.canvas.set_window_title('PRUEBA')
 
     def correlationEvaluator(self, Trace):
@@ -150,6 +154,10 @@ class Correlations(object):
             c9_neg = self.S9_neg.getCertaintyValue(p)
             c10_pos = self.S10_pos.getCertaintyValue(p)
             c10_neg = self.S10_neg.getCertaintyValue(p)
+            c11_pos = self.S10_pos.getCertaintyValue(p)
+            c11_neg = self.S10_neg.getCertaintyValue(p)
+            c12_pos = self.S10_pos.getCertaintyValue(p)
+            c12_neg = self.S10_neg.getCertaintyValue(p)
 
             # n_c1_pos = self.S1_pos.numberOfGoalsWithoutAntiTraces
             # n_c1_neg = self.S1_neg.numberOfGoalsWithoutAntiTraces
@@ -225,15 +233,25 @@ class Correlations(object):
                         j = 16
                     else:
                         j = 17
-                else:
+                elif self.corr_established == 10:
                     if self.corr_established_type == 'pos':
                         j = 18
                     else:
                         j = 19
+                elif self.corr_established == 11:
+                    if self.corr_established_type == 'pos':
+                        j = 20
+                    else:
+                        j = 21
+                else:
+                    if self.corr_established_type == 'pos':
+                        j = 22
+                    else:
+                        j = 23
                 if self.corr_threshold > (
                         c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg, c6_pos, c6_neg,
                         c7_pos,
-                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg)[
+                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg)[
                     j]:  # Si el umbral es mayor que el valor de certeza de la correlacion consolidada
                     self.corr_active = 0
                     self.corr_type = ''
@@ -244,7 +262,7 @@ class Correlations(object):
                 if self.corr_threshold > max(
                         c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg, c6_pos, c6_neg,
                         c7_pos,
-                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg):
+                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg):
                     self.corr_active = 0  # Al no haber correlacion activa doy por hecho que se usa la motivInt
                     self.corr_type = ''
                 else:
@@ -252,11 +270,11 @@ class Correlations(object):
                     i = (
                         c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg, c6_pos, c6_neg,
                         c7_pos,
-                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg).index(
+                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg).index(
                         max(
                         c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg, c6_pos, c6_neg,
                         c7_pos,
-                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg))
+                        c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg))
                     if i < 2:
                         self.corr_active = 1  # Sensor 1
                     elif i < 4:
@@ -275,8 +293,12 @@ class Correlations(object):
                         self.corr_active = 8  # Sensor 8
                     elif i < 18:
                         self.corr_active = 9  # Sensor 9
-                    else:
+                    elif i < 20:
                         self.corr_active = 10  # Sensor 10
+                    elif i < 22:
+                        self.corr_active = 11  # Sensor 11
+                    else:
+                        self.corr_active = 12  # Sensor 12
                     if i % 2 == 0:  # Posicion par
                         self.corr_type = 'pos'
                     else:
@@ -316,6 +338,10 @@ class Correlations(object):
             c9_neg = self.S9_neg.getCertaintyValue(p)
             c10_pos = self.S10_pos.getCertaintyValue(p)
             c10_neg = self.S10_neg.getCertaintyValue(p)
+            c11_pos = self.S11_pos.getCertaintyValue(p)
+            c11_neg = self.S11_neg.getCertaintyValue(p)
+            c12_pos = self.S12_pos.getCertaintyValue(p)
+            c12_neg = self.S12_neg.getCertaintyValue(p)
 
             if self.established:
                 # n_c1_pos = self.S1_pos.numberOfGoalsWithoutAntiTraces
@@ -376,19 +402,29 @@ class Correlations(object):
                         j = 16
                     else:
                         j = 17
-                else:
+                elif self.corr_established == 10:
                     if self.corr_established_type == 'pos':
                         j = 18
                     else:
                         j = 19
+                elif self.corr_established == 11:
+                    if self.corr_established_type == 'pos':
+                        j = 20
+                    else:
+                        j = 21
+                else:
+                    if self.corr_established_type == 'pos':
+                        j = 22
+                    else:
+                        j = 23
                 certainty_value = (
                     c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg, c6_pos, c6_neg,
                     c7_pos,
-                    c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg)[j]
+                    c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg)[j]
             else:
                 certainty_value = max(c1_pos, c1_neg, c2_pos, c2_neg, c3_pos, c3_neg, c4_pos, c4_neg, c5_pos, c5_neg,
                                       c6_pos, c6_neg, c7_pos,
-                                      c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg)
+                                      c7_neg, c8_pos, c8_neg, c9_pos, c9_neg, c10_pos, c10_neg, c11_pos, c11_neg, c12_pos, c12_neg)
             return certainty_value
         else:  # if the goal associated with the SUR is deactivated, this SUR has certainty 0
             return 0
@@ -454,7 +490,16 @@ class Correlations(object):
                     self.S10_pos.addTraces(Trace[i:])
                 elif corr_type == 'neg':
                     self.S10_neg.addTraces(Trace[i:])
-
+            elif sensor == 11:
+                if corr_type == 'pos':
+                    self.S11_pos.addTraces(Trace[i:])
+                elif corr_type == 'neg':
+                    self.S11_neg.addTraces(Trace[i:])
+            elif sensor == 12:
+                if corr_type == 'pos':
+                    self.S12_pos.addTraces(Trace[i:])
+                elif corr_type == 'neg':
+                    self.S12_neg.addTraces(Trace[i:])
             # Check if the correlation is established (it could only happen after adding a trace)
             self.isCorrelationEstablished()
 
@@ -512,6 +557,17 @@ class Correlations(object):
                 self.S10_pos.addAntiTraces(Trace)
             elif corr_type == 'neg':
                 self.S10_neg.addAntiTraces(Trace)
+        elif sensor == 11:
+            if corr_type == 'pos':
+                self.S11_pos.addAntiTraces(Trace)
+            elif corr_type == 'neg':
+                self.S11_neg.addAntiTraces(Trace)
+        elif sensor == 12:
+            if corr_type == 'pos':
+                self.S12_pos.addAntiTraces(Trace)
+            elif corr_type == 'neg':
+                self.S12_neg.addAntiTraces(Trace)
+
 
     def addWeakTrace(self, Trace, sensor, corr_type):
         # plt.figure()
@@ -575,6 +631,16 @@ class Correlations(object):
                     self.S10_pos.addWeakTraces(Trace[i:])
                 elif corr_type == 'neg':
                     self.S10_neg.addWeakTraces(Trace[i:])
+            elif sensor == 11:
+                if corr_type == 'pos':
+                    self.S11_pos.addWeakTraces(Trace[i:])
+                elif corr_type == 'neg':
+                    self.S11_neg.addWeakTraces(Trace[i:])
+            elif sensor == 12:
+                if corr_type == 'pos':
+                    self.S12_pos.addWeakTraces(Trace[i:])
+                elif corr_type == 'neg':
+                    self.S12_neg.addWeakTraces(Trace[i:])
 
     def isCorrelationEstablished(self):
         corr1_pos = self.S1_pos.numberOfGoalsWithoutAntiTraces
@@ -597,16 +663,20 @@ class Correlations(object):
         corr9_neg = self.S9_neg.numberOfGoalsWithoutAntiTraces
         corr10_pos = self.S10_pos.numberOfGoalsWithoutAntiTraces
         corr10_neg = self.S10_neg.numberOfGoalsWithoutAntiTraces
+        corr11_pos = self.S11_pos.numberOfGoalsWithoutAntiTraces
+        corr11_neg = self.S11_neg.numberOfGoalsWithoutAntiTraces
+        corr12_pos = self.S12_pos.numberOfGoalsWithoutAntiTraces
+        corr12_neg = self.S12_neg.numberOfGoalsWithoutAntiTraces
 
         max_traces = max(corr1_pos, corr1_neg, corr2_pos, corr2_neg, corr3_pos, corr3_neg, corr4_pos, corr4_neg,
                          corr5_pos, corr5_neg, corr6_pos, corr6_neg, corr7_pos, corr7_neg, corr8_pos, corr8_neg,
-                         corr9_pos, corr9_neg, corr10_pos, corr10_neg)
+                         corr9_pos, corr9_neg, corr10_pos, corr10_neg, corr11_pos, corr11_neg, corr12_pos, corr12_neg)
         if not self.established:
             if max_traces >= self.Tb:
                 self.established = 1
                 i = (corr1_pos, corr1_neg, corr2_pos, corr2_neg, corr3_pos, corr3_neg, corr4_pos, corr4_neg,
                      corr5_pos, corr5_neg, corr6_pos, corr6_neg, corr7_pos, corr7_neg, corr8_pos, corr8_neg,
-                     corr9_pos, corr9_neg, corr10_pos, corr10_neg).index(max_traces)
+                     corr9_pos, corr9_neg, corr10_pos, corr10_neg, corr11_pos, corr11_neg, corr12_pos, corr12_neg).index(max_traces)
                 if i < 2:
                     self.corr_established = 1  # Sensor 1
                 elif i < 4:
@@ -625,8 +695,12 @@ class Correlations(object):
                     self.corr_established = 8  # Sensor 8
                 elif i < 18:
                     self.corr_established = 9  # Sensor 9
-                else:
+                elif i < 20:
                     self.corr_established = 10  # Sensor 10
+                elif i < 22:
+                    self.corr_established = 11  # Sensor 11
+                else:
+                    self.corr_established = 12  # Sensor 12
                 if i % 2 == 0:  # Posicion par
                     self.corr_established_type = 'pos'
                 else:

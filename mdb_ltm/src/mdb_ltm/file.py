@@ -21,7 +21,7 @@ class File(object):
         self.file_object = None
         self.data = kwargs.get("data")
         self.ltm = kwargs["ltm"]
-        super(File, self).__init__()
+        super().__init__()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
@@ -43,7 +43,7 @@ class FileGoodness(File):
 
     def write_header(self):
         """Write the header of the file."""
-        super(FileGoodness, self).write_header()
+        super().write_header()
         self.file_object.write("Iteration\tGoal\tWorld\tReward\tPolicy\tSensorial changes\tC-nodes\n")
 
     def write(self):
@@ -75,7 +75,7 @@ class FilePNodes(File):
 
     def write_header(self):
         """Write the header of the file."""
-        super(FilePNodes, self).write_header()
+        super().write_header()
         self.file_object.write("Iteration\tIdent\t")
         for perception in self.ltm.perceptions.values():
             self.file_object.write(perception.ident + "\t")
@@ -99,7 +99,7 @@ class FilePNodes(File):
                 for perception in range(0, pnode.n_perceptions):
                     self.file_object.write(str(pnode.members[perception, point]) + "\t")
                 self.file_object.write(str(pnode.memberships[point]) + "\n")
-        super(FilePNodes, self).write_header()
+        super().write_header()
 
 
 class FileLTMDump(File):
@@ -118,7 +118,7 @@ class FileLTMDump(File):
     def close(self):
         """Close de underlying file."""
         self.write()
-        super(FileLTMDump, self).write_header()
+        super().write_header()
 
 
 class FileLTMDumpWhenReward(FileLTMDump):
@@ -127,7 +127,7 @@ class FileLTMDumpWhenReward(FileLTMDump):
     def write(self):
         """Do the LTM dump."""
         if self.ltm.reward == 1.0:
-            super(FileLTMDumpWhenReward, self).write()
+            super().write()
 
 
 class FileLTMPeriodicDump(FileLTMDump):
@@ -136,4 +136,4 @@ class FileLTMPeriodicDump(FileLTMDump):
     def write(self):
         """Do the LTM dump."""
         if (self.ltm.iteration > 0) and (self.ltm.iteration % self.data == 0):
-            super(FileLTMPeriodicDump, self).write()
+            super().write()

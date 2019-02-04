@@ -117,7 +117,7 @@ LTM:
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -
-                id: put_object_in_robot
+                id: put_object_with_robot
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -

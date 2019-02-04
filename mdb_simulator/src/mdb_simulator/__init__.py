@@ -6,4 +6,4 @@ Copyright 2017-18 Richard J. Duro, Jose A. Becerra.
 Distributed under GPLv3.
 """
 
-__all__ = ["ltm"]
+__all__ = ["simulator"]

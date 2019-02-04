@@ -8,7 +8,7 @@ Distributed under GPLv3.
 """
 
 import argparse
-from mdb_simulator.ltm import LTMSim
+from mdb_simulator.simulator import LTMSim
 
 
 def start_ltm_simulator():

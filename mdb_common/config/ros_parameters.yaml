@@ -26,26 +26,16 @@
 /mdb/executed_policy_topic: /mdb/ltm/executed_policy
 /mdb/executed_policy_msg: std_msgs.msg.String
 # Topics for Baxter's sensors
-/mdb/baxter/sensor/ball_dist_topic: /mdb/baxter/sensor/ball_dist
-/mdb/baxter/sensor/ball_dist_msg: std_msgs.msg.Float64
-/mdb/baxter/sensor/ball_ang_topic: /mdb/baxter/sensor/ball_ang
-/mdb/baxter/sensor/ball_ang_msg: std_msgs.msg.Float64
-/mdb/baxter/sensor/ball_size_topic: /mdb/baxter/sensor/ball_size
-/mdb/baxter/sensor/ball_size_msg: std_msgs.msg.Float64
-/mdb/baxter/sensor/box_dist_topic: /mdb/baxter/sensor/box_dist
-/mdb/baxter/sensor/box_dist_msg: std_msgs.msg.Float64
-/mdb/baxter/sensor/box_ang_topic: /mdb/baxter/sensor/box_ang
-/mdb/baxter/sensor/box_ang_msg: std_msgs.msg.Float64
-/mdb/baxter/sensor/box_size_topic: /mdb/baxter/sensor/box_size
-/mdb/baxter/sensor/box_size_msg: std_msgs.msg.Float64
+/mdb/baxter/sensor/cylinders_topic: /mdb/baxter/sensor/cylinders
+/mdb/baxter/sensor/cylinders_msg: mdb_common.msg.ObjectListMsg
+/mdb/baxter/sensor/boxes_topic: /mdb/baxter/sensor/boxes
+/mdb/baxter/sensor/boxes_msg: mdb_common.msg.ObjectListMsg
 /mdb/baxter/sensor/ball_in_left_hand_topic: /mdb/baxter/sensor/ball_in_left_hand
 /mdb/baxter/sensor/ball_in_left_hand_msg: std_msgs.msg.Bool
 /mdb/baxter/sensor/ball_in_right_hand_topic: /mdb/baxter/sensor/ball_in_right_hand
 /mdb/baxter/sensor/ball_in_right_hand_msg: std_msgs.msg.Bool
-/mdb/baxter/sensor/ball_in_box_topic: /mdb/baxter/sensor/ball_in_box
-/mdb/baxter/sensor/ball_in_box_msg: std_msgs.msg.Bool
-/mdb/baxter/sensor/ball_with_robot_topic: /mdb/baxter/sensor/ball_with_robot
-/mdb/baxter/sensor/ball_with_robot_msg: std_msgs.msg.Bool
+/mdb/baxter/sensor/happy_human_topic: /mdb/baxter/sensor/happy_human
+/mdb/baxter/sensor/happy_human_msg: std_msgs.msg.Bool
 # Topic for publishing commands to baxter_throwing policy
 /mdb/superthrow_topic: /baxter_throwing/command
 /mdb/superthrow_msg: std_msgs.msg.Int16

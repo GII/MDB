@@ -51,8 +51,9 @@ add_message_files(
   GoalActivationMsg.msg
   GoalMsg.msg
   GoalOkMsg.msg
-  PNodeMsg.msg
   ObjDet.msg
+  ObjectListMsg.msg
+  ObjectMsg.msg
   OpenGripReq.msg
   PickDist.msg
   PNodeMsg.msg

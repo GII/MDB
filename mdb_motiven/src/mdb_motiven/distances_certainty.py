@@ -28,11 +28,11 @@ class DistancesCertainty(object):
         self.numberOfGoalsWithoutAntiTraces = 0  # To check when a correlation has become established
         self.Cf = 0.7  # Reliability factor
 
-        # Establecer estos limites antes de realizar los ejemplos en funcion de las distacias y el numero de sensores
-        self.Linf = (0.2, -1.4, 0.0, 0.2, -1.4, 0.0, 0.0, 0.0, 0.0,
-                     0.0)  # It should be an array with the inferior limits of the different sensors
-        self.Lsup = (1.9, 1.4, 0.15, 1.9, 1.4, 0.15, 1.0, 1.0, 1.0,
-                     1.0)  # It should be an array with the superior limits of the different sensors
+        # Establecer estos limites antes de realizar los ejemplos en funcion de las distancias y el numero de sensores
+        # It should be an array with the inferior limits of the different sensors
+        self.Linf = (0.2, -1.4, 0.0, 0.2, -1.4, 0.0, 0.2, -1.4, 0.0, 0.0, 0.0, 0.0)
+        # It should be an array with the superior limits of the different sensors
+        self.Lsup = (1.9, 1.4, 0.15, 1.9, 1.4, 0.15, 1.9, 1.4, 0.15, 1.0, 1.0, 1.0)
 
         self.Nt_factor = 6.0
         self.K = pow(0.05, 1.0 / (self.Nt_factor - 1.0))
@@ -53,7 +53,7 @@ class DistancesCertainty(object):
 
         self.plotMatrix = []
         # self.figure = plt.figure()
-        plt.ion()
+        # plt.ion()
         # self.figure.canvas.set_window_title('PRUEBA')
 
     def getMinDistancesMap(self, T):

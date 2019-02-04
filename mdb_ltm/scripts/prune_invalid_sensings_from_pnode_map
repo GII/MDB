@@ -29,12 +29,12 @@ def valid_perception(headers, perception):
     #     is_valid = False
     # Ball is caught with the left hand, but the ball is too large, or is too far or it is on the right side.
     if (perception[headers['ball_in_left_hand']] == 1) and (perception[headers['ball_in_right_hand']] == 0) and (
-        (perception[headers['ball_ang']]*2.8-1.4 <= 0) or (not LTMSim.ball_is_small(perception[headers['ball_size']]*0.15)) or
+        (perception[headers['ball_ang']]*2.8-1.4 <= 0) or (not LTMSim.object_is_small(perception[headers['ball_size']]*0.15)) or
         (LTMSim.object_too_far(perception[headers['ball_dist']]*1.7+0.2, perception[headers['ball_ang']]*2.8-1.4))):
         is_valid = False
     # Ball is caught with the right hand, but the ball is too large, or is too far or it is on the left side.
     if (perception[headers['ball_in_left_hand']] == 0) and (perception[headers['ball_in_right_hand']] == 1) and (
-        (perception[headers['ball_ang']]*2.8-1.4 > 0) or (not LTMSim.ball_is_small(perception[headers['ball_size']]*0.15)) or
+        (perception[headers['ball_ang']]*2.8-1.4 > 0) or (not LTMSim.object_is_small(perception[headers['ball_size']]*0.15)) or
         (LTMSim.object_too_far(perception[headers['ball_dist']]*1.7+0.2, perception[headers['ball_ang']]*2.8-1.4))):
         is_valid = False
     # Ball is caught with both hands, but it is not in the pickable area.

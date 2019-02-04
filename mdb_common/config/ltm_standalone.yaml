@@ -1,8 +1,8 @@
 Experiment:
-    iterations: 10000
-    period: 10000
-    trials: 200
-    worlds: ['gripper_and_low_friction']
+    iterations: 16000
+    period: 8000
+    trials: 10
+    worlds: ['gripper_and_low_friction', 'no_gripper_and_high_friction']
 Control:
     id: ltm_simulator
     ros_name_prefix: /mdb/control
@@ -49,35 +49,27 @@ LTM:
     Nodes:
         Perception:
             -
-                id: ball_dist
-                class: mdb_ltm.perception.Perception
-                data: [0.2, 1.9]
-                ros_name_prefix: /mdb/baxter/sensor/ball_dist
+                id: cylinders
+                class: mdb_ltm.perception.ObjectListPerception
+                data:
+                    distance_min: 0.2
+                    distance_max: 1.9
+                    angle_min: -1.4
+                    angle_max: 1.4
+                    diameter_min: 0.0
+                    diameter_max: 0.15
+                ros_name_prefix: /mdb/baxter/sensor/cylinders
             -
-                id: ball_ang
-                class: mdb_ltm.perception.Perception
-                data: [-1.4, 1.4]
-                ros_name_prefix: /mdb/baxter/sensor/ball_ang
-            -
-                id: ball_size
-                class: mdb_ltm.perception.Perception
-                data: [0.0, 0.15]
-                ros_name_prefix: /mdb/baxter/sensor/ball_size
-            -
-                id: box_dist
-                class: mdb_ltm.perception.Perception
-                data: [0.2, 1.9]
-                ros_name_prefix: /mdb/baxter/sensor/box_dist
-            -
-                id: box_ang
-                class: mdb_ltm.perception.Perception
-                data: [-1.4, 1.4]
-                ros_name_prefix: /mdb/baxter/sensor/box_ang
-            -
-                id: box_size
-                class: mdb_ltm.perception.Perception
-                data: [0.0, 0.15]
-                ros_name_prefix: /mdb/baxter/sensor/box_size
+                id: boxes
+                class: mdb_ltm.perception.ObjectListPerception
+                data:
+                    distance_min: 0.2
+                    distance_max: 1.9
+                    angle_min: -1.4
+                    angle_max: 1.4
+                    diameter_min: 0.0
+                    diameter_max: 0.15
+                ros_name_prefix: /mdb/baxter/sensor/boxes
             -
                 id: ball_in_left_hand
                 class: mdb_ltm.perception.Perception
@@ -88,13 +80,44 @@ LTM:
                 ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
         Goal:
             -
-                id: ball_in_box
-                class: mdb_ltm.goal.GoalBallInBox
-                data: [1.0, 10001]
+                id: object_held
+                class: mdb_ltm.goal.GoalObjectHeld
+                data: [0, 999, 8000]
+            -
+                id: object_held_with_two_hands
+                class: mdb_ltm.goal.GoalObjectHeldWithTwoHands
+                data: [1000, 1999, 8000]
+            -
+                id: changed_hands
+                class: mdb_ltm.goal.GoalChangedHands
+                data: [2000, 2999, 8000]
+            -
+                id: frontal_object
+                class: mdb_ltm.goal.GoalFrontalObject
+                data: [3000, 3999, 8000]
+            -
+                id: object_in_close_box
+                class: mdb_ltm.goal.GoalObjectInCloseBox
+                data: [4000, 4999, 8000]
+            -
+                id: object_with_robot
+                class: mdb_ltm.goal.GoalObjectWithRobot
+                data: [5000, 5999, 8000]
+            -
+                id: object_in_far_box
+                class: mdb_ltm.goal.GoalObjectInFarBox
+                data: [6000, 6999, 8000]
+            -
+                id: approximated_object
+                class: mdb_ltm.goal.GoalApproximatedObject
+                data: [7000, 7999, 8000]
         ForwardModel:
             -
                 id: gripper_and_low_friction
-                class: mdb_ltm.forward_model.ForwardModelGripper
+                class: mdb_ltm.forward_model.ForwardModel
+            -
+                id: no_gripper_and_high_friction
+                class: mdb_ltm.forward_model.ForwardModel
         Policy:
             -
                 id: grasp_object
@@ -117,7 +140,7 @@ LTM:
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -
-                id: put_object_in_robot
+                id: put_object_with_robot
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -
@@ -131,32 +154,14 @@ LTM:
 Simulator:
     Sensors:
         -
-            id: ball_dist
-            ros_name_prefix: /mdb/baxter/sensor/ball_dist
+            id: cylinders
+            ros_name_prefix: /mdb/baxter/sensor/cylinders
         -
-            id: ball_ang
-            ros_name_prefix: /mdb/baxter/sensor/ball_ang
-        -
-            id: ball_size
-            ros_name_prefix: /mdb/baxter/sensor/ball_size
-        -
-            id: box_dist
-            ros_name_prefix: /mdb/baxter/sensor/box_dist
-        -
-            id: box_ang
-            ros_name_prefix: /mdb/baxter/sensor/box_ang
-        -
-            id: box_size
-            ros_name_prefix: /mdb/baxter/sensor/box_size
+            id: boxes
+            ros_name_prefix: /mdb/baxter/sensor/boxes
         -
             id: ball_in_left_hand
             ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
         -
             id: ball_in_right_hand
             ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
-        -
-            id: ball_in_box
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_box
-        -
-            id: ball_with_robot
-            ros_name_prefix: /mdb/baxter/sensor/ball_with_robot

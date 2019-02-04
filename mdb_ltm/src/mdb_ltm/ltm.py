@@ -13,6 +13,7 @@ from copy import copy
 from operator import attrgetter
 from enum import Enum
 import threading
+from collections import OrderedDict
 import yaml
 import numpy
 import networkx
@@ -62,9 +63,9 @@ class LTM(object):
         self.module_names = dict(
             Perception="perception",
             PNode="p_node",
-            CNode="c_node",
-            Goal="goal",
             ForwardModel="forward_model",
+            Goal="goal",
+            CNode="c_node",
             Policy="policy",
         )
         self.default_class = dict()
@@ -86,7 +87,7 @@ class LTM(object):
         self.graph = networkx.Graph()
         self.graph_node_label = dict()
         self.graph_node_position = dict()
-        super(LTM, self).__init__()
+        super().__init__()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
@@ -127,28 +128,34 @@ class LTM(object):
         return self.nodes["Policy"]
 
     @classmethod
+    def load_memory_dump(cls, file_name):
+        """Load a previous LTM memory dump from a file."""
+        ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        ltm.files = []
+        ltm.there_are_goals = threading.Event()
+        # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
+        # I think construct_yaml_object is the guilty, because when __setstate__ exists,
+        # it calls construct_mapping with deep=True
+        for perception in ltm.nodes["Perception"].values():
+            perception.init_threading()
+            perception.init_ros()
+        for node_type, nodes in ltm.nodes.items():
+            if node_type != "Perception":
+                for node in nodes:
+                    if callable(getattr(node, "init_threading", None)):
+                        node.init_threading()
+                    if callable(getattr(node, "init_ros", None)):
+                        node.init_ros()
+        ltm.restoring = True
+        return ltm
+
+    @classmethod
     def restore(cls, file_name):
-        """Return a new LTM object after loading a previous LTM memory dump from a file."""
+        """Return a new LTM object. It loads a LTM memory dump if it exists."""
         if file_name is not None:
             if os.path.isfile(file_name):
                 print("Loading a previous LTM memory dump from " + file_name + "...")
-                ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
-                ltm.files = []
-                ltm.there_are_goals = threading.Event()
-                # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
-                # I think construct_yaml_object is the guilty, because when __setstate__ exists,
-                # it calls construct_mapping with deep=True
-                for perception in ltm.nodes["Perception"].values():
-                    perception.init_threading()
-                    perception.init_ros()
-                for node_type, nodes in ltm.nodes.items():
-                    if node_type != "Perception":
-                        for node in nodes:
-                            if callable(getattr(node, "init_threading", None)):
-                                node.init_threading()
-                            if callable(getattr(node, "init_ros", None)):
-                                node.init_ros()
-                ltm.restoring = True
+                ltm = cls.load_memory_dump(file_name)
             else:
                 print(file_name + " does not exist, the name will be used to store a new LTM...")
                 ltm = LTM()
@@ -167,41 +174,52 @@ class LTM(object):
         node_class = getattr(node_module, class_string)
         return node_class
 
+    def graph_set_perception_nodes_coordinates(self):
+        """Set node position in LTM graph for a Perception node."""
+        for idx, same_blood in enumerate(self.nodes["Perception"]):
+            self.graph_node_position[same_blood] = [0, idx + 1]
+
+    def graph_set_p_node_nodes_coordinates(self):
+        """Set node position in LTM graph for a P-node node."""
+        for idx, same_blood in enumerate(self.nodes["PNode"]):
+            posx = idx // 3
+            posy = idx % 3
+            self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy]
+
+    def graph_set_goal_nodes_coordinates(self):
+        """Set node position in LTM graph for a Goal node."""
+        for idx, same_blood in enumerate(self.nodes["Goal"]):
+            self.graph_node_position[same_blood] = [3 * (idx + 1), 4]
+
+    def graph_set_forward_model_nodes_coordinates(self):
+        """Set node position in LTM graph for a Forward Model node."""
+        for idx, same_blood in enumerate(self.nodes["ForwardModel"]):
+            self.graph_node_position[same_blood] = [3 * (idx + 1), 6]
+
+    def graph_set_policy_nodes_coordinates(self):
+        """Set node position in LTM graph for a Policy node."""
+        for idx, same_blood in enumerate(self.nodes["Policy"]):
+            self.graph_node_position[same_blood] = [9, idx + 1]
+
+    def graph_set_c_node_nodes_coordinates(self):
+        """Set node position in LTM graph for a C-node node."""
+        for idx, same_blood in enumerate(self.nodes["CNode"]):
+            posx = idx // 3
+            posy = idx % 3
+            self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy + 8]
+
     def __graph_set_node_properties(self, node):
         """Set node label and position for graphical representation."""
         self.graph_node_label[node] = node.ident
-        if node.type == "Perception":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                self.graph_node_position[same_blood] = [0, idx + 1]
-        elif node.type == "PNode":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                posx = idx // 3
-                posy = idx % 3
-                self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy]
-        elif node.type == "Goal":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                self.graph_node_position[same_blood] = [3 * (idx + 1), 4]
-        elif node.type == "ForwardModel":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                self.graph_node_position[same_blood] = [3 * (idx + 1), 6]
-        elif node.type == "Policy":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                self.graph_node_position[same_blood] = [9, idx + 1]
-        elif node.type == "CNode":
-            for idx, same_blood in enumerate(self.nodes[node.type]):
-                posx = idx // 3
-                posy = idx % 3
-                self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy + 8]
+        getattr(self, "graph_set_" + self.module_names[node.type] + "_nodes_coordinates")()
 
-    def __add_node(self, node_type, class_name, ros_name_prefix=None, ident=None, neighbors=None, weight=0.1, **kwargs):
+    def __add_node(self, node_type, class_name, ident=None, neighbors=None, **kwargs):
         """Add a new node."""
         # Set the name
         if ident is None:
             ident = node_type + str(len(self.nodes[node_type]))
         # Create the object
-        node = self.__class_from_classname(class_name)(
-            ident=ident, node_type=node_type, ros_name_prefix=ros_name_prefix, ltm=self, **kwargs
-        )
+        node = self.__class_from_classname(class_name)(ident=ident, node_type=node_type, ltm=self, **kwargs)
         # Add the object to the appropriate list (the perceptions are in a dictionary, not a list)
         if node.type == "Perception":
             self.nodes[node.type][ident] = node
@@ -239,44 +257,107 @@ class LTM(object):
         for file_object in self.files:
             file_object.write_header()
 
+    def __node_exists(self, ident):
+        """Check if there is a node with a specific name."""
+        for node_type, nodes in self.nodes.items():
+            if node_type == "Perception":
+                for node in nodes.values():
+                    if node.ident == ident:
+                        return True
+            else:
+                for node in nodes:
+                    if node.ident == ident:
+                        return True
+        return False
+
     def add_node_callback(self, data, node_type):
         """Add a new node without worrying about its class."""
         node_class = None
         if data.command != "new":
             rospy.logerr("Unknown command while processing a message for creating a new node!")
+        elif data.execute_service != "" or data.get_service != "":
+            node_class = self.__class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
+        elif data.language != "" and data.language != "python":
+            rospy.logerr("Language not supported while processing a message for creating a new node!")
+        elif data.class_name != "":
+            node_class = self.__class_from_classname(data.class_name)
         else:
-            if data.execute_service != "" or data.get_service != "":
-                node_class = self.__class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
-            else:
-                if data.language != "" and data.language != "python":
-                    rospy.logerr("Language not supported while processing a message for creating a new node!")
-                else:
-                    if data.class_name != "":
-                        node_class = self.__class_from_classname(data.class_name)
-                    else:
-                        node_class = self.default_class.get(node_type)
-                        if node_class is None:
-                            rospy.logerr(
-                                "Class name not specified and default value not found while processing a message for "
-                                "creating a new node!"
-                            )
+            node_class = self.default_class.get(node_type)
+            if node_class is None:
+                rospy.logerr(
+                    "Class name not specified and default value not found while processing a message for "
+                    "creating a new node!"
+                )
         if node_class is not None:
-            self.__add_node(
-                node_type=node_type,
-                class_name=node_class,
-                ros_name_prefix=self.default_ros_name_prefix[node_type],
-                ident=data.id,
-                execute_service=data.execute_service,
-                get_service=data.get_service,
-            )
-            if node_type == "Goal":
-                self.there_are_goals.set()
+            if self.__node_exists(data.id):
+                rospy.logwarn("Received new %s object, but there is already a node with that name (%s). Ignoring...",
+                    node_type, data.id)
+            else:
+                self.__add_node(
+                    node_type=node_type,
+                    class_name=node_class,
+                    ros_name_prefix=self.default_ros_name_prefix[node_type],
+                    ident=data.id,
+                    execute_service=data.execute_service,
+                    get_service=data.get_service,
+                )
+                if node_type == "Goal":
+                    self.there_are_goals.set()
 
     def __shutdown(self):
         """Save to disk everything is needed before shutting down."""
         rospy.loginfo("Ending LTM...")
         for file_object in self.files:
             file_object.close()
+
+    def __setup_files(self, files):
+        """Load files configuration."""
+        for file_item in files:
+            self.__add_file(file_item)
+
+    def __setup_topics(self, connectors):
+        """Load topic configuration for adding nodes."""
+        for connector in connectors:
+            self.default_class[connector["data"]] = connector.get("default_class")
+            self.default_ros_name_prefix[connector["data"]] = connector["ros_name_prefix"]
+            topic = rospy.get_param(connector["ros_name_prefix"] + "_topic")
+            message = self.__class_from_classname(rospy.get_param(connector["ros_name_prefix"] + "_msg"))
+            callback = getattr(self, connector["callback"])
+            callback_args = connector["data"]
+            rospy.logdebug("Subscribing to %s...", topic)
+            rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
+
+    def __setup_nodes(self, nodes):
+        """Load initial nodes."""
+        for node_type, node_list  in nodes.items():
+            rospy.logdebug("Loading %s...", node_type)
+            for element in node_list:
+                class_name = element["class"]
+                ident = element["id"]
+                data = element.get("data")
+                ros_name_prefix = element.get("ros_name_prefix")
+                self.__add_node(
+                    node_type=node_type,
+                    class_name=class_name,
+                    ident=ident,
+                    data=data,
+                    ros_name_prefix=ros_name_prefix,
+                )
+
+    def __setup_control_channel(self, control_channel):
+        """Load simulator / robot configuration channel."""
+        topic = rospy.get_param(control_channel + "_topic")
+        message = self.__class_from_classname(rospy.get_param(control_channel + "_msg"))
+        self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
+
+    def __setup_experiment(self, experiment):
+        """Load experiment configuration."""
+        self.iterations = experiment["iterations"]
+        self.period = experiment["period"]
+        self.trials = experiment["trials"]
+        self.worlds = experiment["worlds"]
+        self.current_world = self.worlds[0]
+        self.__reset_world()
 
     def __setup(self, log_level, file_name):
         """Init LTM: read ROS parameters, init ROS subscribers and load initial nodes."""
@@ -290,52 +371,14 @@ class LTM(object):
             else:
                 rospy.loginfo("Loading configuration from %s...", file_name)
                 configuration = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
-                # Load log files
-                for file_item in configuration["LTM"]["Files"]:
-                    self.__add_file(file_item)
-                # Load topics for adding nodes
-                for connector in configuration["LTM"]["Connectors"]:
-                    self.default_class[connector["data"]] = connector.get("default_class")
-                    self.default_ros_name_prefix[connector["data"]] = connector["ros_name_prefix"]
-                    topic = rospy.get_param(connector["ros_name_prefix"] + "_topic")
-                    message = self.__class_from_classname(rospy.get_param(connector["ros_name_prefix"] + "_msg"))
-                    callback = getattr(self, connector["callback"])
-                    callback_args = connector["data"]
-                    rospy.logdebug("Subscribing to %s...", topic)
-                    rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
-                # Load initial nodes
-                if self.iteration == 0:
-                    for node_type in configuration["LTM"]["Nodes"]:
-                        rospy.logdebug("Loading %s...", node_type)
-                        for element in configuration["LTM"]["Nodes"][node_type]:
-                            node_type = node_type
-                            class_name = element["class"]
-                            ident = element["id"]
-                            data = element.get("data")
-                            ros_name_prefix = element.get("ros_name_prefix")
-                            self.__add_node(
-                                node_type=node_type,
-                                class_name=class_name,
-                                ident=ident,
-                                data=data,
-                                ros_name_prefix=ros_name_prefix,
-                            )
-                if self.iteration == 0 or self.restoring:
+                self.__setup_files(configuration["LTM"]["Files"])
+                self.__setup_topics(configuration["LTM"]["Connectors"])
+                if not self.restoring:
+                    self.__setup_nodes(configuration["LTM"]["Nodes"])
+                if (self.iteration == 0) or self.restoring:
                     self.__write_headers_in_files()
-                # Load simulator / robot configuration channel
-                topic = rospy.get_param(configuration["Control"]["ros_name_prefix"] + "_topic")
-                message = self.__class_from_classname(
-                    rospy.get_param(configuration["Control"]["ros_name_prefix"] + "_msg")
-                )
-                self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
-                # Load experiment configuration
-                self.iterations = configuration["Experiment"]["iterations"]
-                self.period = configuration["Experiment"]["period"]
-                self.trials = configuration["Experiment"]["trials"]
-                self.worlds = configuration["Experiment"]["worlds"]
-                self.current_world = self.worlds[0]
-                self.__reset_world()
-                # Set callback to be run when ROS is shut down
+                self.__setup_control_channel(configuration["Control"]["ros_name_prefix"])
+                self.__setup_experiment(configuration["Experiment"])
                 rospy.on_shutdown(self.__shutdown)
 
     def __read_perceptions(self):
@@ -343,24 +386,22 @@ class LTM(object):
         rospy.loginfo("Reading perceptions...")
         sensing = []
         for perception in self.perceptions.values():
-            perception.read()
-            rospy.logdebug("Reading " + perception.ident + " = " + str(perception.raw))
-            sensing.append(perception.value)
+            sensing.append(perception.read())
         return sensing
 
     def __update_activations(self, perception):
         """Update the activation value for all the nodes."""
         rospy.loginfo("Updating activations...")
         for node in self.p_nodes:
-            node.update_activation(perception)
+            node.update_activation(perception=perception)
         for node in self.forward_models:
-            node.update_activation()
+            node.update_activation(perception=perception)
         for node in self.goals:
-            node.update_activation()
+            node.update_activation(perception=perception)
         for node in self.c_nodes:
-            node.update_activation()
+            node.update_activation(perception=perception)
         for node in self.policies:
-            node.update_activation()
+            node.update_activation(perception=perception)
 
     def __random_policy(self):
         """Select a random policy. In order to avoid problems with random numbers" generation, we use a pool."""
@@ -389,48 +430,67 @@ class LTM(object):
             rospy.loginfo("Successful goal => " + goal.ident)
         return goal
 
-    def __add_antipoint(self, perception):
+    def __add_antipoint(self):
         """Add an anti-point to the p-node that corresponds with the executed policy."""
         cnodes = (node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_is_on())
         for cnode in cnodes:
-            pnodes = (node for node in cnode.neighbors if node.type == "PNode" and node.activation >= node.threshold)
+            pnodes = (
+                node for node in cnode.neighbors if node.type == "PNode" and max(node.activation) >= node.threshold
+            )
             for pnode in pnodes:
-                pnode.add_perception(perception, -1.0)
+                pnode.add_perception(self.current_policy.perception, -1.0)
                 rospy.loginfo("Added anti-point in p-node " + pnode.ident)
 
-    def __add_point(self, perception):
+    def __add_point(self, sensing):
         """
         Add a point to the p-node that corresponds with the executed policy.
 
         It is assumed that there are only one goal and one forward model active in the LTM at a given moment of time.
         """
-        cnodes = [node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_has_reward()]
-        if bool(cnodes):
-            for cnode in cnodes:
-                pnodes = (node for node in cnode.neighbors if node.type == "PNode")
-                for pnode in pnodes:
-                    pnode.add_perception(perception, 1.0)
-                    rospy.loginfo("Added point in p-node " + pnode.ident)
+        perception = self.current_policy.perception
+        if not perception:
+            # If there is not perception in the policy, this means that the P-node was not activated, (see
+            # CNode.update_activation()).
+            # In this case, if there is some multi-valuated sensor, we log a warning, as this is not solved yet.
+            # Policies should be parametizer and, if a policy is randomly executed, it should be called several times,
+            # once for each combination of sensor values, so we would know what perception has to be added to the
+            # P-node. This would simplify also the simulator and the preprogrammed goals.
+            if max([len(i) for i in sensing]) == 1:
+                perception = []
+                for sensor in sensing:
+                    perception.extend(sensor[0])
+        if not perception:
+            rospy.logwarn("It can't be determined what combination of sensor values caused a goal success, "
+                "so it is not possible to add a point / create a new P-node")
         else:
-            pnode = self.__add_node("PNode", self.default_class["PNode"])
-            pnode.add_perception(perception, 1.0)
-            rospy.loginfo("Added point in p-node " + pnode.ident)
-            forward_model = max(self.forward_models, key=attrgetter("activation"))
-            goal = max(self.goals, key=attrgetter("reward"))
-            neighbors = [pnode, forward_model, goal, self.current_policy]
-            cnode = self.__add_node("CNode", "mdb_ltm.cnode.CNode", neighbors=neighbors, weight=1.0)
-            rospy.logdebug(
-                "New c-node "
-                + cnode.ident
-                + " joining "
-                + pnode.ident
-                + ", "
-                + forward_model.ident
-                + ", "
-                + goal.ident
-                + " and "
-                + self.current_policy.ident
-            )
+            cnodes = [
+                node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_has_reward()]
+            if cnodes:
+                for cnode in cnodes:
+                    pnodes = (node for node in cnode.neighbors if node.type == "PNode")
+                    for pnode in pnodes:
+                        pnode.add_perception(perception, 1.0)
+                        rospy.loginfo("Added point in p-node " + pnode.ident)
+            else:
+                pnode = self.__add_node("PNode", self.default_class["PNode"])
+                pnode.add_perception(perception, 1.0)
+                rospy.loginfo("Added point in p-node " + pnode.ident)
+                forward_model = max(self.forward_models, key=attrgetter("activation"))
+                goal = max(self.goals, key=attrgetter("reward"))
+                neighbors = [pnode, forward_model, goal, self.current_policy]
+                cnode = self.__add_node("CNode", "mdb_ltm.cnode.CNode", neighbors=neighbors, weight=1.0)
+                rospy.logdebug(
+                    "New c-node "
+                    + cnode.ident
+                    + " joining "
+                    + pnode.ident
+                    + ", "
+                    + forward_model.ident
+                    + ", "
+                    + goal.ident
+                    + " and "
+                    + self.current_policy.ident
+                )
 
     def __update_policies_to_test(self, drop):
         """Maintenance tasks on the pool of policies used to choose one randomly when needed."""
@@ -532,10 +592,16 @@ class LTM(object):
 
     def sensorial_changes(self):
         """Return false if all perceptions have the same value as the previous step. True otherwise."""
-        for perception in self.perceptions.values():
-            difference = abs(perception.value - perception.old_value)
-            if difference >= 0.01:
-                return True
+        for sensor in self.perceptions.values():
+            for perception, perception_old in zip(sensor.value, sensor.old_value):
+                if isinstance(perception, dict):
+                    for attribute in perception:
+                        difference = abs(perception[attribute] - perception_old[attribute])
+                        if difference >= 0.01:
+                            return True
+                else:
+                    if abs(perception[0] - perception_old[0]) >= 0.01:
+                        return True
         return False
 
     def __statistics(self):
@@ -550,7 +616,7 @@ class LTM(object):
         if self.trial == self.trials or self.current_success >= 0.9:
             self.trial = 0
             changed = True
-        if (self.iteration % self.period) == 0 or self.restoring:
+        if ((self.iteration % self.period) == 0) or self.restoring:
             self.current_world = self.worlds[(self.iteration // self.period) % len(self.worlds)]
             self.trial = 0
             self.restoring = False
@@ -571,19 +637,18 @@ class LTM(object):
                     self.there_are_goals.wait()
                 self.__update_activations(sensing)
                 self.current_policy = self.__select_policy()
-                previous_sensing = sensing
                 self.current_policy.execute()
                 sensing = self.__read_perceptions()
                 self.current_goal = self.__select_goal()
                 if self.current_goal is not None:
                     drop_policy = False
                     self.current_success = self.current_goal.reward
-                    self.__add_point(previous_sensing)
+                    self.__add_point(sensing)
                 else:
                     drop_policy = True
                     self.current_success = 0.0
                     if self.current_policy.activation >= self.current_policy.threshold:
-                        self.__add_antipoint(previous_sensing)
+                        self.__add_antipoint()
                 self.__update_policies_to_test(drop=drop_policy)
                 if plot:
                     self.__show()

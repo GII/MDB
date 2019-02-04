@@ -1,8 +1,8 @@
 Experiment:
     iterations: 10000
-    period: 10000
-    trials: 200
-    worlds: ['gripper_and_low_friction']
+    period: 10001
+    trials: 10001
+    worlds: ['gripper_and_low_friction_two_boxes']
 Control:
     id: ltm_simulator
     ros_name_prefix: /mdb/control
@@ -49,35 +49,27 @@ LTM:
     Nodes:
         Perception:
             -
-                id: ball_dist
-                class: mdb_ltm.perception.Perception
-                data: [0.2, 1.9]
-                ros_name_prefix: /mdb/baxter/sensor/ball_dist
+                id: cylinders
+                class: mdb_ltm.perception.ObjectListPerception
+                data:
+                    distance_min: 0.2
+                    distance_max: 1.9
+                    angle_min: -1.4
+                    angle_max: 1.4
+                    diameter_min: 0.0
+                    diameter_max: 0.15
+                ros_name_prefix: /mdb/baxter/sensor/cylinders
             -
-                id: ball_ang
-                class: mdb_ltm.perception.Perception
-                data: [-1.4, 1.4]
-                ros_name_prefix: /mdb/baxter/sensor/ball_ang
-            -
-                id: ball_size
-                class: mdb_ltm.perception.Perception
-                data: [0.0, 0.15]
-                ros_name_prefix: /mdb/baxter/sensor/ball_size
-            -
-                id: box_dist
-                class: mdb_ltm.perception.Perception
-                data: [0.2, 1.9]
-                ros_name_prefix: /mdb/baxter/sensor/box_dist
-            -
-                id: box_ang
-                class: mdb_ltm.perception.Perception
-                data: [-1.4, 1.4]
-                ros_name_prefix: /mdb/baxter/sensor/box_ang
-            -
-                id: box_size
-                class: mdb_ltm.perception.Perception
-                data: [0.0, 0.15]
-                ros_name_prefix: /mdb/baxter/sensor/box_size
+                id: boxes
+                class: mdb_ltm.perception.ObjectListPerception
+                data:
+                    distance_min: 0.2
+                    distance_max: 1.9
+                    angle_min: -1.4
+                    angle_max: 1.4
+                    diameter_min: 0.0
+                    diameter_max: 0.15
+                ros_name_prefix: /mdb/baxter/sensor/boxes
             -
                 id: ball_in_left_hand
                 class: mdb_ltm.perception.Perception
@@ -112,7 +104,7 @@ LTM:
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -
-                id: put_object_in_robot
+                id: put_object_with_robot
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
             -
@@ -126,23 +118,11 @@ LTM:
 Simulator:
     Sensors:
         -
-            id: ball_dist
-            ros_name_prefix: /mdb/baxter/sensor/ball_dist
+            id: cylinders
+            ros_name_prefix: /mdb/baxter/sensor/cylinders
         -
-            id: ball_ang
-            ros_name_prefix: /mdb/baxter/sensor/ball_ang
-        -
-            id: ball_size
-            ros_name_prefix: /mdb/baxter/sensor/ball_size
-        -
-            id: box_dist
-            ros_name_prefix: /mdb/baxter/sensor/box_dist
-        -
-            id: box_ang
-            ros_name_prefix: /mdb/baxter/sensor/box_ang
-        -
-            id: box_size
-            ros_name_prefix: /mdb/baxter/sensor/box_size
+            id: boxes
+            ros_name_prefix: /mdb/baxter/sensor/boxes
         -
             id: ball_in_left_hand
             ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
@@ -150,8 +130,5 @@ Simulator:
             id: ball_in_right_hand
             ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
         -
-            id: ball_in_box
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_box
-        -
-            id: ball_with_robot
-            ros_name_prefix: /mdb/baxter/sensor/ball_with_robot
+            id: clean_area
+            ros_name_prefix: /mdb/baxter/sensor/happy_human

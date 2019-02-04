@@ -9,6 +9,7 @@ Distributed under the (yes, we are still thinking about this too...).
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 import threading
+from collections import OrderedDict
 import rospy
 from mdb_ltm.node import Node
 
@@ -16,58 +17,98 @@ from mdb_ltm.node import Node
 class Perception(Node):
     """A perception. Its content cames from a sensor or a redescription and it is stored in a memory."""
 
-    def __init__(self, data=None, ros_name_prefix=None, **kwargs):
+    def __init__(self, ros_name_prefix=None, **kwargs):
         """Constructor."""
         super(Perception, self).__init__(**kwargs)
-        if data is not None:
-            self.min = data[0]
-            self.max = data[1]
-        else:
-            self.min = None
-            self.max = None
+        # Init data storage attributes
         self.old_raw = 0.0
         self.raw = 0.0
         self.old_value = 0.0
         self.value = 0.0
-        self.sensor_semaphore = None
-        self.new_value = None
+        # Init thread syncronizing stuff
+        self.semaphore = None
+        self.flag = None
         self.init_threading()
-        self.topic = rospy.get_param(ros_name_prefix + "_topic")
-        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_msg"))
+        # Init ROS stuff
+        self.ros_name_prefix = ros_name_prefix
         self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
         state = self.__dict__.copy()
-        del state["sensor_semaphore"]
-        del state["new_value"]
+        del state["semaphore"]
+        del state["flag"]
         return state
 
     def init_threading(self):
         """Create needed stuff to synchronize threads."""
-        self.sensor_semaphore = threading.Semaphore()
-        self.new_value = threading.Event()
+        self.semaphore = threading.Semaphore()
+        self.flag = threading.Event()
 
     def init_ros(self):
         """Create publishers and make subscriptions."""
-        rospy.logdebug("Subscribing to %s...", self.topic)
-        rospy.Subscriber(self.topic, self.message, callback=self.read_callback)
+        topic = rospy.get_param(self.ros_name_prefix + "_topic")
+        message = self.class_from_classname(rospy.get_param(self.ros_name_prefix + "_msg"))
+        rospy.logdebug("Subscribing to %s...", topic)
+        rospy.Subscriber(topic, message, callback=self.read_callback)
+
+    def calc_activation(self, **kwargs):
+        """Calculate the new activation value."""
+        rospy.logerr("Someone call calc_activation on a perception, this should not happen!!!")
 
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""
-        self.sensor_semaphore.acquire()
+        self.semaphore.acquire()
+        rospy.logdebug("Reading " + self.ident + " = " + str(reading))
         self.old_raw = self.raw
-        self.raw = reading.data
+        self.raw = reading
         self.old_value = self.value
-        if self.max is not None and self.min is not None:
-            self.value = (self.raw - self.min) / (self.max - self.min)
-        else:
-            self.value = self.raw
-        self.new_value.set()
-        self.sensor_semaphore.release()
+        self.process_reading()
+        self.flag.set()
+        self.semaphore.release()
+
+    def process_reading(self):
+        """Process the new sensor reading."""
+        self.value = [[self.raw.data]]
 
     def read(self):
         """Obtain a new value for the sensor / redescription."""
-        self.new_value.wait()
-        self.new_value.clear()
+        self.flag.wait()
+        self.flag.clear()
+        return self.flatten_perceptions()
+
+    def flatten_perceptions(self):
+        """Return a list of flattened perceptions."""
         return self.value
+
+
+class ObjectListPerception(Perception):
+    """A perception corresponding with a list of objects."""
+
+    def __init__(self, data, **kwargs):
+        """Constructor."""
+        self.normalize_values = data
+        super(ObjectListPerception, self).__init__(**kwargs)
+
+    def process_reading(self):
+        """Process the new sensor reading."""
+        self.value = []
+        for perception in self.raw.data:
+            distance = (perception.distance - self.normalize_values["distance_min"]) / (
+                self.normalize_values["distance_max"] - self.normalize_values["distance_min"]
+            )
+            angle = (perception.angle - self.normalize_values["angle_min"]) / (
+                self.normalize_values["angle_max"] - self.normalize_values["angle_min"]
+            )
+            diameter = (perception.diameter - self.normalize_values["diameter_min"]) / (
+                self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
+            )
+            self.value.append({"distance": distance, "angle": angle, "diameter": diameter})
+
+    def flatten_perceptions(self):
+        """Return a list of flattened perceptions, without keys."""
+        flattened_list = []
+        for perception in self.value:
+            flattened_perception = [perception["distance"], perception["angle"], perception["diameter"]]
+            flattened_list.append(flattened_perception)
+        return flattened_list

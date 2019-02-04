@@ -18,11 +18,11 @@ class Node(object):
         """Constructor."""
         self.ident = ident
         self.type = node_type
-        self.activation = 0.0
+        self.perception = None
+        self.activation = None
         self.threshold = threshold
         self.neighbors = []
         self.ltm = ltm
-        super(Node, self).__init__()
 
     @staticmethod
     def class_from_classname(class_name):
@@ -32,13 +32,23 @@ class Node(object):
         node_class = getattr(node_module, class_string)
         return node_class
 
-    def update_activation(self, **kwargs):
-        """
-        Calculate the new activation value.
+    def calc_activation(self, **kwargs):
+        """Calculate the new activation value."""
+        raise NotImplementedError
 
-        This method contains only the common stuff for every type of node.
-        """
-        if self.activation < self.threshold:
-            self.activation = 0.0
-        rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
-        super(Node, self).__init__(**kwargs)
+    def update_activation(self, **kwargs):
+        """Calculate a new activation value for each perception."""
+        perception = kwargs.pop("perception")
+        self.perception = []
+        self.activation = []
+        for i in range(max([len(i) for i in perception])):
+            perception_line = []
+            for sensor in perception:
+                perception_line.extend(sensor[i % len(sensor)])
+            self.perception.append(perception_line)
+            kwargs["perception"] = perception_line
+            activation_value = self.calc_activation(**kwargs)
+            if activation_value < self.threshold:
+                activation_value = 0.0
+            self.activation.append(activation_value)
+            rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(activation_value))
