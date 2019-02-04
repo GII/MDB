@@ -36,16 +36,19 @@ class exp_senses:
 
         self.obj_sense = SensData()
         self.box_sense = SensData()
+        self.box2_sense = SensData()
         self.rob_sense = SensData()
         self.rob_ori = Float64()
         self.rob_obj_ori = Float64()
         self.rob_box_ori = Float64()
+        self.rob_box2_ori = Float64()
 
         self.rgrip_ori = 0.0
         self.rob_grip = 0.0
 
         self.bobj_sense_sb = rospy.Subscriber("/mdb_baxter/ball", SensData, self.obj_sense_cb)
         self.box_sense_sb = rospy.Subscriber("/mdb_baxter/box", SensData, self.box_sense_cb)
+        self.box2_sense_sb = rospy.Subscriber("/mdb_baxter/box2", SensData, self.box2_sense_cb)
         self.rob_sense_sb = rospy.Subscriber("/mdb_baxter/robobo", SensData, self.rob_sense_cb)
 
         self.mixed_box_sense_sb = rospy.Subscriber("/baxter_throwing/basket_pose", PoseStamped, self.mixed_box_cb)
@@ -54,6 +57,7 @@ class exp_senses:
         self.rob_ori_sb = rospy.Subscriber("/tracking/robobo_ori", Float64, self.rob_ori_cb)
         self.rob_ori_obj_sb = rospy.Subscriber("/tracking/robobo_ori_obj", Float64, self.rob_ori_obj_cb)
         self.rob_ori_box_sb = rospy.Subscriber("/tracking/robobo_ori_box", Float64, self.rob_ori_box_cb)
+        self.rob_ori_box2_sb = rospy.Subscriber("/tracking/robobo_ori2_box", Float64, self.rob_ori_box2_cb)
 
         self.obj = ObjectListMsg()
         self.obj.data = []
@@ -107,6 +111,10 @@ class exp_senses:
         if sens.height.data > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box_sense"):
             self.box_sense = sens
 
+    def box2_sense_cb(self, sens):
+        if sens.height.data > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box2_sense"):
+            self.box2_sense = sens
+
     def rob_sense_cb(self, sens):
         if sens.height.data > -0.10:
             self.rob_sense = sens
@@ -120,7 +128,10 @@ class exp_senses:
     def rob_ori_box_cb(self, ori):
         self.rob_box_ori = ori
 
-        ### Services ###
+    def rob_ori_box2_cb(self, ori):
+        self.rob_box2_ori = ori
+
+    ### Services ###
 
     def handle_gs_motiv(self, srv):
         if srv.request.data == True:

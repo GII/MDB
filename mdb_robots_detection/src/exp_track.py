@@ -53,6 +53,7 @@ class exp_track:
 
 		self.obj_pix = None
 		self.box_pix = None
+		self.box2_pix = None
 
 		self.tag_detect = True
 
@@ -63,6 +64,7 @@ class exp_track:
 		self.track_pub = rospy.Publisher("/tracking/"+"img", Image, queue_size = 1)
 		self.obj_coor_pub = rospy.Publisher("/tracking/"+"ball", ObjDet, queue_size = 1)
 		self.box_coor_pub = rospy.Publisher("/tracking/"+"box", ObjDet, queue_size = 1)
+		self.box2_coor_pub = rospy.Publisher("/tracking/" + "box2", ObjDet, queue_size=1)
 		self.rob_coor_pub = rospy.Publisher("/tracking/"+"robobo", ObjDet, queue_size = 1)
 
 		self.obj_det_pub = rospy.Publisher("/tracking/"+"ball"+"_flag", Bool, queue_size = 1);
@@ -70,6 +72,7 @@ class exp_track:
 		self.rob_ori_pub = rospy.Publisher("tracking/robobo_ori", Float64, queue_size = 1)
 		self.rob_ori_obj_pub = rospy.Publisher("tracking/robobo_ori_obj", Float64, queue_size = 1)
 		self.rob_ori_box_pub = rospy.Publisher("tracking/robobo_ori_box", Float64, queue_size = 1)
+		self.rob_ori_box2_pub = rospy.Publisher("tracking/robobo_ori_box2", Float64, queue_size = 1)
 
 		###
 		self.c0_val = None
@@ -120,12 +123,14 @@ class exp_track:
 			#self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
 		#else:
 		self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
+		self.objects.append(['cesta2', np.array([187,0,96], dtype='float')/255])
 
 	def select_publisher(self, arg):
 		options = {
 			'cilindro':self.obj_coor_pub,
 			'cesta':self.box_coor_pub, 
-			'robobo':self.rob_coor_pub, 	
+			'cesta2':self.box2_coor_pub,
+			'robobo':self.rob_coor_pub,
 		}
 		return options[arg]
 
@@ -319,7 +324,8 @@ class exp_track:
 				robobo = False
 				cylinder = False
 				box = False
-				
+				box2 = False
+
 
 				for obj in self.objects:
 					if self.exp_rec == 'mot':
@@ -338,7 +344,7 @@ class exp_track:
 						if obj[0]== "robobo" and not robobo:
 							robobo = True						
 						else:					
-							if (obj[0] == "cilindro" and not cylinder) or (obj[0] == "cesta" and not box):
+							if (obj[0] == "cilindro" and not cylinder) or (obj[0] == "cesta" and not box) or (obj[0] == "cesta2" and not box2):
 								im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=False, color=obj[1])
 	
 								obj_det = ObjDet()
@@ -356,6 +362,10 @@ class exp_track:
 								if obj[0] == "cesta": 
 									self.box_pix=[obj_det.u.data, obj_det.v.data]
 									box=True
+
+								if obj[0] == "cesta2":
+									self.box2_pix = [obj_det.u.data, obj_det.v.data]
+									box2 = True
 
 				###Robobo detection through tag:
 				if self.exp_rec == 'mot' and self.c0_val != None and self.c1_val != None and self.c2_val != None and self.cc_val != None and self.tag_detect:
@@ -381,6 +391,12 @@ class exp_track:
 						cb2 = (self.cc_val[1] - self.box_pix[1])
 						angle_box = np.arctan2(cb1, cb2)
 						self.rob_ori_box_pub.publish(Float64(angle_box))
+
+					if self.box2_pix != None:
+						cb1 = (self.cc_val[0] - self.box2_pix[0])
+						cb2 = (self.cc_val[1] - self.box2_pix[1])
+						angle_box = np.arctan2(cb1, cb2)
+						self.rob_ori_box2_pub.publish(Float64(angle_box))
 
 					print 'Objeto: ' + "robobo" + ', ' + np.str([int(self.cc_val[1]), int(self.cc_val[0])])
 
