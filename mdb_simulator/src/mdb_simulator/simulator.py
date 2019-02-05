@@ -8,7 +8,8 @@ Distributed under GPLv3.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
-from enum import Enum, auto
+from enum import Enum
+import importlib
 import os.path
 import math
 import yaml
@@ -19,9 +20,9 @@ import rospy
 class World(Enum):
     """Worlds to be simulated."""
 
-    gripper_and_low_friction = auto()
-    no_gripper_and_high_friction = auto()
-    gripper_and_low_friction_two_boxes = auto()
+    gripper_and_low_friction = 1
+    no_gripper_and_high_friction = 2
+    gripper_and_low_friction_two_boxes = 3
 
 
 class LTMSim(object):
@@ -44,7 +45,8 @@ class LTMSim(object):
     def __class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        node_module = __import__(module_string, fromlist=[class_string])
+        node_module = __import__(module_string, fromlist=[bytes(class_string, 'utf-8')])
+        # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
 

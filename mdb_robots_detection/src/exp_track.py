@@ -123,7 +123,7 @@ class exp_track:
 			#self.objects.append(['cesta', np.array([23, 62, 99], dtype='float')/255])		
 		#else:
 		self.objects.append(['cesta',   np.array(rospy.get_param("~b_rgb"),  dtype='float')/255])
-		self.objects.append(['cesta2', np.array([187,0,96], dtype='float')/255])
+		self.objects.append(['cesta2', np.array(rospy.get_param("~b2_rgb"), dtype='float')/255])
 
 	def select_publisher(self, arg):
 		options = {
