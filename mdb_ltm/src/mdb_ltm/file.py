@@ -112,7 +112,8 @@ class FileLTMDump(File):
         """Do the LTM dump."""
         self.ltm.iteration += 1
         file_name = self.file_name + "_" + str(self.ltm.iteration) + ".yaml"
-        yaml.dump(self.ltm, open(file_name, "w"), Dumper=yaml.CDumper)
+        # yaml.dump(self.ltm, open(file_name, "w"), Dumper=yaml.CDumper)
+        yaml.dump(self.ltm, open(file_name, "w"))
         self.ltm.iteration -= 1
 
     def close(self):

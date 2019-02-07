@@ -248,6 +248,20 @@ class exp_track:
 		regions = measure.regionprops(im_label_hue) #Busqueda de Bounding boxes 
 		
 		return regions, im_label_hue
+
+	def segment_objects_new(self, im, mask_table, v, threshold=0.1, min_px_size=100):
+		# Segmentar por canal h
+		v_hsv = color.rgb2hsv(v.reshape([1, 1, 3]))
+		im_hsv = color.rgb2hsv(im)
+		im_huedist = np.abs(im_hsv[:, :, 0] - v_hsv[0, 0, 0])
+		im_huedist = im_huedist * mask_table
+		im_seg_hue = im_huedist > threshold  # Objetos segmentados
+
+		im_label_hue = morphology.label(im_seg_hue)
+		im_label_hue = morphology.remove_small_objects(im_label_hue, min_px_size)
+		regions = measure.regionprops(im_label_hue)  # Busqueda de Bounding boxes
+
+		return regions, im_label_hue
     
 	def detect_object(self, im, regions, obj, threshold=0.3, min_px_size=30, percentage = 0.5): #threshold=0.15, min_px_size=30):
 		rgb_obj = obj[1]

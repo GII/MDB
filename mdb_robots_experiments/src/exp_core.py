@@ -119,13 +119,13 @@ class exp_core():
 			return "exp_big_obj"
 
 	def choose_world_image(self):
-		if self.obj_type == "exp_small_obj" and self.world == "gripper_and_low_friction":
+		if self.obj_type == "exp_small_obj" and ("gripper_and_low_friction" in self.world):
 			self.adopt_expression("small_obj_grip")
-		elif self.obj_type == "exp_small_obj" and self.world == "no_gripper_and_high_friction":
+		elif self.obj_type == "exp_small_obj" and ("no_gripper_and_high_friction" in self.world):
 			self.adopt_expression("small_obj_nogrip") 	 						
-		elif self.obj_type == "exp_big_obj" and self.world == "gripper_and_low_friction":
+		elif self.obj_type == "exp_big_obj" and ("gripper_and_low_friction" in self.world):
 			self.adopt_expression("big_obj_grip") 	
-		elif self.obj_type == "exp_big_obj" and self.world == "no_gripper_and_high_friction":
+		elif self.obj_type == "exp_big_obj" and ("no_gripper_and_high_friction" in self.world):
 			self.adopt_expression("big_obj_nogrip") 	
 
 	def refresh(self):

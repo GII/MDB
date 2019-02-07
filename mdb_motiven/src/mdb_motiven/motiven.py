@@ -229,7 +229,8 @@ class MOTIVEN(object):
     @classmethod
     def load_memory_dump(cls, file_name):
         """Load a previous MOTIVEN memory dump from a file."""
-        motiven = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        # motiven = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        motiven = yaml.load(open(file_name, "r"))
         motiven.sensor_lock = threading.Lock()
         motiven.run_executed_policy_cb = threading.Event()
         motiven.run_sensor_cb = threading.Event()
@@ -381,7 +382,8 @@ class MOTIVEN(object):
         file_name = self.file_name + "_" + str(self.iterations) + ".yaml"
         # We will switch to the same plugins system that LTM is already using. Meanwhile...
         if not (self.iterations % 100):
-            yaml.dump(self, open(file_name, "w"), Dumper=yaml.CDumper)
+            # yaml.dump(self, open(file_name, "w"), Dumper=yaml.CDumper)
+            yaml.dump(self, open(file_name, "w"))
         rospy.loginfo('Iteration: ' + str(self.iterations))
         rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
         self.run_sensor_cb.set()

@@ -131,7 +131,8 @@ class LTM(object):
     @classmethod
     def load_memory_dump(cls, file_name):
         """Load a previous LTM memory dump from a file."""
-        ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        # ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        ltm = yaml.load(open(file_name, "r"))
         ltm.files = []
         ltm.there_are_goals = threading.Event()
         # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
@@ -375,7 +376,8 @@ class LTM(object):
                 rospy.logerr(file_name + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", file_name)
-                configuration = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+                # configuration = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+                configuration = yaml.load(open(file_name, "r"))
                 self.__setup_files(configuration["LTM"]["Files"])
                 self.__setup_topics(configuration["LTM"]["Connectors"])
                 if not self.restoring:

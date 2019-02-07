@@ -3,7 +3,7 @@
 	<arg name="log_level" default="DEBUG"/>
 	<arg name="debug" default="False"/>
 	<arg name="simulator" default="True"/>
-	<arg name="motiven" default="True"/>
+	<arg name="motiven" default="False"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_standalone.yaml" unless="$(arg motiven)"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
 	<arg name="plot" default="False"/>
