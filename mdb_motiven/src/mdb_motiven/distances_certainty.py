@@ -9,8 +9,6 @@ from builtins import * #noqa
 import math
 import numpy as np
 from matplotlib import pyplot as plt
-
-import rospy
 from mdb_motiven.traces_memory import TracesMemory
 
 

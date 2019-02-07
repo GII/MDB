@@ -7,20 +7,20 @@ Distributed under the (yes, we are still thinking about this too...).
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import * #noqa
+import os.path
 import math
 import threading
-import pickle
 from collections import OrderedDict
+import yaml
 import numpy
 from matplotlib import pyplot as plt
 # ROS
 import rospy
 from std_msgs.msg import Bool, String
-from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg, ControlMsg, ObjectListMsg, ObjectMsg
+from mdb_common.msg import GoalMsg, GoalOkMsg, GoalActivationMsg, ObjectListMsg
 from mdb_common.srv import ExecPolicy, RefreshWorld, BaxMC, GetSenseMotiv, BaxChange
 # MOTIVEN
 from mdb_motiven.candidate_state_evaluator import CandidateStateEvaluator
-from mdb_motiven.correlations import Correlations
 from mdb_motiven.correlations_manager import CorrelationsManager
 from mdb_motiven.episode import Episode
 from mdb_motiven.episodic_buffer import EpisodicBuffer
@@ -80,7 +80,6 @@ class MOTIVEN(object):
         self.min_dist_robot = 120  # 150#0.275
         self.baxter_gripper_angle = 0.0
         self.robobo_angle = 0.0
-        self.load_data_file = 0  # Variable to decide if load data from file
         self.ltm = False  # Variable to decide if MotivEn is executed alone or integrated with the LTM
         # Sensors LTM
         self.sensors_list = [
@@ -102,6 +101,7 @@ class MOTIVEN(object):
         self.sensor_lock = threading.Lock()
         self.run_executed_policy_cb = threading.Event()
         self.run_sensor_cb = threading.Event()
+        self.file_name = None
         # Policies LTM
         self.n_policies_exec = 0
         self.max_policies_exec = 8
@@ -159,7 +159,28 @@ class MOTIVEN(object):
         self.robobo_drop_srv = None
         self.robobo_mov_back_srv = None
 
-    def init_ros_staff(self, log_level):
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        del state["sensor_lock"]
+        del state["run_executed_policy_cb"]
+        del state["run_sensor_cb"]
+        del state["motivation_pb"]
+        del state["goal_topic_pb"]
+        del state["goal_activation_topic_pb"]
+        del state["goal_ok_topic_pb"]
+        del state["refresh_world_srv"]
+        del state["baxter_mov_srv"]
+        del state["baxter_sa_srv"]
+        del state["baxter_policy_srv"]
+        del state["get_sens_srv"]
+        del state["robobo_mov_srv"]
+        del state["robobo_pick_srv"]
+        del state["robobo_drop_srv"]
+        del state["robobo_mov_back_srv"]
+        return state
+
+    def init_ros(self, log_level):
         rospy.init_node('motiven', log_level=getattr(rospy, log_level))
         # ROS publishers
         self.motivation_pb = rospy.Publisher("/mdb/motivation/active_sur/", String, queue_size=1)
@@ -205,6 +226,33 @@ class MOTIVEN(object):
         # a new "reset" sensor, whatever...
         # rospy.Subscriber("/mdb/baxter/control", ControlMsg, self.baxter_control_cb)
 
+    @classmethod
+    def load_memory_dump(cls, file_name):
+        """Load a previous MOTIVEN memory dump from a file."""
+        motiven = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        motiven.sensor_lock = threading.Lock()
+        motiven.run_executed_policy_cb = threading.Event()
+        motiven.run_sensor_cb = threading.Event()
+        motiven.reset = True
+        return motiven
+
+    @classmethod
+    def restore(cls, file_name):
+        """Return a new MOTIVEN object. It loads a MOTIVEN memory dump if it exists."""
+        if file_name is not None:
+            if os.path.isfile(file_name):
+                print("Loading a previous MOTIVEN memory dump from " + file_name + "...")
+                motiven = cls.load_memory_dump(file_name)
+            else:
+                print(file_name + " does not exist, the name will be used to store a new LTM...")
+                motiven = MOTIVEN()
+        else:
+            file_name = "motiven_dump"
+            print("Using " + file_name + " to store a new LTM dump...")
+            motiven = MOTIVEN()
+        motiven.file_name = file_name
+        return motiven
+
     def baxter_control_cb(self, data):
         """Restart necessary things when the experiment is reset."""
         self.reinitialize_memories()
@@ -214,7 +262,6 @@ class MOTIVEN(object):
         self.it_blind = 0
         self.n_execution += 1
         self.graph_exec = []
-        #self.save_data()
         self.memory_vf.removeAll()
         self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)  # Esto no tengo claro si es necesario
         self.sens_t = self.sens_t1  # y yo esto tampoco :-)
@@ -331,6 +378,11 @@ class MOTIVEN(object):
         if self.motiven_high_level:
             self.episode2.cleanEpisode()
         #####
+        file_name = self.file_name + "_" + str(self.iterations) + ".yaml"
+        # We will switch to the same plugins system that LTM is already using. Meanwhile...
+        if not (self.iterations % 100):
+            yaml.dump(self, open(file_name, "w"), Dumper=yaml.CDumper)
+        rospy.loginfo('Iteration: ' + str(self.iterations))
         rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
         self.run_sensor_cb.set()
 
@@ -355,7 +407,7 @@ class MOTIVEN(object):
             for goal in self.goal_manager.goals:
                 if goal.goal_id == self.active_goal:
                     goal.activation = self.reward_dict[goal.goal_id].mean_value
-                elif self.reward_dict[goal.goal_id].mean_value >= self.reward_dict[self.state_t1].mean_value:
+                elif self.reward_dict[goal.goal_id].mean_value > self.reward_dict[self.state_t1].mean_value:
                     goal.activation = self.reward_dict[goal.goal_id].mean_value
                 else:
                     goal.activation = 0.0
@@ -381,150 +433,153 @@ class MOTIVEN(object):
         if self.iterations > 0:
             self.active_goal = 'clean_area'#self.goals_list[1]
 
-    def run(self, log_level='INFO', standalone=True):
-        # Load data
-        if self.load_data_file:
-            self.load_data()
-        self.ltm = not standalone
-        self.init_ros_staff(log_level)
-        self.publish_goal_activations()
-        if not self.ltm:
-            self.stop = 0
-            self.iterations = 0
-            self.refresh_world_srv(String("motiven"), Bool(False))  # Restart scenario
-            candidate_state = None
+    def run_standalone(self):
+        self.stop = 0
+        self.iterations = 0
+        self.refresh_world_srv(String("motiven"), Bool(False))  # Restart scenario
+        candidate_state = None
 
-            while not self.stop and not rospy.is_shutdown():
+        while not self.stop and not rospy.is_shutdown():
 
-                ## SENSORIZATION in t(distances, action and motivation)
-                sensorization = self.get_sens_srv(Bool(True))
-                self.episode.setSensorialStateT((
+            ## SENSORIZATION in t(distances, action and motivation)
+            sensorization = self.get_sens_srv(Bool(True))
+            self.episode.setSensorialStateT((
+                sensorization.obj_rob_dist.data * 1000,
+                sensorization.obj_grip_dist.data * 1000,
+                sensorization.obj_box_dist.data * 1000))
+
+            if self.iterations > 0:
+                print('*************************')
+                print('Predicted state: ', candidate_state)
+
+            self.motivation_pb.publish(String(
+                'Motivation: ' + str(self.active_mot) +
+                '\nActive SUR: ' + str(self.active_corr + 1) +
+                ', Correlated Sensor: ' + str(self.corr_sensor) +
+                ' ' + str(self.corr_type)))
+
+            # Apply Action
+            if self.iterations == 0:
+                self.episode.setAction(10)
+            else:
+                self.episode.setAction((action.robobo_action.data, action.baxter_action.data))
+            # Action (Baxter + Robobo)
+            movement_req = BaxMCRequest()
+            movement_req.dest.const_dist.data = 0.05
+            if self.iterations == 0:
+                movement_req.dest.angle.data = 10 * (math.pi / 180.0)
+                movement_req.valid.data = True
+            else:
+                movement_req.dest.angle.data = action.baxter_action.data * (math.pi / 180.0)  # Conversion to rad
+                movement_req.valid = action.baxter_valid
+            movement_req.dest.height.data = 0.0
+            movement_req.orientation.data = "current"
+            movement_req.arm.data = "right"
+            movement_req.scale.data = 1.0
+            try:
+                self.baxter_mov_srv(movement_req)  # self.simulator.baxter_larm_action(action)
+            except rospy.ServiceException as e:
+                rospy.logerr("Movement service call failed: {0}".format(e))
+            ######
+            movement_req = BaxMCRequest()
+            movement_req.dest.const_dist.data = 0.05
+            if self.iterations == 0:
+                movement_req.dest.angle.data = 10 * (math.pi / 180.0)
+                movement_req.valid.data = True
+            else:
+                movement_req.dest.angle.data = action.robobo_action.data * (math.pi / 180.0)  # Conversion to rad
+                movement_req.valid = action.robobo_valid
+            try:
+                self.robobo_mov_srv(movement_req)
+            except rospy.ServiceException as e:
+                rospy.logerr("Movement service call failed: {0}".format(e))
+            self.world_rules()
+
+            # SENSORIZATION in t+1 (distances and reward)
+            sensorization = self.get_sens_srv(Bool(True))
+            if self.reward:
+                self.episode.setSensorialStateT1((sensorization.obj_rob_dist.data * 1000, 0.0, 0.0))
+            else:
+                self.episode.setSensorialStateT1((
                     sensorization.obj_rob_dist.data * 1000,
                     sensorization.obj_grip_dist.data * 1000,
                     sensorization.obj_box_dist.data * 1000))
+            self.episode.setReward(self.reward)
 
-                if self.iterations > 0:
-                    print('*************************')
-                    print('Predicted state: ', candidate_state)
+            print('Real state: ', self.episode.getSensorialStateT1())
+            print('*************************')
 
-                self.motivation_pb.publish(String(
-                    'Motivation: ' + str(self.active_mot) +
-                    '\nActive SUR: ' + str(self.active_corr + 1) +
-                    ', Correlated Sensor: ' + str(self.corr_sensor) +
-                    ' ' + str(self.corr_type)))
-
-                # Apply Action
-                if self.iterations == 0:
-                    self.episode.setAction(10)
-                else:
-                    self.episode.setAction((action.robobo_action.data, action.baxter_action.data))
-                # Action (Baxter + Robobo)
-                movement_req = BaxMCRequest()
-                movement_req.dest.const_dist.data = 0.05
-                if self.iterations == 0:
-                    movement_req.dest.angle.data = 10 * (math.pi / 180.0)
-                    movement_req.valid.data = True
-                else:
-                    movement_req.dest.angle.data = action.baxter_action.data * (math.pi / 180.0)  # Conversion to rad
-                    movement_req.valid = action.baxter_valid
-                movement_req.dest.height.data = 0.0
-                movement_req.orientation.data = "current"
-                movement_req.arm.data = "right"
-                movement_req.scale.data = 1.0
-                try:
-                    self.baxter_mov_srv(movement_req)  # self.simulator.baxter_larm_action(action)
-                except rospy.ServiceException as e:
-                    rospy.logerr("Movement service call failed: {0}".format(e))
-                ######
-                movement_req = BaxMCRequest()
-                movement_req.dest.const_dist.data = 0.05
-                if self.iterations == 0:
-                    movement_req.dest.angle.data = 10 * (math.pi / 180.0)
-                    movement_req.valid.data = True
-                else:
-                    movement_req.dest.angle.data = action.robobo_action.data * (math.pi / 180.0)  # Conversion to rad
-                    movement_req.valid = action.robobo_valid
-                try:
-                    self.robobo_mov_srv(movement_req)
-                except rospy.ServiceException as e:
-                    rospy.logerr("Movement service call failed: {0}".format(e))
-                self.world_rules()
-
-                # SENSORIZATION in t+1 (distances and reward)
-                sensorization = self.get_sens_srv(Bool(True))
-                if self.reward:
-                    self.episode.setSensorialStateT1((sensorization.obj_rob_dist.data * 1000, 0.0, 0.0))
-                else:
-                    self.episode.setSensorialStateT1((
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000))
-                self.episode.setReward(self.reward)
-
-                print('Real state: ', self.episode.getSensorialStateT1())
-                print('*************************')
-
-                ###########################
-                if self.iterations > 0:
-                    # self.write_logs()
-                    self.debug_print()
-                    self.save_graphs()
-                ###########################
-
-                # Check if a new correlation is needed or established
-                self.correlations_manager.newSUR(self.active_goal)
-                if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
-                    self.correlations_manager.assignRewardAssigner(
-                        self.active_corr,
-                        self.episode.getSensorialStateT1(),
-                        self.active_goal)
-
-                ### Memory Manager: Save episode in the pertinent memories and Traces, weak traces and antitraces
-                self.memory_manager()
-
-                ### Motiv. Manager
-                self.motivation_manager()
-                # CANDIDATE STATE EVALUATOR and ACTION CHOOSER
-                sensorization = self.get_sens_srv(Bool(True))
-                self.baxter_gripper_angle = sensorization.grip_angle.data * 180.0 / math.pi
-                self.robobo_angle = sensorization.rob_angle.data * 180.0 / math.pi
-                # Generate new action
-                sim_data = (
-                    (sensorization.grip_x.data * 1000, sensorization.grip_y.data * 1000),
-                    self.baxter_gripper_angle,
-                    (sensorization.rob_x.data * 1000, sensorization.rob_y.data * 1000),
-                    self.robobo_angle,
-                    (sensorization.obj_x.data * 1000, sensorization.obj_y.data * 1000),
-                    (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000),
-                    (sensorization.box_x.data * 1000, sensorization.box_y.data * 1000),
-                    movement_req.dest.const_dist.data * 1000)
-                action = self.cse.getAction(
-                    self.active_mot, sim_data,
-                    tuple((
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000)),
-                    self.corr_sensor, self.corr_type,
-                    self.intrinsic_memory.getContents())
-                # Predicted state
-                candidate_state = self.cse.ForwModel.predictedState(action, sim_data)
-                # print "predicted State en i =: ", self.iterations+1, candidate_state
-
-                # Others
+            ###########################
+            if self.iterations > 0:
                 # self.write_logs()
-                # self.debug_print()
-                self.iter_min += 1
-                self.iterations += 1
-                self.it_reward += 1
-                self.stop_condition()
-                self.episode.cleanEpisode()
-            # self.save_data()
-            self.plot_graphs()
-            plt.pause(0.0001)
+                self.debug_print()
+                self.save_graphs()
+            ###########################
 
-            rospy.sleep(15)
-        else:
-            rospy.spin()
+            # Check if a new correlation is needed or established
+            self.correlations_manager.newSUR(self.active_goal)
+            if self.correlations_manager.correlations[self.active_corr].i_reward_assigned == 0:
+                self.correlations_manager.assignRewardAssigner(
+                    self.active_corr,
+                    self.episode.getSensorialStateT1(),
+                    self.active_goal)
+
+            ### Memory Manager: Save episode in the pertinent memories and Traces, weak traces and antitraces
+            self.memory_manager()
+
+            ### Motiv. Manager
+            self.motivation_manager()
+            # CANDIDATE STATE EVALUATOR and ACTION CHOOSER
+            sensorization = self.get_sens_srv(Bool(True))
+            self.baxter_gripper_angle = sensorization.grip_angle.data * 180.0 / math.pi
+            self.robobo_angle = sensorization.rob_angle.data * 180.0 / math.pi
+            # Generate new action
+            sim_data = (
+                (sensorization.grip_x.data * 1000, sensorization.grip_y.data * 1000),
+                self.baxter_gripper_angle,
+                (sensorization.rob_x.data * 1000, sensorization.rob_y.data * 1000),
+                self.robobo_angle,
+                (sensorization.obj_x.data * 1000, sensorization.obj_y.data * 1000),
+                (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000),
+                (sensorization.box_x.data * 1000, sensorization.box_y.data * 1000),
+                movement_req.dest.const_dist.data * 1000)
+            action = self.cse.getAction(
+                self.active_mot, sim_data,
+                tuple((
+                    sensorization.obj_rob_dist.data * 1000,
+                    sensorization.obj_grip_dist.data * 1000,
+                    sensorization.obj_box_dist.data * 1000)),
+                self.corr_sensor, self.corr_type,
+                self.intrinsic_memory.getContents())
+            # Predicted state
+            candidate_state = self.cse.ForwModel.predictedState(action, sim_data)
+            # print "predicted State en i =: ", self.iterations+1, candidate_state
+
+            # Others
+            # self.write_logs()
+            # self.debug_print()
+            self.iter_min += 1
+            self.iterations += 1
+            self.it_reward += 1
+            self.stop_condition()
+            self.episode.cleanEpisode()
+        self.plot_graphs()
+        plt.pause(0.0001)
+        rospy.sleep(15)
+
+    def run(self, log_level='INFO', standalone=True, plot=False):
+        """Start the MOTIVEN part of the brain."""
+        try:
+            self.ltm = not standalone
+            self.init_ros(log_level)
+            self.cse.init_ros()
+            self.publish_goal_activations()
+            if not self.ltm:
+                self.run_standalone()
+            else:
+                rospy.spin()
+        except rospy.ROSInterruptException:
+            rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
 
     def stop_condition(self):
         if self.iterations > 10000:
@@ -625,7 +680,6 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -663,7 +717,6 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
             elif self.correlations_manager.getReward(
@@ -743,7 +796,6 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
@@ -782,7 +834,6 @@ class MOTIVEN(object):
                 self.it_blind = 0
                 self.n_execution += 1
                 self.save_matrix()
-                # self.save_data()
                 self.traces_memory_vf.addTraces(self.memory_vf.getTraceReward())
                 self.memory_vf.removeAll()
                 #####
@@ -975,94 +1026,6 @@ class MOTIVEN(object):
         sub_result = [numpy.mean(data[i - smaPeriod + 1:i + 1]) for i in our_range]
         return list(empty_list + sub_result)
 
-    def save_data(self):  # , action, seed):
-        f = open('SimulationDataMotiven' + str(self.n_execution) + '.pckl', 'wb')
-        pickle.dump(len(self.correlations_manager.correlations), f)
-        for correlation in self.correlations_manager.correlations:
-            pickle.dump(correlation.S1_pos, f)
-            pickle.dump(correlation.S1_neg, f)
-            pickle.dump(correlation.S2_pos, f)
-            pickle.dump(correlation.S2_neg, f)
-            pickle.dump(correlation.S3_pos, f)
-            pickle.dump(correlation.S3_neg, f)
-            pickle.dump(correlation.S4_pos, f)
-            pickle.dump(correlation.S4_neg, f)
-            pickle.dump(correlation.S5_pos, f)
-            pickle.dump(correlation.S5_neg, f)
-            pickle.dump(correlation.S6_pos, f)
-            pickle.dump(correlation.S6_neg, f)
-            pickle.dump(correlation.S7_pos, f)
-            pickle.dump(correlation.S7_neg, f)
-            pickle.dump(correlation.S8_pos, f)
-            pickle.dump(correlation.S8_neg, f)
-            pickle.dump(correlation.S9_pos, f)
-            pickle.dump(correlation.S9_neg, f)
-            pickle.dump(correlation.S10_pos, f)
-            pickle.dump(correlation.S10_neg, f)
-            pickle.dump(correlation.corr_active, f)
-            pickle.dump(correlation.corr_type, f)
-            pickle.dump(correlation.corr_threshold, f)
-            pickle.dump(correlation.established, f)
-            pickle.dump(correlation.corr_established, f)
-            pickle.dump(correlation.corr_established_type, f)
-            pickle.dump(correlation.i_reward, f)
-            pickle.dump(correlation.i_reward_assigned, f)
-            pickle.dump(correlation.goal, f)
-            pickle.dump(correlation.Tb, f)
-        # pickle.dump(self.active_mot, f)
-        # pickle.dump(self.active_corr, f)
-        # pickle.dump(self.corr_sensor, f)
-        # pickle.dump(self.corr_type, f)
-        pickle.dump(self.graph1, f)
-        pickle.dump(self.graphx, f)
-        pickle.dump(self.graph2, f)
-        f.close()
-
-    def load_data(self, file_name):
-        f = open(file_name, 'rb')  # SimulationDataLongExecBis2 SimulationDataRealSUR3R75
-        numero = pickle.load(f)
-        for idx in range(numero):
-            self.correlations_manager.correlations.append(Correlations(None, None))
-            correlation = self.correlations_manager.correlations[idx]
-            correlation.S1_pos = pickle.load(f)
-            correlation.S1_neg = pickle.load(f)
-            correlation.S2_pos = pickle.load(f)
-            correlation.S2_neg = pickle.load(f)
-            correlation.S3_pos = pickle.load(f)
-            correlation.S3_neg = pickle.load(f)
-            correlation.S4_pos = pickle.load(f)
-            correlation.S4_neg = pickle.load(f)
-            correlation.S5_pos = pickle.load(f)
-            correlation.S5_neg = pickle.load(f)
-            correlation.S6_pos = pickle.load(f)
-            correlation.S6_neg = pickle.load(f)
-            correlation.S7_pos = pickle.load(f)
-            correlation.S7_neg = pickle.load(f)
-            correlation.S8_pos = pickle.load(f)
-            correlation.S8_neg = pickle.load(f)
-            correlation.S9_pos = pickle.load(f)
-            correlation.S9_neg = pickle.load(f)
-            correlation.S10_pos = pickle.load(f)
-            correlation.S10_neg = pickle.load(f)
-            correlation.corr_active = pickle.load(f)
-            correlation.corr_type = pickle.load(f)
-            correlation.corr_threshold = pickle.load(f)
-            correlation.established = pickle.load(f)
-            correlation.corr_established = pickle.load(f)
-            correlation.corr_established_type = pickle.load(f)
-            correlation.i_reward = pickle.load(f)
-            correlation.i_reward_assigned = pickle.load(f)
-            correlation.goal_id = pickle.load(f)
-            correlation.Tb = pickle.load(f)
-        # # self.active_mot = pickle.load(f)
-        # # self.active_corr = pickle.load(f)
-        # # self.corr_sensor = pickle.load(f)
-        # # self.corr_type = pickle.load(f)
-        self.graph1 = pickle.load(f)
-        self.graphx = pickle.load(f)
-        self.graph2 = pickle.load(f)
-        f.close()
-
     @staticmethod
     def object_in_close_box(perceptions):
         """Check if there is an object inside of a box."""
@@ -1130,8 +1093,8 @@ class MOTIVEN(object):
             and (old_perceptions["ball_in_left_hand"] and (not old_perceptions["ball_in_right_hand"]))
         )
 
-    @staticmethod
-    def get_final_state(perceptions_t1, perceptions_t):
+    @classmethod
+    def get_final_state(cls, perceptions_t1, perceptions_t):
         """Translate perceptions into final states."""
         state = 'Unnamed'
         if (None in list(perceptions_t.values())) or (None in list(perceptions_t1.values())):
@@ -1139,24 +1102,24 @@ class MOTIVEN(object):
         else:
             # if perceptions_t1['happy_human'] and (not perceptions_t['happy_human']):
             #     state = 'clean_area'
-            if MOTIVEN.object_with_robot(perceptions_t1):
-                if not MOTIVEN.object_with_robot(perceptions_t):
+            if cls.object_with_robot(perceptions_t1):
+                if not cls.object_with_robot(perceptions_t):
                     state = "object_with_robot"
-            elif MOTIVEN.object_in_close_box(perceptions_t1):
-                if not MOTIVEN.object_in_close_box(perceptions_t):
+            elif cls.object_in_close_box(perceptions_t1):
+                if not cls.object_in_close_box(perceptions_t):
                     state = "object_in_close_box"
-            elif MOTIVEN.object_in_far_box(perceptions_t1):
-                if not MOTIVEN.object_in_far_box(perceptions_t):
+            elif cls.object_in_far_box(perceptions_t1):
+                if not cls.object_in_far_box(perceptions_t):
                     state = "object_in_far_box"
-            elif MOTIVEN.ball_held(perceptions_t1):
-                if MOTIVEN.ball_held_with_two_hands(perceptions_t1):
-                    if not MOTIVEN.ball_held_with_two_hands(perceptions_t):
+            elif cls.ball_held(perceptions_t1):
+                if cls.ball_held_with_two_hands(perceptions_t1):
+                    if not cls.ball_held_with_two_hands(perceptions_t):
                         state = 'object_held_with_two_hands'
-                elif not MOTIVEN.ball_held(perceptions_t):
+                elif not cls.ball_held(perceptions_t):
                     state = 'object_held'
-                elif MOTIVEN.hand_was_changed(perceptions_t1, perceptions_t):
+                elif cls.hand_was_changed(perceptions_t1, perceptions_t):
                     state = 'changed_hands'
-            elif not MOTIVEN.ball_held(perceptions_t):
+            elif not cls.ball_held(perceptions_t):
                 if LTMSim.object_pickable_withtwohands(perceptions_t1['ball_dist'], perceptions_t1['ball_ang']):
                     if not LTMSim.object_pickable_withtwohands(perceptions_t['ball_dist'], perceptions_t['ball_ang']):
                         state = 'frontal_object'

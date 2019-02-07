@@ -9,10 +9,10 @@ Distributed under the (yes, we are still thinking about this too...).
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 import os.path
+import sys
 from copy import copy
 from operator import attrgetter
 from enum import Enum
-import importlib
 import threading
 from collections import OrderedDict
 import yaml
@@ -171,7 +171,10 @@ class LTM(object):
     def __class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        node_module = __import__(module_string, fromlist=[bytes(class_string, 'utf-8')])
+        if sys.version_info < (3, 0):
+            node_module = __import__(module_string, fromlist=[bytes(class_string, 'utf-8')])
+        else:
+            node_module = __import__(module_string, fromlist=[class_string])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class

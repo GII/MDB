@@ -1,8 +1,8 @@
 <launch>
-	<arg name="backup" default="ltm.backup"/>
+	<arg name="backup" default="backup"/>
 	<arg name="log_level" default="DEBUG"/>
 	<arg name="debug" default="False"/>
-	<arg name="simulator" default="False"/>
+	<arg name="simulator" default="True"/>
 	<arg name="motiven" default="True"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_standalone.yaml" unless="$(arg motiven)"/>
 	<arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
@@ -15,12 +15,12 @@
 	<rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
 	<group ns="mdb" unless="$(arg debug)">
 		<node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" if="$(arg simulator)"/>
-		<node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-l $(arg log_level) $(arg standalone_arg)" if="$(arg motiven)"/>
-		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)"/>
+		<node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" if="$(arg motiven)"/>
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)"/>
 	</group>
 	<group ns="mdb" if="$(arg debug)">
 		<node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" launch-prefix="winpdb" if="$(arg simulator)"/>
-		<node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-l $(arg log_level) $(arg standalone_arg)" launch-prefix="winpdb" if="$(arg motiven)"/>
-		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b $(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)" launch-prefix="winpdb"/>
+		<node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" launch-prefix="winpdb" if="$(arg motiven)"/>
+		<node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)" launch-prefix="winpdb"/>
 	</group>
 </launch>

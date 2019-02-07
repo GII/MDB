@@ -9,7 +9,7 @@ Distributed under GPLv3.
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 from enum import Enum
-import importlib
+import sys
 import os.path
 import math
 import yaml
@@ -45,7 +45,10 @@ class LTMSim(object):
     def __class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        node_module = __import__(module_string, fromlist=[bytes(class_string, 'utf-8')])
+        if sys.version_info < (3, 0):
+            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
+        else:
+            node_module = __import__(module_string, fromlist=[class_string])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
@@ -148,6 +151,21 @@ class LTMSim(object):
             dist_near, ang_near = LTMSim.calculate_closest_position(ang)
             together = (abs(dist - dist_near) < 0.05) and (abs(ang - ang_near) < 0.05)
         return together
+
+    def __avoid_reward_by_chance(self, distance, angle):
+        """Avoid a reward situation obtained by chance."""
+        # This is necessary so sweep never puts the object close to the robot or colliding with a box.
+        # This is not realistic, it needs to be improved.
+        while (
+            self.__object_with_robot(distance, angle)
+            or self.__object_in_close_box(distance, angle)
+            or self.__object_in_far_box(distance, angle)
+        ):
+            if distance > 0.65:
+                distance -= 0.10
+            else:
+                distance += 0.10
+        return distance
 
     def reward_ball_in_box(self):
         """Reward for object in box goal."""
@@ -304,12 +322,9 @@ class LTMSim(object):
         """Grasp an object using both arms."""
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
-                if (
-                    (self.object_pickable_withtwohands(cylinder.distance, cylinder.angle)) and
-                    (
-                        (World.no_gripper_and_high_friction.name in self.world.name) or
-                        (not self.object_is_small(cylinder.diameter))
-                    )
+                if (self.object_pickable_withtwohands(cylinder.distance, cylinder.angle)) and (
+                    (World.no_gripper_and_high_friction.name in self.world.name)
+                    or (not self.object_is_small(cylinder.diameter))
                 ):
                     self.perceptions["ball_in_left_hand"].data = True
                     self.perceptions["ball_in_right_hand"].data = True
@@ -322,31 +337,29 @@ class LTMSim(object):
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = True
             self.catched_object.angle = -self.catched_object.angle
+            self.catched_object.distance = self.__avoid_reward_by_chance(
+                self.catched_object.distance, self.catched_object.angle
+            )
         elif (not self.perceptions["ball_in_left_hand"].data) and self.perceptions["ball_in_right_hand"].data:
             self.perceptions["ball_in_left_hand"].data = True
             self.perceptions["ball_in_right_hand"].data = False
             self.catched_object.angle = -self.catched_object.angle
+            self.catched_object.distance = self.__avoid_reward_by_chance(
+                self.catched_object.distance, self.catched_object.angle
+            )
 
     def sweep_object_policy(self):
         """Sweep an object to the front of the robot."""
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
                 if not self.object_too_far(cylinder.distance, cylinder.angle):
-                    sign = numpy.sign(cylinder.angle) # pylint: disable=E1111
+                    sign = numpy.sign(cylinder.angle)  # pylint: disable=E1111
                     cylinder.distance, cylinder.angle = self.__send_object_twohandsreachable(cylinder.distance)
-                    if ((World.gripper_and_low_friction.name in self.world.name) and
-                        self.object_is_small(cylinder.diameter)
+                    if (World.gripper_and_low_friction.name in self.world.name) and self.object_is_small(
+                        cylinder.diameter
                     ):
                         cylinder.angle = sign * 0.4
-                    # This is necessary so sweep never puts the object close to the robot or colliding with a box.
-                    # This is not realistic, it needs to be improved.
-                    if self.__object_with_robot(cylinder.distance, cylinder.angle) or self.__object_in_close_box(
-                        cylinder.distance, cylinder.angle
-                    ):
-                        if cylinder.distance > 0.65:
-                            cylinder.distance -= 0.10
-                        else:
-                            cylinder.distance += 0.10
+                    cylinder.distance = self.__avoid_reward_by_chance(cylinder.distance, cylinder.angle)
                     break
 
     def put_object_in_box_policy(self):
