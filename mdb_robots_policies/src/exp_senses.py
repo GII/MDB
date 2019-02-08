@@ -46,7 +46,7 @@ class exp_senses:
         self.rgrip_ori = 0.0
         self.rob_grip = 0.0
 
-        self.bobj_sense_sb = rospy.Subscriber("/mdb_baxter/ball", SensData, self.obj_sense_cb)
+        self.obj_sense_sb = rospy.Subscriber("/mdb_baxter/ball", SensData, self.obj_sense_cb)
         self.box_sense_sb = rospy.Subscriber("/mdb_baxter/box", SensData, self.box_sense_cb)
         self.box2_sense_sb = rospy.Subscriber("/mdb_baxter/box2", SensData, self.box2_sense_cb)
         self.rob_sense_sb = rospy.Subscriber("/mdb_baxter/robobo", SensData, self.rob_sense_cb)
@@ -250,8 +250,8 @@ class exp_senses:
         for cylinder in self.box.data:
             for box in self.obj.data:
                 if (
-                    (abs(cylinder.distance - box.distance) < 0.05)
-                    and (abs(cylinder.angle - box.angle) < 0.05)
+                    (abs(cylinder.distance - box.distance) < 0.18)
+                    and (abs(cylinder.angle - box.angle) < 0.18)
                     and self.object_too_far(box.distance, box.angle)
                 ):
                     return True
@@ -268,8 +268,8 @@ class exp_senses:
         self.box.data[0].distance = self.box_sense.dist.data
         self.box.data[0].angle = self.box_sense.angle.data
         self.box.data[0].diameter = box_rad
-        self.box.data[1].distance = self.box_sense.dist.data
-        self.box.data[1].angle = self.box_sense.angle.data
+        self.box.data[1].distance = self.box2_sense.dist.data
+        self.box.data[1].angle = self.box2_sense.angle.data
         self.box.data[1].diameter = box_rad
         self.box_pb.publish(self.box)
 
