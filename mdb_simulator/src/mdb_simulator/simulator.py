@@ -11,6 +11,7 @@ from builtins import *  # noqa
 from enum import Enum
 import sys
 import os.path
+from io import open
 import math
 import yaml
 import numpy
@@ -415,7 +416,7 @@ class LTMSim(object):
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
                 if self.object_too_far(cylinder.distance, cylinder.angle):
-                    cylinder.distance = 1.13
+                    cylinder.distance = self.__avoid_reward_by_chance(1.13, cylinder.angle)
                     break
 
     def __new_command_callback(self, data):
@@ -483,7 +484,7 @@ class LTMSim(object):
                 rospy.logerr(config_file + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", config_file)
-                config = yaml.load(open(config_file, "r"), Loader=yaml.CLoader)
+                config = yaml.load(open(config_file, "r", encoding='utf-8'), Loader=yaml.CLoader)
                 self.__configure_sensors(config["Simulator"]["Sensors"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
                 self.__configure_simulation(config["Control"])

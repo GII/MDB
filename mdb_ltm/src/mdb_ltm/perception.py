@@ -103,7 +103,7 @@ class ObjectListPerception(Perception):
             diameter = (perception.diameter - self.normalize_values["diameter_min"]) / (
                 self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
             )
-            self.value.append({"distance": distance, "angle": angle, "diameter": diameter})
+            self.value.append(OrderedDict(distance=distance, angle=angle, diameter=diameter))
 
     def flatten_perceptions(self):
         """Return a list of flattened perceptions, without keys."""

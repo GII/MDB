@@ -15,6 +15,7 @@ from operator import attrgetter
 from enum import Enum
 import threading
 from collections import OrderedDict
+from io import open
 import yaml
 import numpy
 import networkx
@@ -60,8 +61,8 @@ class LTM(object):
         """Constructor."""
         self.file_name = None
         self.files = []
-        self.nodes = dict(Perception=dict(), PNode=[], CNode=[], Goal=[], ForwardModel=[], Policy=[])
-        self.module_names = dict(
+        self.nodes = OrderedDict(Perception=OrderedDict(), PNode=[], CNode=[], Goal=[], ForwardModel=[], Policy=[])
+        self.module_names = OrderedDict(
             Perception="perception",
             PNode="p_node",
             ForwardModel="forward_model",
@@ -69,8 +70,8 @@ class LTM(object):
             CNode="c_node",
             Policy="policy",
         )
-        self.default_class = dict()
-        self.default_ros_name_prefix = dict()
+        self.default_class = OrderedDict()
+        self.default_ros_name_prefix = OrderedDict()
         self.there_are_goals = threading.Event()
         self.control_publisher = None
         self.restoring = False
@@ -86,8 +87,8 @@ class LTM(object):
         self.current_world = 0
         self.current_success = 0
         self.graph = networkx.Graph()
-        self.graph_node_label = dict()
-        self.graph_node_position = dict()
+        self.graph_node_label = OrderedDict()
+        self.graph_node_position = OrderedDict()
         super().__init__()
 
     def __getstate__(self):
@@ -131,7 +132,7 @@ class LTM(object):
     @classmethod
     def load_memory_dump(cls, file_name):
         """Load a previous LTM memory dump from a file."""
-        ltm = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+        ltm = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yaml.CLoader)
         ltm.files = []
         ltm.there_are_goals = threading.Event()
         # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
@@ -375,7 +376,7 @@ class LTM(object):
                 rospy.logerr(file_name + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", file_name)
-                configuration = yaml.load(open(file_name, "r"), Loader=yaml.CLoader)
+                configuration = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yaml.CLoader)
                 self.__setup_files(configuration["LTM"]["Files"])
                 self.__setup_topics(configuration["LTM"]["Connectors"])
                 if not self.restoring:
