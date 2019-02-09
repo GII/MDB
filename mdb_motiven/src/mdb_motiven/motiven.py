@@ -13,6 +13,7 @@ import threading
 from collections import OrderedDict
 from io import open
 import yaml
+import yamlloader
 import numpy
 from matplotlib import pyplot as plt
 # ROS
@@ -230,7 +231,7 @@ class MOTIVEN(object):
     @classmethod
     def load_memory_dump(cls, file_name):
         """Load a previous MOTIVEN memory dump from a file."""
-        motiven = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yaml.CLoader)
+        motiven = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
         motiven.sensor_lock = threading.Lock()
         motiven.run_executed_policy_cb = threading.Event()
         motiven.run_sensor_cb = threading.Event()
@@ -382,7 +383,7 @@ class MOTIVEN(object):
         file_name = self.file_name + "_" + str(self.iterations) + ".yaml"
         # We will switch to the same plugins system that LTM is already using. Meanwhile...
         if not (self.iterations % 100):
-            yaml.dump(self, open(file_name, "w", encoding='utf-8'), Dumper=yaml.CDumper, allow_unicode=True)
+            yaml.dump(self, open(file_name, "w", encoding='utf-8'), Dumper=yamlloader.ordereddict.CDumper, allow_unicode=True)
         rospy.loginfo('Iteration: ' + str(self.iterations))
         rospy.loginfo('MOTIVEN STAGE 3: end calculating and publishing goal success values')
         self.run_sensor_cb.set()

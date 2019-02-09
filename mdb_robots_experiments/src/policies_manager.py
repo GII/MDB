@@ -218,7 +218,7 @@ class policies_manager:
         return resp
 
     def policy_change_hands(self, policy_code, global_s, arm, srv):
-        if self.global_exp.world == "gripper_and_low_friction":
+        if "gripper_and_low_friction" in self.global_exp.world:
             self.global_exp.pan_to("front", 0.1)
             srv.request.data = True
             self.global_exp.adopt_expression("focus")
@@ -411,4 +411,3 @@ class policies_manager:
         self.global_exp.adopt_expression("normal")
         rospy.loginfo("Success? : %s", resp)
         return resp
-

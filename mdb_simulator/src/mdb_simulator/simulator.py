@@ -14,6 +14,7 @@ import os.path
 from io import open
 import math
 import yaml
+import yamlloader
 import numpy
 import rospy
 
@@ -484,7 +485,7 @@ class LTMSim(object):
                 rospy.logerr(config_file + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", config_file)
-                config = yaml.load(open(config_file, "r", encoding='utf-8'), Loader=yaml.CLoader)
+                config = yaml.load(open(config_file, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
                 self.__configure_sensors(config["Simulator"]["Sensors"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
                 self.__configure_simulation(config["Control"])

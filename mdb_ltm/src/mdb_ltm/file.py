@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import *  # noqa
 from io import open
 import yaml
+import yamlloader
 
 
 class File(object):
@@ -113,7 +114,9 @@ class FileLTMDump(File):
         """Do the LTM dump."""
         self.ltm.iteration += 1
         file_name = self.file_name + "_" + str(self.ltm.iteration) + ".yaml"
-        yaml.dump(self.ltm, open(file_name, "w", encoding="utf-8"), Dumper=yaml.CDumper, allow_unicode=True)
+        yaml.dump(
+            self.ltm, open(file_name, "w", encoding="utf-8"), Dumper=yamlloader.ordereddict.CDumper, allow_unicode=True
+        )
         self.ltm.iteration -= 1
 
     def close(self):
