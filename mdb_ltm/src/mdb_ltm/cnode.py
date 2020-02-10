@@ -20,7 +20,7 @@ class CNode(Node):
     It is assumed that there is only one element of each type connected to the C-Node.
     """
 
-    def calc_activation(self, **kwargs):
+    def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         raise NotImplementedError
 
@@ -78,3 +78,35 @@ class CNode(Node):
             )
             == 2
         )
+
+    @property
+    def p_node(self):
+        """Return the P-Node of this context."""
+        for node in self.neighbors:
+            if node.type == "PNode":
+                return node
+        return None
+
+    @property
+    def forward_model(self):
+        """Return the forward model of this context."""
+        for node in self.neighbors:
+            if node.type == "ForwardModel":
+                return node
+        return None
+
+    @property
+    def goal(self):
+        """Return the goal of this context."""
+        for node in self.neighbors:
+            if node.type == "Goal":
+                return node
+        return None
+
+    @property
+    def policy(self):
+        """Return the policy of this context."""
+        for node in self.neighbors:
+            if node.type == "Policy":
+                return node
+        return None

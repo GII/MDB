@@ -2,7 +2,7 @@
 
 # Copyright 2018, GII / Universidad de la Coruna (UDC)
 #
-# Main contributor(s): 
+# Main contributor(s):
 # * Luis Calvo, luis.calvo@udc.es
 #
 #  This file is also part of MDB.
@@ -20,9 +20,9 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy 
+import rospy
 import math
-import tf 
+import tf
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
@@ -79,8 +79,8 @@ class calibration_policies():
 
 	def lineal_quadrilateral_grid_points (self, vertex, grid_points):
 		points = int(math.sqrt(grid_points) - 1)
-		grid = [] 
-	
+		grid = []
+
 		cont = 0
 		for j in range (0, points+1):
 			for i in range (0, points+1):
@@ -104,7 +104,7 @@ class calibration_policies():
 		while self.head_state.isTurning:
 			pass
 
-	def calibration_move_loop(self, height_data, side, dx, dy):			
+	def calibration_move_loop(self, height_data, side, dx, dy):
 		result = False
 		if self.global_policies.loop_tries > 0:
 			if self.global_policies.adjust_w1(side, dx, dy):
@@ -117,7 +117,7 @@ class calibration_policies():
 							self.global_policies.loop_tries = 5
 							result = real_position
 				else:
-					print "Adjusting"
+					print("Adjusting")
 					self.global_policies.loop_tries -= 1
 					self.calibration_move_loop(height_data, side, dx, dy)
 		return result
@@ -142,7 +142,7 @@ class calibration_policies():
 			for it in range (0, number_of_angles-1):
 				angle_seed-=inc
 				list_of_ang.append(angle_seed)
-		
+
 		return list_of_ang
 
 	def translate_flag (self, use_tag):
@@ -151,7 +151,7 @@ class calibration_policies():
 
 	def select_calibration_flag(self, flag):
 		options = {
-			"tag":self.global_policies.robobo_status, 
+			"tag":self.global_policies.robobo_status,
 			"cylinder":self.calib_obj_flag,
 		}
 		return options[flag]
@@ -184,7 +184,7 @@ class calibration_policies():
 	def select_calibration_move (self, flag):
 		options = {
 			"close":self.calibration_move_close,
-			"far":self.calibration_move_far, 
+			"far":self.calibration_move_far,
 		}
 		return options[flag]
 
@@ -205,7 +205,7 @@ class calibration_policies():
 					self.global_policies.adopt_oap()
 					calibration_data.append([[dx, dy], 'non_reachable'])
 					return False
-			
+
 		else:
 			rospy.sleep(1)
 			pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
@@ -219,7 +219,7 @@ class calibration_policies():
 		else:
 			side = int(math.sqrt(req.point_num.data))
 			return side*req.row_to_calibrate.data, (side*req.row_to_calibrate.data)+side
-			
+
 	def interpolation_calibration (self, req):
 		x_min = rospy.get_param("~cal_xmin")
 		x_max = rospy.get_param("~cal_xmax")
@@ -228,11 +228,11 @@ class calibration_policies():
 
 		seed_angle = rospy.get_param("~cal_ang")
 
-		height_data = req.height.data		
+		height_data = req.height.data
 		table_vertex = [[x_min,y_max],[x_min,y_min],[x_max,y_min],[x_max,y_max]]
 		pan_angles = self.angle_generator(req.angle_num.data, seed_angle)
-		
-		self.global_policies.adopt_oap()				
+
+		self.global_policies.adopt_oap()
 		grid_points = self.lineal_quadrilateral_grid_points(table_vertex, req.point_num.data)
 
 		self.calibration_data = []
@@ -244,7 +244,7 @@ class calibration_policies():
 
 		fail = True
 		non_reach = False
-		for pose in range(init, end):		
+		for pose in range(init, end):
 
 			if (pose%row_point_num ) == 0:
 				fail = True
@@ -258,13 +258,13 @@ class calibration_policies():
 			#Translate position in terms of angle and distance
 			dist = self.global_policies.obtain_dist(dx,dy)
 			ang = math.atan2(dy,dx)
-		
+
 			far = self.global_policies.g_highpoly(abs(ang))
 			self.global_policies.baxter_arm.restore_arm_pose(arm)
 
 			result = self.calibration_cycle(dist, far, pan_angles, req, self.calibration_data, dx, dy, arm, non_reach)
-			
-			fail = fail and not result 
+
+			fail = fail and not result
 			if ((pose+1)%row_point_num) == 0 and fail:
 				non_reach = True
 

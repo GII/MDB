@@ -83,25 +83,41 @@ class FilePNodes(File):
             self.file_object.write(perception.ident + "\t")
         self.file_object.write("Confidence\n")
 
-    def write(self):
+    def write(self, force=False):
         """Write P-nodes."""
-        if self.ltm.iteration % self.data == 0:
+        if (self.ltm.iteration % self.data == 0) or force:
             for pnode in self.ltm.p_nodes:
-                for point in range(0, pnode.size):
+                for point, confidence in zip(
+                    pnode.space.members[0 : pnode.space.size], pnode.space.memberships[0 : pnode.space.size]
+                ):
                     self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
-                    for perception in range(0, pnode.n_perceptions):
-                        self.file_object.write(str(pnode.members[perception, point]) + "\t")
-                    self.file_object.write(str(pnode.memberships[point]) + "\n")
+                    for sensor in point:
+                        self.file_object.write(str(sensor) + "\t")
+                    self.file_object.write(str(confidence) + "\n")
 
     def close(self):
         """Close de underlying file."""
-        for pnode in self.ltm.p_nodes:
-            for point in range(0, pnode.size):
-                self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
-                for perception in range(0, pnode.n_perceptions):
-                    self.file_object.write(str(pnode.members[perception, point]) + "\t")
-                self.file_object.write(str(pnode.memberships[point]) + "\n")
-        super().write_header()
+        self.write(force=True)
+        super().close()
+
+
+class FileGoals(File):
+    """A file that stores goals information (right now, only value functions)."""
+
+    def write(self, force=False):
+        """Write value functions."""
+        if (self.ltm.iteration % self.data == 0) or force:
+            for goal in self.ltm.goals:
+                for value_function in goal.value_functions:
+                    self.file_object.write(str(self.ltm.iteration) + " => ")
+                    for subgoal in value_function:
+                        self.file_object.write(subgoal.ident + "\t")
+                    self.file_object.write("\n")
+
+    def close(self):
+        """Close de underlying file."""
+        self.write(force=True)
+        super().close()
 
 
 class FileLTMDump(File):
@@ -121,8 +137,8 @@ class FileLTMDump(File):
 
     def close(self):
         """Close de underlying file."""
-        self.write()
-        super().write_header()
+        self.write(force=True)
+        super().close()
 
 
 class FileLTMDumpWhenReward(FileLTMDump):
@@ -137,7 +153,7 @@ class FileLTMDumpWhenReward(FileLTMDump):
 class FileLTMPeriodicDump(FileLTMDump):
     """A file that stores a memory dump of a LTM each x iterations."""
 
-    def write(self):
+    def write(self, force=False):
         """Do the LTM dump."""
-        if (self.ltm.iteration > 0) and (self.ltm.iteration % self.data == 0):
+        if ((self.ltm.iteration > 0) and (self.ltm.iteration % self.data == 0)) or force:
             super().write()

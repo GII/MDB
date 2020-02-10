@@ -34,7 +34,7 @@ class Policy(Node):
         """Create publishers and make subscriptions."""
         self.publisher = rospy.Publisher(self.topic, self.message, latch=True, queue_size=0)
 
-    def calc_activation(self, **kwargs):
+    def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         raise NotImplementedError
 
@@ -83,7 +83,7 @@ class SuperThrow(Policy):
         if self.real_robot:
             self.throw_publisher = rospy.Publisher(self.throw_topic, self.throw_message, latch=True, queue_size=0)
 
-    def calc_activation(self, **kwargs):
+    def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         raise NotImplementedError
 

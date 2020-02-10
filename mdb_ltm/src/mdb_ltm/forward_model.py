@@ -8,6 +8,7 @@ Distributed under the (yes, we are still thinking about this too...).
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
+import numpy
 from mdb_ltm.node import Node
 
 
@@ -18,7 +19,12 @@ class ForwardModel(Node):
         """Constructor."""
         super().__init__(**kwargs)
 
-    def calc_activation(self, **kwargs):
+    @property
+    def max_activation(self):
+        """Return the maximum value of all activations."""
+        return numpy.max(self.activation)
+
+    def calc_activation(self, perception=None):
         """
         Calculate the new activation value.
 

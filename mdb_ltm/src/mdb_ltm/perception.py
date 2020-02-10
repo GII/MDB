@@ -52,7 +52,7 @@ class Perception(Node):
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.read_callback)
 
-    def calc_activation(self, **kwargs):
+    def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         rospy.logerr("Someone call calc_activation on a perception, this should not happen!!!")
 
@@ -69,23 +69,20 @@ class Perception(Node):
 
     def process_reading(self):
         """Process the new sensor reading."""
-        self.value = [[self.raw.data]]
+        self.value = []
+        self.value.append(OrderedDict(data=self.raw.data))
 
     def read(self):
         """Obtain a new value for the sensor / redescription."""
         self.flag.wait()
         self.flag.clear()
-        return self.flatten_perceptions()
-
-    def flatten_perceptions(self):
-        """Return a list of flattened perceptions."""
         return self.value
 
 
 class ObjectListPerception(Perception):
     """A perception corresponding with a list of objects."""
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data=None, **kwargs):
         """Constructor."""
         self.normalize_values = data
         super(ObjectListPerception, self).__init__(**kwargs)
@@ -104,11 +101,3 @@ class ObjectListPerception(Perception):
                 self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
             )
             self.value.append(OrderedDict(distance=distance, angle=angle, diameter=diameter))
-
-    def flatten_perceptions(self):
-        """Return a list of flattened perceptions, without keys."""
-        flattened_list = []
-        for perception in self.value:
-            flattened_perception = [perception["distance"], perception["angle"], perception["diameter"]]
-            flattened_list.append(flattened_perception)
-        return flattened_list

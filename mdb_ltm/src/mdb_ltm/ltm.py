@@ -51,7 +51,7 @@ class LTM(object):
     """
     The Long Term Memory part of the Brain.
 
-    Attributes
+    Attributes:
     ----------
         nodes       {type_of_node: [node, ...], ...}
         module_names  {type_of_node: python_module_name, ...}
@@ -71,9 +71,14 @@ class LTM(object):
             CNode="c_node",
             Policy="policy",
         )
+        # Init thread syncronizing stuff
+        self.reward_semaphore = None
+        self.reward_flag = None
+        self.there_are_goals = None
+        self.init_threading()
+        #
         self.default_class = OrderedDict()
         self.default_ros_name_prefix = OrderedDict()
-        self.there_are_goals = threading.Event()
         self.control_publisher = None
         self.restoring = False
         self.policies_to_test = []
@@ -87,6 +92,7 @@ class LTM(object):
         self.current_policy = None
         self.current_world = 0
         self.current_success = 0
+        self.current_reward = 0
         self.graph = networkx.Graph()
         self.graph_node_label = OrderedDict()
         self.graph_node_position = OrderedDict()
@@ -97,8 +103,16 @@ class LTM(object):
         state = self.__dict__.copy()
         del state["files"]
         del state["control_publisher"]
+        del state["reward_semaphore"]
+        del state["reward_flag"]
         del state["there_are_goals"]
         return state
+
+    def init_threading(self):
+        """Create needed stuff to synchronize threads."""
+        self.reward_semaphore = threading.Semaphore()
+        self.reward_flag = threading.Event()
+        self.there_are_goals = threading.Event()
 
     @property
     def perceptions(self):
@@ -170,7 +184,7 @@ class LTM(object):
         return ltm
 
     @staticmethod
-    def __class_from_classname(class_name):
+    def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
         if sys.version_info < (3, 0):
@@ -215,18 +229,18 @@ class LTM(object):
             posy = idx % 3
             self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy + 8]
 
-    def __graph_set_node_properties(self, node):
+    def graph_set_node_properties(self, node):
         """Set node label and position for graphical representation."""
         self.graph_node_label[node] = node.ident
         getattr(self, "graph_set_" + self.module_names[node.type] + "_nodes_coordinates")()
 
-    def __add_node(self, node_type, class_name, ident=None, neighbors=None, **kwargs):
+    def add_node(self, node_type=None, class_name=None, ident=None, neighbors=None, **kwargs):
         """Add a new node."""
         # Set the name
         if ident is None:
             ident = node_type + str(len(self.nodes[node_type]))
         # Create the object
-        node = self.__class_from_classname(class_name)(ident=ident, node_type=node_type, ltm=self, **kwargs)
+        node = self.class_from_classname(class_name)(ident=ident, node_type=node_type, ltm=self, **kwargs)
         # Add the object to the appropriate list (the perceptions are in a dictionary, not a list)
         if node.type == "Perception":
             self.nodes[node.type][ident] = node
@@ -234,7 +248,7 @@ class LTM(object):
             self.nodes[node.type].append(node)
         # Add the object to the graph
         self.graph.add_node(node)
-        self.__graph_set_node_properties(node)
+        self.graph_set_node_properties(node)
         # Connect the object in the graph with the right nodes
         if neighbors is None:
             if node.type == "Perception":
@@ -249,22 +263,24 @@ class LTM(object):
         rospy.loginfo("Created " + node_type + " " + ident)
         return node
 
-    def __add_file(self, file_item):
+    def add_file(self, file_item):
+        """Process a file entry (create the corresponding object) in the configuration."""
         if "data" in file_item:
-            new_file = self.__class_from_classname(file_item["class"])(
+            new_file = self.class_from_classname(file_item["class"])(
                 ident=file_item["id"], file_name=file_item["file"], data=file_item["data"], ltm=self
             )
         else:
-            new_file = self.__class_from_classname(file_item["class"])(
+            new_file = self.class_from_classname(file_item["class"])(
                 ident=file_item["id"], file_name=file_item["file"], ltm=self
             )
         self.files.append(new_file)
 
-    def __write_headers_in_files(self):
+    def write_headers_in_files(self):
+        """Write the header of each open file."""
         for file_object in self.files:
             file_object.write_header()
 
-    def __node_exists(self, ident):
+    def node_exists(self, ident):
         """Check if there is a node with a specific name."""
         for node_type, nodes in self.nodes.items():
             if node_type == "Perception":
@@ -283,11 +299,11 @@ class LTM(object):
         if data.command != "new":
             rospy.logerr("Unknown command while processing a message for creating a new node!")
         elif data.execute_service != "" or data.get_service != "":
-            node_class = self.__class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
+            node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
         elif data.language != "" and data.language != "python":
             rospy.logerr("Language not supported while processing a message for creating a new node!")
         elif data.class_name != "":
-            node_class = self.__class_from_classname(data.class_name)
+            node_class = self.class_from_classname(data.class_name)
         else:
             node_class = self.default_class.get(node_type)
             if node_class is None:
@@ -296,11 +312,11 @@ class LTM(object):
                     "creating a new node!"
                 )
         if node_class is not None:
-            if self.__node_exists(data.id):
+            if self.node_exists(data.id):
                 rospy.logwarn("Received new %s object, but there is already a node with that name (%s). Ignoring...",
                     node_type, data.id)
             else:
-                self.__add_node(
+                self.add_node(
                     node_type=node_type,
                     class_name=node_class,
                     ros_name_prefix=self.default_ros_name_prefix[node_type],
@@ -311,30 +327,31 @@ class LTM(object):
                 if node_type == "Goal":
                     self.there_are_goals.set()
 
-    def __shutdown(self):
+    def shutdown(self):
         """Save to disk everything is needed before shutting down."""
         rospy.loginfo("Ending LTM...")
         for file_object in self.files:
             file_object.close()
 
-    def __setup_files(self, files):
+    def setup_files(self, files):
         """Load files configuration."""
         for file_item in files:
-            self.__add_file(file_item)
+            self.add_file(file_item)
 
-    def __setup_topics(self, connectors):
+    def setup_topics(self, connectors):
         """Load topic configuration for adding nodes."""
         for connector in connectors:
             self.default_class[connector["data"]] = connector.get("default_class")
-            self.default_ros_name_prefix[connector["data"]] = connector["ros_name_prefix"]
-            topic = rospy.get_param(connector["ros_name_prefix"] + "_topic")
-            message = self.__class_from_classname(rospy.get_param(connector["ros_name_prefix"] + "_msg"))
-            callback = getattr(self, connector["callback"])
-            callback_args = connector["data"]
-            rospy.logdebug("Subscribing to %s...", topic)
-            rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
+            self.default_ros_name_prefix[connector["data"]] = connector.get("ros_name_prefix")
+            if self.default_ros_name_prefix[connector["data"]] is not None:
+                topic = rospy.get_param(connector["ros_name_prefix"] + "_topic")
+                message = self.class_from_classname(rospy.get_param(connector["ros_name_prefix"] + "_msg"))
+                callback = getattr(self, connector["callback"])
+                callback_args = connector["data"]
+                rospy.logdebug("Subscribing to %s...", topic)
+                rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
 
-    def __setup_nodes(self, nodes):
+    def setup_nodes(self, nodes):
         """Load initial nodes."""
         for node_type, node_list  in nodes.items():
             rospy.logdebug("Loading %s...", node_type)
@@ -343,7 +360,7 @@ class LTM(object):
                 ident = element["id"]
                 data = element.get("data")
                 ros_name_prefix = element.get("ros_name_prefix")
-                self.__add_node(
+                self.add_node(
                     node_type=node_type,
                     class_name=class_name,
                     ident=ident,
@@ -351,22 +368,36 @@ class LTM(object):
                     ros_name_prefix=ros_name_prefix,
                 )
 
-    def __setup_control_channel(self, control_channel):
-        """Load simulator / robot configuration channel."""
-        topic = rospy.get_param(control_channel + "_topic")
-        message = self.__class_from_classname(rospy.get_param(control_channel + "_msg"))
-        self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
+    def reward_callback(self, reward):
+        """Read a reward from the outer world."""
+        # TODO: Hand-made goals need to be change so the reward cames from simulator or people.
+        self.reward_semaphore.acquire()
+        rospy.logdebug("Reading reward = " + str(reward))
+        self.current_reward = reward
+        self.reward_flag.set()
+        self.reward_semaphore.release()
 
-    def __setup_experiment(self, experiment):
+
+    def setup_control_channel(self, control_channel):
+        """Load simulator / robot configuration channel."""
+        topic = rospy.get_param(control_channel["control_prefix"] + "_topic")
+        message = self.class_from_classname(rospy.get_param(control_channel["control_prefix"] + "_msg"))
+        self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
+        topic = rospy.get_param(control_channel["reward_prefix"] + "_topic")
+        message = self.class_from_classname(rospy.get_param(control_channel["reward_prefix"] + "_msg"))
+        rospy.logdebug("Subscribing to %s...", topic)
+        rospy.Subscriber(topic, message, callback=self.reward_callback)
+
+    def setup_experiment(self, experiment):
         """Load experiment configuration."""
         self.iterations = experiment["iterations"]
         self.period = experiment["period"]
         self.trials = experiment["trials"]
         self.worlds = experiment["worlds"]
         self.current_world = self.worlds[0]
-        self.__reset_world()
+        self.reset_world()
 
-    def __setup(self, log_level, file_name):
+    def setup(self, log_level, file_name):
         """Init LTM: read ROS parameters, init ROS subscribers and load initial nodes."""
         rospy.init_node("ltm", log_level=getattr(rospy, log_level))
         rospy.loginfo("Starting LTM at iteration " + str(self.iteration) + "...")
@@ -378,54 +409,131 @@ class LTM(object):
             else:
                 rospy.loginfo("Loading configuration from %s...", file_name)
                 configuration = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
-                self.__setup_files(configuration["LTM"]["Files"])
-                self.__setup_topics(configuration["LTM"]["Connectors"])
+                self.setup_files(configuration["LTM"]["Files"])
+                self.setup_topics(configuration["LTM"]["Connectors"])
                 if not self.restoring:
-                    self.__setup_nodes(configuration["LTM"]["Nodes"])
+                    self.setup_nodes(configuration["LTM"]["Nodes"])
                 if (self.iteration == 0) or self.restoring:
-                    self.__write_headers_in_files()
-                self.__setup_control_channel(configuration["Control"]["ros_name_prefix"])
-                self.__setup_experiment(configuration["Experiment"])
-                rospy.on_shutdown(self.__shutdown)
+                    self.write_headers_in_files()
+                self.setup_control_channel(configuration["Control"])
+                self.setup_experiment(configuration["Experiment"])
+                rospy.on_shutdown(self.shutdown)
 
-    def __read_perceptions(self):
+    def read_perceptions(self):
         """Update the value of every perception."""
         rospy.loginfo("Reading perceptions...")
-        sensing = []
+        sensing = OrderedDict()
         for perception in self.perceptions.values():
-            sensing.append(perception.read())
+            sensing[perception.ident] = perception.read()
         return sensing
 
-    def __update_activations(self, perception):
+    def process_value_functions(self):
+        """Execute value functions of active goals, which will produce sub-goals activation."""
+        active_goals = set(goal for goal in self.goals if goal.max_activation > 0.0)
+        while active_goals:
+            active_goals.union(active_goals.pop().exec_value_functions())
+
+    def update_activations(self, perception, new_sensings=True):
         """Update the activation value for all the nodes."""
         rospy.loginfo("Updating activations...")
-        for node in self.p_nodes:
-            node.update_activation(perception=perception)
-        for node in self.forward_models:
-            node.update_activation(perception=perception)
-        for node in self.goals:
-            node.update_activation(perception=perception)
-        for node in self.c_nodes:
-            node.update_activation(perception=perception)
-        for node in self.policies:
-            node.update_activation(perception=perception)
+        if new_sensings:
+            for p_node in self.p_nodes:
+                p_node.update_activation(perception=perception)
+            for forward_model in self.forward_models:
+                forward_model.update_activation(perception=perception)
+        for goal in self.goals:
+            goal.update_activation(perception=perception)
+        self.process_value_functions()
+        for c_node in self.c_nodes:
+            c_node.update_activation(perception=perception)
+        for policy in self.policies:
+            policy.update_activation(perception=perception)
 
-    def __random_policy(self):
+    def random_policy(self):
         """Select a random policy. In order to avoid problems with random numbers" generation, we use a pool."""
         if self.policies_to_test == []:
             self.policies_to_test = copy(self.policies)
         policy = self.policies_to_test[numpy.random.randint(len(self.policies_to_test))]
         return policy
 
-    def __select_policy(self):
+    def do_forward_prospection(self, pnodes_to_consider, remaining_pnodes, path_goals, path_policies, search_new=False):
+        """
+        Perform forward prospection starting with currently activated P-nodes and trying to find a useful policy.
+
+        This methods explotes information regarding what goals are content inside a P-node.
+
+        Notes:
+        -----
+        - Currently, prospection is carried out only for paths with active forward models. Otherwise,
+        weird things can happen, because goals can be inside P-nodes due to pure chance.
+        - A goal can have several P-nodes connected to it through different C-nodes, so it could appear more than
+        once in the path. We don't allow this to avoid loops.
+
+        """
+        new_knowledge = False
+        for p_node in pnodes_to_consider:
+            c_nodes = [node for node in p_node.neighbors if node.type == "CNode"]
+            for c_node in c_nodes:
+                forward_model = c_node.forward_model
+                goal = c_node.goal
+                policy = c_node.policy
+                if (forward_model.max_activation > forward_model.threshold) and (goal not in path_goals):
+                    new_path_goals = path_goals + [goal]
+                    new_path_policies = path_policies + [policy]
+                    if goal.max_activation > goal.threshold:
+                        goal.add_value_function(new_path_goals)
+                        new_knowledge = True
+                        value_function_text = "New value function"
+                        for goal, policy in zip(new_path_goals, new_path_policies):
+                            value_function_text += " => (" + policy.ident + ") " + goal.ident
+                        rospy.loginfo(value_function_text)
+                    if search_new:
+                        goal.update_embedded(self.p_nodes)
+                    new_pnodes_to_consider = remaining_pnodes.intersection(goal.embedded)
+                    new_remaining_pnodes = remaining_pnodes.difference(goal.embedded)
+                    self.do_forward_prospection(
+                        pnodes_to_consider=new_pnodes_to_consider,
+                        remaining_pnodes=new_remaining_pnodes,
+                        path_goals=new_path_goals,
+                        path_policies=new_path_policies,
+                        search_new=search_new
+                    )
+        return new_knowledge
+
+    def do_prospection(self):
+        """Perform prospection trying to find a useful policy."""
+        pnodes_to_consider = {p_node for p_node in self.p_nodes if max(p_node.activation) > 0.0}
+        remaining_pnodes = {p_node for p_node in self.p_nodes if max(p_node.activation) <= 0.0}
+        new_knowledge = self.do_forward_prospection(
+            pnodes_to_consider=pnodes_to_consider,
+            remaining_pnodes=remaining_pnodes,
+            path_goals=[],
+            path_policies=[],
+            search_new=False
+        )
+        if not new_knowledge:
+            new_knowledge = self.do_forward_prospection(
+                pnodes_to_consider=pnodes_to_consider,
+                remaining_pnodes=remaining_pnodes,
+                path_goals=[],
+                path_policies=[],
+                search_new=True
+            )
+        return new_knowledge
+
+    def select_policy(self, sensing):
         """Select the best policy to be run."""
         policy = max(self.policies, key=attrgetter("activation"))
-        if policy.activation == 0:
-            policy = self.__random_policy()
+        if not policy.activation:
+            if self.do_prospection():
+                self.update_activations(sensing, new_sensings=False)
+        policy = max(self.policies, key=attrgetter("activation"))
+        if not policy.activation:
+            policy = self.random_policy()
         rospy.loginfo("Selecting a policy => " + policy.ident + " (" + str(policy.activation) + ")")
         return policy
 
-    def __select_goal(self):
+    def select_goal(self):
         """Find the active goal."""
         for goal in self.goals:
             goal.update_success()
@@ -437,7 +545,7 @@ class LTM(object):
             rospy.loginfo("Successful goal => " + goal.ident)
         return goal
 
-    def __add_antipoint(self):
+    def add_antipoint(self):
         """Add an anti-point to the p-node that corresponds with the executed policy."""
         cnodes = (node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_is_on())
         for cnode in cnodes:
@@ -448,7 +556,7 @@ class LTM(object):
                 pnode.add_perception(self.current_policy.perception, -1.0)
                 rospy.loginfo("Added anti-point in p-node " + pnode.ident)
 
-    def __add_point(self, sensing):
+    def add_point(self, sensing):
         """
         Add a point to the p-node that corresponds with the executed policy.
 
@@ -462,10 +570,10 @@ class LTM(object):
             # Policies should be parametizer and, if a policy is randomly executed, it should be called several times,
             # once for each combination of sensor values, so we would know what perception has to be added to the
             # P-node. This would simplify also the simulator and the preprogrammed goals.
-            if max([len(i) for i in sensing]) == 1:
-                perception = []
-                for sensor in sensing:
-                    perception.extend(sensor[0])
+            if max([len(sensor) for sensor in sensing.values()]) == 1:
+                perception = OrderedDict()
+                for sensor, value in sensing.items():
+                    perception[sensor] = value[0]
         if not perception:
             rospy.logwarn("It can't be determined what combination of sensor values caused a goal success, "
                 "so it is not possible to add a point / create a new P-node")
@@ -479,14 +587,23 @@ class LTM(object):
                         pnode.add_perception(perception, 1.0)
                         rospy.loginfo("Added point in p-node " + pnode.ident)
             else:
-                pnode = self.__add_node("PNode", self.default_class["PNode"])
+                pnode = self.add_node(
+                    node_type="PNode",
+                    class_name=self.default_class["PNode"],
+                    space_class=self.default_class["Space"]
+                )
                 pnode.add_perception(perception, 1.0)
                 rospy.loginfo("Added point in p-node " + pnode.ident)
-                forward_model = max(self.forward_models, key=attrgetter("activation"))
+                forward_model = max(self.forward_models, key=attrgetter("max_activation"))
                 goal = max(self.goals, key=attrgetter("reward"))
                 neighbors = [pnode, forward_model, goal, self.current_policy]
-                cnode = self.__add_node("CNode", "mdb_ltm.cnode.CNode", neighbors=neighbors, weight=1.0)
-                rospy.logdebug(
+                cnode = self.add_node(
+                    node_type="CNode",
+                    class_name="mdb_ltm.cnode.CNode",
+                    neighbors=neighbors,
+                    weight=1.0
+                )
+                rospy.loginfo(
                     "New c-node "
                     + cnode.ident
                     + " joining "
@@ -499,7 +616,7 @@ class LTM(object):
                     + self.current_policy.ident
                 )
 
-    def __update_policies_to_test(self, drop):
+    def update_policies_to_test(self, drop):
         """Maintenance tasks on the pool of policies used to choose one randomly when needed."""
         if drop:
             if self.current_policy in self.policies_to_test:
@@ -507,7 +624,7 @@ class LTM(object):
         else:
             self.policies_to_test = copy(self.policies)
 
-    def __draw_nodes(self, node_type):
+    def draw_nodes(self, node_type):
         """Draw nodes of a given type using a specified color map."""
         graph_node_color = []
         nodes = [node for node in self.graph.nodes() if node.type == node_type]
@@ -529,7 +646,7 @@ class LTM(object):
             circles.set_edgecolor("k")
 
     @staticmethod
-    def __graph_set_edge_properties(edges):
+    def graph_set_edge_properties(edges):
         """Set edge width and color for graphical representation."""
         graph_edge_width = []
         graph_edge_color = []
@@ -549,7 +666,7 @@ class LTM(object):
                 graph_edge_color.append("k")
         return graph_edge_width, graph_edge_color
 
-    def __show(self):
+    def show(self):
         """Plot the LTM structure."""
         pyplot.get_current_fig_manager().window.geometry("800x600-0-0")
         pyplot.clf()
@@ -558,8 +675,8 @@ class LTM(object):
         pyplot.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=0.9)
         for node_type in self.nodes:
             if node_type != "Goal":
-                self.__draw_nodes(node_type)
-        graph_edge_width, graph_edge_color = self.__graph_set_edge_properties(self.graph.edges())
+                self.draw_nodes(node_type)
+        graph_edge_width, graph_edge_color = self.graph_set_edge_properties(self.graph.edges())
         networkx.draw_networkx_edges(
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5
         )
@@ -572,7 +689,7 @@ class LTM(object):
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(self.current_success)
+                + str(self.current_reward)
                 + "\nPOLICY: "
                 + self.current_policy.ident,
                 fontsize=10,
@@ -586,7 +703,7 @@ class LTM(object):
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(self.current_success)
+                + str(self.current_reward)
                 + "\nPOLICY: "
                 + self.current_policy.ident,
                 fontsize=10,
@@ -611,16 +728,26 @@ class LTM(object):
                         return True
         return False
 
-    def __statistics(self):
+    def statistics(self):
         """Update some statistics and write them to files."""
         for file_object in self.files:
             file_object.write()
 
-    def __reset_world(self):
+    def track_sensor_changes(self, sensing, force=False):
+        """
+        Track sensor changes.
+
+        This methods updates a list of sensor changes since the last time current_goal changed or world was reset.
+        This information is used when there is a reward and the current state does not match with any existent goal.
+        """
+        if force:
+
+
+    def reset_world(self):
         """Reset the world if necessary, according to the experiment parameters."""
         changed = False
         self.trial += 1
-        if self.trial == self.trials or self.current_success >= 0.9:
+        if self.trial == self.trials or self.current_reward >= 0.9:
             self.trial = 0
             changed = True
         if ((self.iteration % self.period) == 0) or self.restoring:
@@ -629,39 +756,44 @@ class LTM(object):
             self.restoring = False
             changed = True
         if changed:
-            self.control_publisher.publish(world=self.current_world, reward=(self.current_success >= 0.9))
+            self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
     def run(self, seed=None, log_level="INFO", plot=False):
         """Start the LTM part of the brain."""
         try:
-            self.__setup(log_level, seed)
+            self.setup(log_level, seed)
             rospy.loginfo("Running LTM...")
-            sensing = self.__read_perceptions()
+            sensing = self.read_perceptions()
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
                 if not self.goals:
                     self.there_are_goals.wait()
-                self.__update_activations(sensing)
-                self.current_policy = self.__select_policy()
+                self.update_activations(sensing)
+                self.current_policy = self.select_policy(sensing)
                 self.current_policy.execute()
-                sensing = self.__read_perceptions()
-                self.current_goal = self.__select_goal()
-                if self.current_goal is not None:
+                old_sensing = sensing
+                sensing = self.read_perceptions()
+                self.current_goal = self.select_goal()
+                self.track_sensor_changes(sensing)
+                # voy aquí. Hay que distinguir más casos: tengo reward o no, hay un goal activo o no,
+                # ese goal activo tuvo éxito o no, etc.
+                if self.current_goal:
                     drop_policy = False
                     self.current_success = self.current_goal.reward
-                    self.__add_point(sensing)
+                    self.add_point(old_sensing)
                 else:
                     drop_policy = True
                     self.current_success = 0.0
                     if self.current_policy.activation >= self.current_policy.threshold:
-                        self.__add_antipoint()
-                self.__update_policies_to_test(drop=drop_policy)
+                        self.add_antipoint()
+                self.update_policies_to_test(drop=drop_policy)
                 if plot:
-                    self.__show()
-                self.__statistics()
+                    self.show()
+                self.statistics()
                 self.iteration += 1
-                if self.__reset_world():
-                    sensing = self.__read_perceptions()
+                if self.reset_world():
+                    sensing = self.read_perceptions()
+                    self.track_sensor_changes(sensing, force=True)
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")

@@ -9,13 +9,14 @@ Distributed under the (yes, we are still thinking about this too...).
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 import sys
+from collections import OrderedDict
 import rospy
 
 
 class Node(object):
     """An MDB element."""
 
-    def __init__(self, ident, node_type, threshold=0.1, ltm=None, **kwargs):
+    def __init__(self, ident=None, node_type=None, threshold=0.1, ltm=None, **kwargs):
         """Constructor."""
         self.ident = ident
         self.type = node_type
@@ -37,7 +38,7 @@ class Node(object):
         node_class = getattr(node_module, class_string)
         return node_class
 
-    def calc_activation(self, **kwargs):
+    def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         raise NotImplementedError
 
@@ -46,13 +47,12 @@ class Node(object):
         perception = kwargs.pop("perception")
         self.perception = []
         self.activation = []
-        for i in range(max([len(i) for i in perception])):
-            perception_line = []
-            for sensor in perception:
-                perception_line.extend(sensor[i % len(sensor)])
+        for i in range(max([len(sensor) for sensor in perception.values()])):
+            perception_line = OrderedDict()
+            for sensor, value in perception.items():
+                perception_line[sensor] = value[i % len(value)]
             self.perception.append(perception_line)
-            kwargs["perception"] = perception_line
-            activation_value = self.calc_activation(**kwargs)
+            activation_value = self.calc_activation(perception_line)
             if activation_value < self.threshold:
                 activation_value = 0.0
             self.activation.append(activation_value)

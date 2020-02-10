@@ -97,9 +97,9 @@ class MOTIVEN(object):
             'ball_in_left_hand',
             'ball_in_right_hand',
             'happy_human']
-        self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
-        self.sens_t = OrderedDict((sensor, None) for sensor in self.sensors_list)
-        self.sens_t1 = OrderedDict((sensor, None) for sensor in self.sensors_list)
+        self.perceptions = OrderedDict.fromkeys(self.sensors_list)
+        self.sens_t = OrderedDict.fromkeys(self.sensors_list)
+        self.sens_t1 = OrderedDict.fromkeys(self.sensors_list)
         self.sensor_lock = threading.Lock()
         self.run_executed_policy_cb = threading.Event()
         self.run_sensor_cb = threading.Event()
@@ -143,7 +143,7 @@ class MOTIVEN(object):
                 'approximated_object',
                 'clean_area',
                 'Unnamed']
-            self.reward_dict = dict.fromkeys(goal_states)
+            self.reward_dict = OrderedDict.fromkeys(goal_states)
             for key in self.reward_dict:
                 self.reward_dict[key] = MeanReward()
         # ROS stuff
@@ -265,7 +265,7 @@ class MOTIVEN(object):
         self.n_execution += 1
         self.graph_exec = []
         self.memory_vf.removeAll()
-        self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)  # Esto no tengo claro si es necesario
+        self.perceptions = OrderedDict.fromkeys(self.sensors_list)  # Esto no tengo claro si es necesario
         self.sens_t = self.sens_t1  # y yo esto tampoco :-)
         # Policies LTM
         self.n_policies_exec = 0
@@ -301,7 +301,7 @@ class MOTIVEN(object):
                 if self.motiven_high_level:
                     self.state_t = self.state_t1
                     self.state_t1 = self.get_final_state(self.sens_t1, self.sens_t)
-                self.perceptions = OrderedDict((sensor, None) for sensor in self.sensors_list)
+                self.perceptions = OrderedDict.fromkeys(self.sensors_list)
                 if self.reset:
                     rospy.loginfo('MOTIVEN STAGE 0: end reading sensors after reset')
                     self.reset = False
@@ -415,7 +415,7 @@ class MOTIVEN(object):
                     goal.activation = 0.0
         else:
             if self.active_mot == 'Int':
-                for idx, goal in enumerate(self.goal_manager.goals):
+                for idx, _ in enumerate(self.goal_manager.goals):
                     if idx == 0:
                         goal.activation = 1.0
                     else:
@@ -947,7 +947,7 @@ class MOTIVEN(object):
         ax = fig.add_subplot(111)
         n_reward = 0
         iter_goal = []  # Number of iteration increase at the same time as goals
-        for idx, data in enumerate(self.graph1):
+        for idx, _ in enumerate(self.graph1):
             # for i in range(40000):
             if self.graph1[idx][1]:
                 n_reward += 1

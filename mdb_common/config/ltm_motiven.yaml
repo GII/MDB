@@ -5,8 +5,8 @@ Experiment:
     worlds: ['gripper_and_low_friction_two_boxes']
 Control:
     id: ltm_simulator
-    ros_name_prefix: /mdb/control
-    executed_policy_prefix: /mdb/executed_policy
+    control_prefix: /mdb/control
+    reward_prefix: /mdb/reward
 LTM:
     Files:
         -
@@ -115,8 +115,8 @@ LTM:
                 id: ask_nicely
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
-Simulator:
-    Sensors:
+SimulatedBaxter:
+    Perceptions:
         -
             id: cylinders
             ros_name_prefix: /mdb/baxter/sensor/cylinders
@@ -132,3 +132,27 @@ Simulator:
         -
             id: clean_area
             ros_name_prefix: /mdb/baxter/sensor/happy_human
+Baxter:
+    Sensors:
+        -
+            id: camera
+            ros_name_prefix: /mdb/baxter/camera
+    Perceptions:
+        -
+            id: cylinders
+            ros_name_prefix: /mdb/baxter/sensor/cylinders
+        -
+            id: boxes
+            ros_name_prefix: /mdb/baxter/sensor/boxes
+        -
+            id: ball_in_left_hand
+            ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+        -
+            id: ball_in_right_hand
+            ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+        -
+            id: clean_area
+            ros_name_prefix: /mdb/baxter/sensor/happy_human
+        -
+            id: monitor_image
+            ros_name_prefix: /mdb/baxter/sensor/monitor_image

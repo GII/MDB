@@ -1,12 +1,12 @@
+# Topic to publish reward
+/mdb/reward_topic: /mdb/reward
+/mdb/reward_msg: mdb_common.msg.RewardMsg
 # Topic to communicate with the simulator
 /mdb/control_topic: /mdb/baxter/control
 /mdb/control_msg: mdb_common.msg.ControlMsg
 # Topic for publishing P-node creation
 /mdb/p_node_topic: /mdb/ltm/p_node
 /mdb/p_node_msg: mdb_common.msg.PNodeMsg
-# Topic for publishing C-node creation
-/mdb/c_node_topic: /mdb/ltm/c_node
-/mdb/c_node_msg: mdb_common.msg.CNodeMsg
 # Topic for publishing Goal creation
 /mdb/goal_topic: /mdb/motiven/goal
 /mdb/goal_msg: mdb_common.msg.GoalMsg
@@ -36,6 +36,11 @@
 /mdb/baxter/sensor/ball_in_right_hand_msg: std_msgs.msg.Bool
 /mdb/baxter/sensor/happy_human_topic: /mdb/baxter/sensor/happy_human
 /mdb/baxter/sensor/happy_human_msg: std_msgs.msg.Bool
+/mdb/baxter/sensor/monitor_image_topic: /mdb/baxter/sensor/monitor_image
+/mdb/baxter/sensor/monitor_image_msg: sensor_msgs.msg.Image
 # Topic for publishing commands to baxter_throwing policy
 /mdb/superthrow_topic: /baxter_throwing/command
 /mdb/superthrow_msg: std_msgs.msg.Int16
+# Topic for communication with the X-tion camera
+/mdb/baxter/camera_topic: /camera/rgb/image_rect_color
+/mdb/baxter/camera_msg: sensor_msgs.msg.Image

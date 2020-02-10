@@ -1,9 +1,10 @@
 Experiment:
     iterations: 16000
-    period: 16000
-    trials: 20
+    period: 8000
+    trials: 10
     worlds:
-        - kitchen
+        - gripper_and_low_friction
+        - no_gripper_and_high_friction
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control
@@ -99,7 +100,7 @@ LTM:
                                 data: False
                     start: 0
                     end: 999
-                    period: 16000
+                    period: 8000
             -
                 id: object_held_with_right_hand
                 class: mdb_ltm.goal.GoalObjectHeldRightHand
@@ -113,7 +114,7 @@ LTM:
                                 data: True
                     start: 1000
                     end: 1999
-                    period: 16000
+                    period: 8000
             -
                 id: object_held_with_two_hands
                 class: mdb_ltm.goal.GoalObjectHeldWithTwoHands
@@ -127,7 +128,7 @@ LTM:
                                 data: True
                     start: 2000
                     end: 2999
-                    period: 16000
+                    period: 8000
             -
                 id: frontal_object
                 class: mdb_ltm.goal.GoalFrontalObject
@@ -144,7 +145,7 @@ LTM:
                                 data: False
                     start: 3000
                     end: 3999
-                    period: 16000
+                    period: 8000
             -
                 id: object_in_close_box
                 class: mdb_ltm.goal.GoalObjectInCloseBox
@@ -164,7 +165,7 @@ LTM:
                                 data: False
                     start: 4000
                     end: 4999
-                    period: 16000
+                    period: 8000
             -
                 id: object_with_robot
                 class: mdb_ltm.goal.GoalObjectWithRobot
@@ -181,7 +182,7 @@ LTM:
                                 data: False
                     start: 5000
                     end: 5999
-                    period: 16000
+                    period: 8000
             -
                 id: object_in_far_box
                 class: mdb_ltm.goal.GoalObjectInFarBox
@@ -201,7 +202,7 @@ LTM:
                                 data: False
                     start: 6000
                     end: 6999
-                    period: 16000
+                    period: 8000
             -
                 id: approximated_object
                 class: mdb_ltm.goal.GoalApproximatedObject
@@ -218,55 +219,7 @@ LTM:
                                 data: False
                     start: 7000
                     end: 7999
-                    period: 16000
-            -
-                id: vegetables_in_skillet
-                class: mdb_ltm_.goal.GoalVegetablesInSkillet
-                data:
-                    space: mdb_ltm.space.PointBasedSpace
-                    points:
-                        -
-                            boxes:
-                                dist: 0.605
-                                angle: 0.0
-                                color: skillet
-                            cylinders:
-                                dist: 0.605
-                                angle: 0.0
-                                color: carrot
-                            ball_in_left_hand:
-                                data: False
-                            ball_in_right_hand:
-                                data: False
-                        -
-                            boxes:
-                                dist: 0.605
-                                angle: 0.0
-                                color: skillet
-                            cylinders:
-                                dist: 0.605
-                                angle: 0.0
-                                color: eggplant
-                            ball_in_left_hand:
-                                data: False
-                            ball_in_right_hand:
-                                data: False
-                        -
-                            boxes:
-                                dist: 0.605
-                                angle: 0.0
-                                color: skillet
-                            cylinders:
-                                dist: 0.605
-                                angle: 0.0
-                                color: cabbage
-                            ball_in_left_hand:
-                                data: False
-                            ball_in_right_hand:
-                                data: False
-                    start: 8000
-                    end: 15999
-                    period: 16000
+                    period: 8000
         ForwardModel:
             -
                 id: gripper_and_low_friction

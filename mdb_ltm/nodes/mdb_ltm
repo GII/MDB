@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """
-The shiny, all new, MDB 3.
+MDB
 
-Available from https://github.com/robotsthatdream/mdb_ltm
-Copyright 2017-18 Richard J. Duro, Jose A. Becerra.
+Available from https://github.com/robotsthatdream/MDB
 Distributed under GPLv3.
 """
 

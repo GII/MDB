@@ -5,8 +5,8 @@ Experiment:
     worlds: ['gripper_and_low_friction']
 Control:
     id: ltm_simulator
-    ros_name_prefix: /mdb/control
-    executed_policy_prefix: /mdb/executed_policy
+    control_prefix: /mdb/control
+    reward_prefix: /mdb/reward
 LTM:
     Files:
         -
@@ -129,7 +129,7 @@ LTM:
                 id: ask_nicely
                 class: mdb_ltm.policy.Policy
                 ros_name_prefix: /mdb/executed_policy
-Simulator:
+Baxter:
     Sensors:
         -
             id: ball_dist
