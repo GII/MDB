@@ -18,21 +18,28 @@ from mdb_ltm.node import Node
 class Goal(Node):
     """A subspace in some input space (sensorial or the result of a redescription) where utility was obtained."""
 
-    def __init__(self, data=None, **kwargs):
-        """Constructor."""
+    def __init__(self, data=None, space_class=None, space=None, **kwargs):
+        """Initialize."""
         super().__init__(**kwargs)
-        self.new_activation = 0.0
-        self.reward = 0.0
+        self.new_activation = self.reward = 0.0
         self.embedded = set()
         self.value_functions = set()
         self.start = self.end = self.period = None
-        if data is not None:
-            self.space = self.class_from_classname(data.get("space"))(ident=self.ident + " space")
-            self.start = data.get("start")
-            self.end = data.get("end")
-            self.period = data.get("period")
-            for point in data.get("points", []):
-                self.space.add_point(point, 1.0)
+        if data:
+            self.new_from_configuration_file(data)
+        else:
+            self.space = (
+                space if space else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
+            )
+
+    def new_from_configuration_file(self, data):
+        """Init attributes with values read from a configuration file."""
+        self.space = self.class_from_classname(data.get("space"))(ident=self.ident + " space")
+        self.start = data.get("start")
+        self.end = data.get("end")
+        self.period = data.get("period")
+        for point in data.get("points", []):
+            self.space.add_point(point, 1.0)
 
     @property
     def max_activation(self):
@@ -82,7 +89,7 @@ class Goal(Node):
         """Recalculate the list of P-nodes that embed this goal."""
         self.embedded = set()
         for p_node in p_nodes:
-            if p_node.space.is_contained(self.space, threshold=0.5):
+            if p_node.space.contains(self.space, threshold=0.5):
                 self.embedded.add(p_node)
 
     def update_success(self):
@@ -91,7 +98,8 @@ class Goal(Node):
 
         Currently, this method is not used, as points are only used to check if a goal is inside
         a P-node, and rules are used to check reward. Using points to check reward is very
-        problematic. We probably should use sensor ranges."""
+        problematic. We probably should use sensor ranges.
+        """
         self.reward = 0.0
         if self.ltm.sensorial_changes():
             for perception, activation in zip(self.perception, self.activation):
@@ -232,7 +240,7 @@ class GoalMotiven(Goal):
     """Goal generated (and managed) by MOTIVEN."""
 
     def __init__(self, ros_name_prefix=None, **kwargs):
-        """Constructor."""
+        """Initialize."""
         super().__init__(**kwargs)
         self.new_activation_event = None
         self.new_reward_event = None

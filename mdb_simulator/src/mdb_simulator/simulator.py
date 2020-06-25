@@ -493,8 +493,8 @@ class LTMSim(object):
     def setup_control_channel(self, simulation):
         """Configure the ROS topic where listen for commands to be executed."""
         self.ident = simulation["id"]
-        topic = rospy.get_param(simulation["ros_name_prefix"] + "_topic")
-        message = self.class_from_classname(rospy.get_param(simulation["ros_name_prefix"] + "_msg"))
+        topic = rospy.get_param(simulation["control_prefix"] + "_topic")
+        message = self.class_from_classname(rospy.get_param(simulation["control_prefix"] + "_msg"))
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.new_command_callback)
         topic = rospy.get_param(simulation["executed_policy_prefix"] + "_topic")
@@ -512,7 +512,7 @@ class LTMSim(object):
                 rospy.logerr(config_file + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", config_file)
-                config = yaml.load(open(config_file, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
+                config = yaml.load(open(config_file, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
                 self.setup_perceptions(config["SimulatedBaxter"]["Perceptions"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
                 self.setup_control_channel(config["Control"])

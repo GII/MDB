@@ -48,18 +48,6 @@ class CNode(Node):
                 self.perception = []
         rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
 
-    def context_is_on(self):
-        """
-        Check if the context is activated or not.
-
-        It is assumed that a context is made of one P-node, one Goal, one Forward Model and one Policy.
-        Otherwise, this would not produce the right result.
-        """
-        return (
-            len([node for node in self.neighbors if node.type != "Policy" and max(node.activation) >= node.threshold])
-            == 3
-        )
-
     def context_has_reward(self):
         """
         Check if the context contains a goal that is being accomplished.

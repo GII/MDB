@@ -10,9 +10,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import *  # noqa
 import numpy
 from numpy.lib.recfunctions import structured_to_unstructured
-import rospy
 import pandas as pd
 import tensorflow as tf
+import rospy
 
 
 class Space(object):
@@ -21,13 +21,14 @@ class Space(object):
     def __init__(self, ident=None, **kwargs):
         """Constructor."""
         self.ident = ident
+        self.parent_space = None
 
 
 class PointBasedSpace(Space):
     """A state space based on points."""
 
     def __init__(self, size=5000, **kwargs):
-        """Constructor."""
+        """Initialize."""
         self.real_size = size
         self.size = 0
         # These lists must be empty, not None, in order loops correctly operate with empty spaces.
@@ -35,89 +36,123 @@ class PointBasedSpace(Space):
         self.memberships = []
         super().__init__(**kwargs)
 
-    @staticmethod
-    def create_structured_array(perception, base_dtype, size):
-        if getattr(perception, "dtype", None) is None:
-            if base_dtype is None:
+    def create_structured_array(self, perception, base_dtype, size):
+        """
+        Create a structured array to store points.
+
+        The key is what fields to use. There are three cases:
+        - If base_dtype is specified, use the fields in perception that are also in base_dtype.
+        - Otherwise, if this space is a specialization, use the fields in perception that are NOT in parent_space.
+        - Otherwise, use every field in perception.
+
+        """
+        if getattr(perception, "dtype", None):
+            if base_dtype:
+                types = [(name, numpy.float) for name in perception.dtype.names if name in base_dtype.names]
+            elif self.parent_space:
                 types = [
-                    (sensor + "_" + attribute, numpy.float)
-                    for sensor, attributes in perception.items()
-                    for attribute in attributes
+                    (name, numpy.float)
+                    for name in perception.dtype.names
+                    if name not in self.parent_space.members.dtype.names
                 ]
             else:
+                types = perception.dtype
+        else:
+            if base_dtype:
                 types = [
                     (sensor + "_" + attribute, numpy.float)
                     for sensor, attributes in perception.items()
                     for attribute in attributes
                     if sensor + "_" + attribute in base_dtype.names
                 ]
-        else:
-            if base_dtype is None:
-                types = perception.dtype
+            elif self.parent_space:
+                types = [
+                    (sensor + "_" + attribute, numpy.float)
+                    for sensor, attributes in perception.items()
+                    for attribute in attributes
+                    if sensor + "_" + attribute not in self.parent_space.members.dtype.names
+                ]
             else:
-                types = [(name, numpy.float) for name in perception.dtype.names if name in base_dtype.names]
+                types = [
+                    (sensor + "_" + attribute, numpy.float)
+                    for sensor, attributes in perception.items()
+                    for attribute in attributes
+                ]
         return numpy.zeros(size, dtype=types)
 
     @staticmethod
     def copy_perception(space, position, perception):
-        if getattr(perception, "dtype", None) is None:
+        """Copy a perception to a structured array."""
+        if getattr(perception, "dtype", None):
+            for name in perception.dtype.names:
+                if name in space.dtype.names:
+                    space[position][name] = perception[name]
+        else:
             for sensor, attributes in perception.items():
                 for attribute, value in attributes.items():
                     name = sensor + "_" + attribute
                     if name in space.dtype.names:
                         space[position][name] = value
-        else:
-            for name in perception.dtype.names:
-                if name in space.dtype.names:
-                    space[position][name] = perception[name]
+
+    def specialize(self, space=None):
+        """Return a new space with those fields that are in r"space" and not in r"self"."""
+        new_space = type(self)()
+        new_space.parent_space = self
+        if space:
+            new_space.add_point(space, 1.0)
+        return new_space
 
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
-        # Check if we need to initialize the structured numpy array for storing points
-        if self.size == 0:
-            # This first point's dtype sets the space's dtype
-            # In order to relax this restriction, we will probably replace structured arrays with xarrays
-            self.members = self.create_structured_array(perception, None, self.real_size)
-            self.memberships = numpy.zeros(self.real_size)
-        # Create a new structured array for the new perception
-        candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
-        # Check if the perception is compatible with this space
-        if self.members.dtype != candidate_point.dtype:
-            rospy.logerr(
-                "Trying to add a perception to a NOT compatible space!!!"
-                "Please, take into account that, at the present time, sensor order in perception matters!!!"
-            )
-        else:
-            # Copy the new perception on the structured array
-            self.copy_perception(candidate_point, 0, perception)
-            # Create views on the structured arrays so they can be used in calculations
-            # This is for Numpy >= 1.16
-            # The old way of doing this would be:
-            # members = self.members[0 : self.size].view(numpy.float).reshape(-1, len(self.members[0]))
-            members = structured_to_unstructured(self.members[0 : self.size])
-            point = structured_to_unstructured(candidate_point)
-            # Sanity check: checking if we are adding twice the same anti-point
-            if self.size > 0:
-                pos_closest = numpy.argmin(numpy.linalg.norm(members - point, axis=1))
-                closest = members[pos_closest]
-                if numpy.linalg.norm(point - closest) == 0.0:
-                    if confidence <= 0.0:
-                        rospy.logerr("Adding twice the same anti-point, this should not happen ever!!!")
-            # Store the new perception if there is a place for it
-            if self.size < self.real_size:
-                self.members[self.size] = candidate_point
-                self.memberships[self.size] = confidence
-                self.size += 1
+        # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
+        if confidence > 0.0 or self.get_probability(perception) > 0.0:
+            if self.parent_space:
+                self.parent_space.add_point(perception, confidence)
+            # Check if we need to initialize the structured numpy array for storing points
+            if self.size == 0:
+                # This first point's dtype sets the space's dtype
+                # In order to relax this restriction, we will probably replace structured arrays with xarrays
+                self.members = self.create_structured_array(perception, None, self.real_size)
+                self.memberships = numpy.zeros(self.real_size)
+            # Create a new structured array for the new perception
+            candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+            # Check if the perception is compatible with this space
+            if self.members.dtype != candidate_point.dtype:
+                rospy.logerr(
+                    "Trying to add a perception to a NOT compatible space!!!"
+                    "Please, take into account that, at the present time, sensor order in perception matters!!!"
+                )
             else:
-                self.members[pos_closest] = candidate_point
-                self.memberships[pos_closest] = confidence
-                rospy.logdebug(self.ident + " full!")
+                # Copy the new perception on the structured array
+                self.copy_perception(candidate_point, 0, perception)
+                # Create views on the structured arrays so they can be used in calculations
+                # This is for Numpy >= 1.16
+                # The old way of doing this would be:
+                # members = self.members[0 : self.size].view(numpy.float).reshape(-1, len(self.members[0]))
+                members = structured_to_unstructured(self.members[0 : self.size])
+                point = structured_to_unstructured(candidate_point)
+                # Sanity check: checking if we are adding twice the same anti-point
+                if self.size > 0:
+                    pos_closest = numpy.argmin(numpy.linalg.norm(members - point, axis=1))
+                    closest = members[pos_closest]
+                    if numpy.linalg.norm(point - closest) == 0.0:
+                        if confidence <= 0.0:
+                            rospy.logerr("Adding twice the same anti-point, this should not happen ever!!!")
+                # Store the new perception if there is a place for it
+                if self.size < self.real_size:
+                    self.members[self.size] = candidate_point
+                    self.memberships[self.size] = confidence
+                    self.size += 1
+                else:
+                    self.members[pos_closest] = candidate_point
+                    self.memberships[pos_closest] = confidence
+                    rospy.logdebug(self.ident + " full!")
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
         raise NotImplementedError
 
-    def is_contained(self, space, threshold=0.9):
+    def contains(self, space, threshold=0.9):
         """
         Check if other space is contained inside this one.
 
@@ -161,7 +196,7 @@ class ClosestPointBasedSpace(PointBasedSpace):
             activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
         else:
             activation = -1
-        return activation
+        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
 
 
 class CentroidPointBasedSpace(PointBasedSpace):
@@ -206,7 +241,7 @@ class CentroidPointBasedSpace(PointBasedSpace):
                 activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
             else:
                 activation = -1
-        return activation
+        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
 
 
 class NormalCentroidPointBasedSpace(PointBasedSpace):
@@ -265,14 +300,14 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
                 activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
             else:
                 activation = -1
-        return activation
+        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
 
 
 class DNNSpace(Space):
     """Calculate the new activation value using the output of a DNN."""
 
     def __init__(self, **kwargs):
-        """Constructor."""
+        """Initialize."""
         self.headers = [
             "ball_in_right_hand",
             "ball_dist",
@@ -309,4 +344,4 @@ class DNNSpace(Space):
             activation = prediction["probabilities"][1]
         else:
             activation = -1.0
-        return activation
+        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation

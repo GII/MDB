@@ -19,10 +19,10 @@ class PNode(Node):
     activating them when a new perception pertaining to this subspace occurs.
     """
 
-    def __init__(self, space_class=None, **kwargs):
-        """Constructor."""
-        self.space = self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
+    def __init__(self, space_class=None, space=None, **kwargs):
+        """Initialize."""
         super().__init__(**kwargs)
+        self.space = space if space else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
 
     def add_perception(self, perception, confidence):
         """Add a new point to the p-node."""

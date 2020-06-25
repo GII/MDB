@@ -1,6 +1,6 @@
 # Topic to publish reward
 /mdb/reward_topic: /mdb/reward
-/mdb/reward_msg: mdb_common.msg.RewardMsg
+/mdb/reward_msg: std_msgs.msg.Float64
 # Topic to communicate with the simulator
 /mdb/control_topic: /mdb/baxter/control
 /mdb/control_msg: mdb_common.msg.ControlMsg

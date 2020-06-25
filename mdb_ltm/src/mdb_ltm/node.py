@@ -50,7 +50,8 @@ class Node(object):
         for i in range(max([len(sensor) for sensor in perception.values()])):
             perception_line = OrderedDict()
             for sensor, value in perception.items():
-                perception_line[sensor] = value[i % len(value)]
+                sid = i % len(value)
+                perception_line[sensor + str(sid)] = value[sid]
             self.perception.append(perception_line)
             activation_value = self.calc_activation(perception_line)
             if activation_value < self.threshold:

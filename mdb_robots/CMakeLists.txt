@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_robots_detection)
+project(mdb_robots)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -62,7 +62,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
-#    FILES 
+#    FILES
 # )
 
 ## Generate services in the 'srv' folder
@@ -81,7 +81,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fPIC -O3 -DNDEBUG -fopenmp ${CMAKE_CXX_FL
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#    std_msgs  
+#    std_msgs
 #    sensor_msgs
 # )
 

@@ -59,7 +59,7 @@ class Perception(Node):
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""
         self.semaphore.acquire()
-        rospy.logdebug("Reading " + self.ident + " = " + str(reading))
+        rospy.logdebug("Receiving " + self.ident + " = " + str(reading))
         self.old_raw = self.raw
         self.raw = reading
         self.old_value = self.value

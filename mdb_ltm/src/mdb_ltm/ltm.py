@@ -9,6 +9,7 @@ Distributed under the (yes, we are still thinking about this too...).
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 import os.path
+import random
 import sys
 from copy import copy
 from operator import attrgetter
@@ -73,8 +74,7 @@ class LTM(object):
         )
         # Init thread syncronizing stuff
         self.reward_semaphore = None
-        self.reward_flag = None
-        self.there_are_goals = None
+        self.reward_event = None
         self.init_threading()
         #
         self.default_class = OrderedDict()
@@ -88,11 +88,10 @@ class LTM(object):
         self.period = None
         self.trials = None
         self.worlds = None
-        self.current_goal = None
-        self.current_policy = None
         self.current_world = 0
-        self.current_success = 0
+        self.current_policy = None
         self.current_reward = 0
+        self.current_goal = None
         self.graph = networkx.Graph()
         self.graph_node_label = OrderedDict()
         self.graph_node_position = OrderedDict()
@@ -104,19 +103,17 @@ class LTM(object):
         del state["files"]
         del state["control_publisher"]
         del state["reward_semaphore"]
-        del state["reward_flag"]
-        del state["there_are_goals"]
+        del state["reward_event"]
         return state
 
     def init_threading(self):
         """Create needed stuff to synchronize threads."""
         self.reward_semaphore = threading.Semaphore()
-        self.reward_flag = threading.Event()
-        self.there_are_goals = threading.Event()
+        self.reward_event = threading.Event()
 
     @property
     def perceptions(self):
-        """Return the list of perceptions."""
+        """Return the dictionary of perceptions."""
         return self.nodes["Perception"]
 
     @property
@@ -144,12 +141,11 @@ class LTM(object):
         """Return the list of policies."""
         return self.nodes["Policy"]
 
-    @classmethod
-    def load_memory_dump(cls, file_name):
+    @staticmethod
+    def load_memory_dump(file_name):
         """Load a previous LTM memory dump from a file."""
-        ltm = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
+        ltm = yaml.load(open(file_name, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
         ltm.files = []
-        ltm.there_are_goals = threading.Event()
         # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
         # I think construct_yaml_object is the guilty, because when __setstate__ exists,
         # it calls construct_mapping with deep=True
@@ -188,7 +184,7 @@ class LTM(object):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
         if sys.version_info < (3, 0):
-            node_module = __import__(module_string, fromlist=[bytes(class_string, 'utf-8')])
+            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
         else:
             node_module = __import__(module_string, fromlist=[class_string])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
@@ -313,8 +309,11 @@ class LTM(object):
                 )
         if node_class is not None:
             if self.node_exists(data.id):
-                rospy.logwarn("Received new %s object, but there is already a node with that name (%s). Ignoring...",
-                    node_type, data.id)
+                rospy.logwarn(
+                    "Received new %s object, but there is already a node with that name (%s). Ignoring...",
+                    node_type,
+                    data.id,
+                )
             else:
                 self.add_node(
                     node_type=node_type,
@@ -324,8 +323,6 @@ class LTM(object):
                     execute_service=data.execute_service,
                     get_service=data.get_service,
                 )
-                if node_type == "Goal":
-                    self.there_are_goals.set()
 
     def shutdown(self):
         """Save to disk everything is needed before shutting down."""
@@ -353,7 +350,7 @@ class LTM(object):
 
     def setup_nodes(self, nodes):
         """Load initial nodes."""
-        for node_type, node_list  in nodes.items():
+        for node_type, node_list in nodes.items():
             rospy.logdebug("Loading %s...", node_type)
             for element in node_list:
                 class_name = element["class"]
@@ -361,22 +358,17 @@ class LTM(object):
                 data = element.get("data")
                 ros_name_prefix = element.get("ros_name_prefix")
                 self.add_node(
-                    node_type=node_type,
-                    class_name=class_name,
-                    ident=ident,
-                    data=data,
-                    ros_name_prefix=ros_name_prefix,
+                    node_type=node_type, class_name=class_name, ident=ident, data=data, ros_name_prefix=ros_name_prefix,
                 )
 
     def reward_callback(self, reward):
         """Read a reward from the outer world."""
         # TODO: Hand-made goals need to be change so the reward cames from simulator or people.
         self.reward_semaphore.acquire()
-        rospy.logdebug("Reading reward = " + str(reward))
-        self.current_reward = reward
-        self.reward_flag.set()
+        rospy.logdebug("Receiving reward = " + str(reward.data))
+        self.current_reward = reward.data
+        self.reward_event.set()
         self.reward_semaphore.release()
-
 
     def setup_control_channel(self, control_channel):
         """Load simulator / robot configuration channel."""
@@ -408,7 +400,7 @@ class LTM(object):
                 rospy.logerr(file_name + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", file_name)
-                configuration = yaml.load(open(file_name, "r", encoding='utf-8'), Loader=yamlloader.ordereddict.CLoader)
+                configuration = yaml.load(open(file_name, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
                 self.setup_files(configuration["LTM"]["Files"])
                 self.setup_topics(configuration["LTM"]["Connectors"])
                 if not self.restoring:
@@ -448,13 +440,6 @@ class LTM(object):
             c_node.update_activation(perception=perception)
         for policy in self.policies:
             policy.update_activation(perception=perception)
-
-    def random_policy(self):
-        """Select a random policy. In order to avoid problems with random numbers" generation, we use a pool."""
-        if self.policies_to_test == []:
-            self.policies_to_test = copy(self.policies)
-        policy = self.policies_to_test[numpy.random.randint(len(self.policies_to_test))]
-        return policy
 
     def do_forward_prospection(self, pnodes_to_consider, remaining_pnodes, path_goals, path_policies, search_new=False):
         """
@@ -496,7 +481,7 @@ class LTM(object):
                         remaining_pnodes=new_remaining_pnodes,
                         path_goals=new_path_goals,
                         path_policies=new_path_policies,
-                        search_new=search_new
+                        search_new=search_new,
                     )
         return new_knowledge
 
@@ -509,7 +494,7 @@ class LTM(object):
             remaining_pnodes=remaining_pnodes,
             path_goals=[],
             path_policies=[],
-            search_new=False
+            search_new=False,
         )
         if not new_knowledge:
             new_knowledge = self.do_forward_prospection(
@@ -517,110 +502,339 @@ class LTM(object):
                 remaining_pnodes=remaining_pnodes,
                 path_goals=[],
                 path_policies=[],
-                search_new=True
+                search_new=True,
             )
         return new_knowledge
 
+    def get_feasible_goals(self):
+        """
+        Find out goals that can be satisfied (or their first subgoal can be satisfied).
+
+        Algorithm:
+        ----------
+        1 - Create a list with goals connected to activated P-nodes.
+        2 - Append to that list those goals that have a value function whose first element is in that list.
+
+        Parameters:
+        ----------
+        sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+            A sensorial state.
+
+        Returns:
+        --------
+        feasible_goals : [goal, ...]
+            List of goals that can be satisfied, totally or partially.
+
+        """
+        activated_pnodes = (p_node for p_node in self.p_nodes if max(p_node.activation) > 0.0)
+        feasible_goals = [
+            neighbor for p_node in activated_pnodes for neighbor in p_node.neighbors if neighbor.type == "Goal"
+        ]
+        feasible_goals.extend(
+            (
+                goal
+                for goal in self.goals
+                for value_function in goal.value_functions
+                for sub_goal in value_function
+                if sub_goal in feasible_goals
+            )
+        )
+        return feasible_goals
+
+    def random_policy(self):
+        """Select a random policy. In order to avoid problems with random numbers' generation, we use a pool."""
+        if self.policies_to_test == []:
+            self.policies_to_test = copy(self.policies)
+        policy = self.policies_to_test[numpy.random.randint(len(self.policies_to_test))]
+        return policy
+
     def select_policy(self, sensing):
-        """Select the best policy to be run."""
+        """
+        Select the policy to be run.
+
+        Algorithm:
+        ----------
+        1 - Find the policy with the largest activation.
+        2 - If 1 fails, do prospection to generate new VFs and try to find a meaningful policy.
+        3 - If 2 fails, activate the last goal that obtained reward.
+        4 - If 3 fails, activate a random (and with a feasible start) goal.
+        5 - If 4 fails, just pick a policy randomly.
+
+        Notes:
+        ------
+        - Steps 3 and 4 only work if the "end" parameter for the selected goal is NOT present in the configuration file.
+        Otherwise, update_activations() will overwrite the change in the goal's activation!
+
+        Parameters:
+        ----------
+        sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+            A sensorial state.
+
+        Returns:
+        --------
+        policy : Policy
+            Selected policy
+
+        """
+        self.update_activations(sensing, new_sensings=True)
+        # 1
         policy = max(self.policies, key=attrgetter("activation"))
+        # 2
         if not policy.activation:
             if self.do_prospection():
                 self.update_activations(sensing, new_sensings=False)
-        policy = max(self.policies, key=attrgetter("activation"))
+                policy = max(self.policies, key=attrgetter("activation"))
+        if self.goals:
+            # 3
+            if not policy.activation:
+                goal = max(self.goals, key=attrgetter("reward"))
+                if goal.reward > goal.threshold:
+                    goal.new_activation = 1.0
+                    self.update_activations(sensing, new_sensings=False)
+                    policy = max(self.policies, key=attrgetter("activation"))
+            # 4
+            if not policy.activation:
+                feasible_goals = self.get_feasible_goals()
+                if feasible_goals:
+                    goal = random.choice(feasible_goals)
+                    goal.new_activation = 1.0
+                    self.update_activations(sensing, new_sensings=False)
+                    policy = max(self.policies, key=attrgetter("activation"))
+        # 5
         if not policy.activation:
             policy = self.random_policy()
         rospy.loginfo("Selecting a policy => " + policy.ident + " (" + str(policy.activation) + ")")
         return policy
 
-    def select_goal(self):
-        """Find the active goal."""
-        for goal in self.goals:
-            goal.update_success()
-        goal = max(self.goals, key=attrgetter("reward"))
-        if goal.reward < goal.threshold:
-            goal = None
-            rospy.loginfo("Successful goal => None")
-        else:
-            rospy.loginfo("Successful goal => " + goal.ident)
-        return goal
+    @staticmethod
+    def check_perception_sanity(policy, previous_state):
+        """
+        Check if there is not perception ambiguity.
 
-    def add_antipoint(self):
-        """Add an anti-point to the p-node that corresponds with the executed policy."""
-        cnodes = (node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_is_on())
-        for cnode in cnodes:
-            pnodes = (
-                node for node in cnode.neighbors if node.type == "PNode" and max(node.activation) >= node.threshold
+        If there is not perception in the policy, this means that the P-node was not activated, (see
+        CNode.update_activation()). In this case, if there is some multi-valuated sensor, we log a warning, as this is
+        not solved yet. Policies should be parametizer and, if a policy is randomly executed, it should be called
+        several times, once for each combination of sensor values, so we would know what perception has to be added to
+        the P-node. This would simplify also the simulator and the preprogrammed goals (that should dissapear, anyway).
+
+        Parameters:
+        ----------
+        policy: Policy
+            Executed policy.
+        previous_state : {sensor_name: [{attribute: value, ...}, ...], ...}
+            Sensorial state before the execution of the policy.
+
+        Returns:
+        --------
+        bool
+            Is known what sensor values were employed by the policy?
+
+        """
+        problem = False
+        if not policy.perception:
+            if max([len(sensor) for sensor in previous_state.values()]) == 1:
+                policy.perception = OrderedDict()
+                for sensor, value in previous_state.items():
+                    policy.perception[sensor] = value[0]
+        if not policy.perception:
+            rospy.logwarn(
+                "It can't be determined what combination of sensor values caused a goal success, "
+                "so it is not possible to add a point / create a new P-node"
             )
-            for pnode in pnodes:
-                pnode.add_perception(self.current_policy.perception, -1.0)
-                rospy.loginfo("Added anti-point in p-node " + pnode.ident)
+            problem = True
+        return not problem
 
-    def add_point(self, sensing):
-        """
-        Add a point to the p-node that corresponds with the executed policy.
+    @staticmethod
+    def create_perception(sensing):
+        """Create a new state space with one point."""
+        perception = OrderedDict()
+        for sensor, values in sensing.items():
+            for idx, value in enumerate(values):
+                perception[sensor + str(idx)] = value
+        return perception
 
-        It is assumed that there are only one goal and one forward model active in the LTM at a given moment of time.
+    def create_space(self, sensing):
+        """Create a new state space with one point."""
+        space = self.class_from_classname(self.default_class["Space"])()
+        space.add_point(self.create_perception(sensing), 1.0)
+        return space
+
+    @staticmethod
+    def add_point(p_node, perception):
+        """Add a point to the p-node."""
+        p_node.add_perception(perception, 1.0)
+        rospy.loginfo("Added point in p-node " + p_node.ident)
+
+    @staticmethod
+    def add_antipoint(p_node, perception):
+        """Add an anti-point to the p-node."""
+        p_node.add_perception(perception, -1.0)
+        rospy.loginfo("Added anti-point in p-node " + p_node.ident)
+
+    def update_pnodes(self, current_state):
         """
-        perception = self.current_policy.perception
-        if not perception:
-            # If there is not perception in the policy, this means that the P-node was not activated, (see
-            # CNode.update_activation()).
-            # In this case, if there is some multi-valuated sensor, we log a warning, as this is not solved yet.
-            # Policies should be parametizer and, if a policy is randomly executed, it should be called several times,
-            # once for each combination of sensor values, so we would know what perception has to be added to the
-            # P-node. This would simplify also the simulator and the preprogrammed goals.
-            if max([len(sensor) for sensor in sensing.values()]) == 1:
-                perception = OrderedDict()
-                for sensor, value in sensing.items():
-                    perception[sensor] = value[0]
-        if not perception:
-            rospy.logwarn("It can't be determined what combination of sensor values caused a goal success, "
-                "so it is not possible to add a point / create a new P-node")
-        else:
-            cnodes = [
-                node for node in self.current_policy.neighbors if node.type == "CNode" and node.context_has_reward()]
-            if cnodes:
-                for cnode in cnodes:
-                    pnodes = (node for node in cnode.neighbors if node.type == "PNode")
-                    for pnode in pnodes:
-                        pnode.add_perception(perception, 1.0)
-                        rospy.loginfo("Added point in p-node " + pnode.ident)
+        Update P-nodes according to the accomplishment of the connected goal.
+
+        Algorithm:
+        ----------
+        1 - Select all the C-nodes connected to the executed policy and to activated forward models.
+        2 - For each one of those C-nodes, if the goal connected to it is contained in the new state (so it was
+        satisfied), then add the previous state as a point to the P-node connected to it.
+        3 - ... otherwise, add it as anti-point.
+
+        Notes:
+        ------
+        - The underlying implementation of P-nodes is in charge of points and anti-points processing. For instance,
+        when adding and anti-point with a goal that was not activated, if the P-node is a neural network, the
+        anti-point could be used in training, but if the P-node is just a point-based space, the anti-point could be
+        discarded.
+        - Right now, LTM is only storing causal relationships that lead to a reward. Another option would be to store
+        every discovered causal relationship. This would simplify update_goals() as part of its process could be done
+        here, but memory requirements would be increase. We need to think about it...
+        - It is assumed that the active forward model doesn't change in a cycle. This is a huge simplification, be
+        ware!!!
+        - We are not storing the particular subset of sensing used by a policy in every instant of time so, when we
+        inspect FM's activation, we just pick the maximum. This is clearly something that needs to be changed.
+
+        Parameters:
+        ----------
+        current_state : (old_sensing, policy, sensing)
+            old_sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+                Sensorial state before the execution of the policy.
+            policy: Policy
+                Executed policy.
+            sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+                Sensorial state after the execution of the policy.
+
+        """
+        old_sensing, policy, sensing = current_state
+        for c_node in (node for node in policy.neighbors if node.type == "CNode"):
+            if c_node.forward_model.max_activation > c_node.forward_model.threshold:
+                if self.check_perception_sanity(policy, old_sensing):
+                    if self.create_space(sensing).contains(c_node.goal.space):
+                        self.add_point(c_node.p_node, policy.perception)
+                    else:
+                        self.add_antipoint(c_node.p_node, policy.perception)
+
+    def read_reward(self):
+        """Return the last received reward."""
+        rospy.loginfo("Reading reward...")
+        self.reward_event.wait()
+        self.reward_event.clear()
+
+    def new_cnode(self, perception, goal, policy, candidate_cnode=None):
+        """
+        Create a new C-node and its corresponding P-node.
+
+        Notes:
+        -----
+        - It is assumed that the active forward model doesn't change in a cycle. This is a huge simplification, be
+        ware!!!
+
+        """
+        space = candidate_cnode.p_node.space.specialize() if candidate_cnode else None
+        p_node = self.add_node(
+            node_type="PNode",
+            class_name=self.default_class["PNode"],
+            space_class=self.default_class["Space"],
+            space=space,
+        )
+        p_node.add_perception(perception, 1.0)
+        forward_model = max(self.forward_models, key=attrgetter("max_activation"))
+        neighbors = [p_node, forward_model, goal, policy]
+        c_node = self.add_node(node_type="CNode", class_name="mdb_ltm.cnode.CNode", neighbors=neighbors, weight=1.0)
+        rospy.loginfo("Added point in p-node " + p_node.ident)
+        rospy.loginfo(
+            "New c-node "
+            + c_node.ident
+            + " joining "
+            + p_node.ident
+            + ", "
+            + forward_model.ident
+            + ", "
+            + goal.ident
+            + " and "
+            + policy.ident
+        )
+
+    def update_goals(self, stm, reward):
+        """
+        Assign reward to every goal contained in the current state. A new goal is created if necessary.
+
+        Algorithm:
+        ----------
+        1 - For each element in STM, check if there is a goal connected to the policy matching the resulting state.
+            1.1 - If previous test fails, check if there is a goal NOT connected to the policy matching the resulting
+            state and, in that case, create a new C-node connecting policy and goal.
+            1.2 - If previous test fails, check if there is a goal connected to the policy embeded in the resulting
+            state and, in that case, create a new specialized goal and connect it to the policy.
+            1.3 - If previous test fails, create a new goal and connect it to the policy.
+            1.4 - Add the goal to a candidate VF.
+        2 - Assign reward to the matching goal of the latest instant time (the one when reward was obtained).
+        3 - Add the candidate VF to that matching goal if its length is larger than one.
+
+        Notes:
+        -----
+        - Points and anti-points are not managed in this method because it is done in update_pnodes(). First point of
+        this algorithm could be done also in update_pnodes() if we stored every causal relationship and not only those
+        that lead to a reward.
+        - At this time, only the goal that matches the current state receives reward. Another possibility would be to
+        assign reward to every goal embeded in the current state.
+        - We are not storing the particular subset of sensing used by a policy in every instant of time so, when we
+        inspect FM's activation, we just pick the maximum. This is clearly something that needs to be changed.
+
+        Parameters:
+        ----------
+        stm : [(old_sensing, policy, sensing), ...]
+            old_sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+                Sensorial state before the execution of the policy.
+            policy: Policy
+                Executed policy.
+            sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+                Sensorial state after the execution of the policy.
+        reward : Float
+            Last obtained reward.
+
+        """
+        candidate_vf = []
+        for (old_sensing, policy, sensing) in stm:
+            old_perception = self.create_perception(old_sensing)
+            space = self.create_space(sensing)
+            perfect_goal = perfect_cnode = candidate_cnode = None
+            for cnode in (node for node in policy.neighbors if node.type == "CNode"):
+                if cnode.forward_model.max_activation > cnode.forward_model.threshold:
+                    if space.contains(cnode.goal.space):
+                        candidate_cnode = cnode
+                        if cnode.goal.space.contains(space):
+                            perfect_cnode = candidate_cnode
+            if perfect_cnode:
+                perfect_goal = perfect_cnode.goal
             else:
-                pnode = self.add_node(
-                    node_type="PNode",
-                    class_name=self.default_class["PNode"],
-                    space_class=self.default_class["Space"]
-                )
-                pnode.add_perception(perception, 1.0)
-                rospy.loginfo("Added point in p-node " + pnode.ident)
-                forward_model = max(self.forward_models, key=attrgetter("max_activation"))
-                goal = max(self.goals, key=attrgetter("reward"))
-                neighbors = [pnode, forward_model, goal, self.current_policy]
-                cnode = self.add_node(
-                    node_type="CNode",
-                    class_name="mdb_ltm.cnode.CNode",
-                    neighbors=neighbors,
-                    weight=1.0
-                )
-                rospy.loginfo(
-                    "New c-node "
-                    + cnode.ident
-                    + " joining "
-                    + pnode.ident
-                    + ", "
-                    + forward_model.ident
-                    + ", "
-                    + goal.ident
-                    + " and "
-                    + self.current_policy.ident
-                )
+                for goal in self.goals:
+                    if space.contains(goal.space) and goal.space.contains(space):
+                        perfect_goal = goal
+                        candidate_cnode = None
+                if not perfect_goal:
+                    if candidate_cnode:
+                        space = candidate_cnode.goal.space.specialize(self.create_perception(sensing))
+                    perfect_goal = self.add_node(
+                        node_type="Goal",
+                        class_name="mdb_ltm.goal.Goal",
+                        space_class=self.default_class["Space"],
+                        space=space,
+                    )
+                self.new_cnode(old_perception, perfect_goal, policy, candidate_cnode)
+            candidate_vf.append(perfect_goal)
+        perfect_goal.reward = reward
+        rospy.loginfo("Successful goal " + perfect_goal.ident + " => " + str(reward))
+        if len(candidate_vf) > 1:
+            perfect_goal.add_value_function(candidate_vf)
 
-    def update_policies_to_test(self, drop):
+    def update_policies_to_test(self, policy=None):
         """Maintenance tasks on the pool of policies used to choose one randomly when needed."""
-        if drop:
-            if self.current_policy in self.policies_to_test:
-                self.policies_to_test.remove(self.current_policy)
+        if policy:
+            if policy in self.policies_to_test:
+                self.policies_to_test.remove(policy)
         else:
             self.policies_to_test = copy(self.policies)
 
@@ -666,7 +880,7 @@ class LTM(object):
                 graph_edge_color.append("k")
         return graph_edge_width, graph_edge_color
 
-    def show(self):
+    def show(self, policy):
         """Plot the LTM structure."""
         pyplot.get_current_fig_manager().window.geometry("800x600-0-0")
         pyplot.clf()
@@ -681,31 +895,30 @@ class LTM(object):
             self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5
         )
         networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
-        goal = max(self.goals, key=attrgetter("reward"))
-        if goal.reward == 0:
+        if not self.current_reward:
             pyplot.title(
                 "GOAL: None WORLD: "
                 + self.current_world
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(self.current_reward)
+                + str(policy.reward)
                 + "\nPOLICY: "
-                + self.current_policy.ident,
+                + policy.ident,
                 fontsize=10,
             )
         else:
             pyplot.title(
                 "GOAL: "
-                + goal.ident
+                + self.current_goal.ident
                 + " WORLD: "
                 + self.current_world
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(self.current_reward)
+                + str(policy.reward)
                 + "\nPOLICY: "
-                + self.current_policy.ident,
+                + policy.ident,
                 fontsize=10,
             )
         # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
@@ -733,21 +946,11 @@ class LTM(object):
         for file_object in self.files:
             file_object.write()
 
-    def track_sensor_changes(self, sensing, force=False):
-        """
-        Track sensor changes.
-
-        This methods updates a list of sensor changes since the last time current_goal changed or world was reset.
-        This information is used when there is a reward and the current state does not match with any existent goal.
-        """
-        if force:
-
-
-    def reset_world(self):
+    def reset_world(self, reward=0):
         """Reset the world if necessary, according to the experiment parameters."""
         changed = False
         self.trial += 1
-        if self.trial == self.trials or self.current_reward >= 0.9:
+        if self.trial == self.trials or reward >= 0.9:
             self.trial = 0
             changed = True
         if ((self.iteration % self.period) == 0) or self.restoring:
@@ -756,7 +959,8 @@ class LTM(object):
             self.restoring = False
             changed = True
         if changed:
-            self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
+            rospy.loginfo("Asking for a world reset...")
+            self.control_publisher.publish(world=self.current_world, reward=(reward >= 0.9))
         return changed
 
     def run(self, seed=None, log_level="INFO", plot=False):
@@ -765,35 +969,28 @@ class LTM(object):
             self.setup(log_level, seed)
             rospy.loginfo("Running LTM...")
             sensing = self.read_perceptions()
+            stm = []
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
-                if not self.goals:
-                    self.there_are_goals.wait()
-                self.update_activations(sensing)
                 self.current_policy = self.select_policy(sensing)
                 self.current_policy.execute()
-                old_sensing = sensing
-                sensing = self.read_perceptions()
-                self.current_goal = self.select_goal()
-                self.track_sensor_changes(sensing)
-                # voy aquí. Hay que distinguir más casos: tengo reward o no, hay un goal activo o no,
-                # ese goal activo tuvo éxito o no, etc.
-                if self.current_goal:
-                    drop_policy = False
-                    self.current_success = self.current_goal.reward
-                    self.add_point(old_sensing)
+                old_sensing, sensing = sensing, self.read_perceptions()
+                current_state = (old_sensing, self.current_policy, sensing)
+                self.update_pnodes(current_state)
+                stm.append(current_state)
+                self.read_reward()
+                if self.current_reward > 0.0:
+                    self.update_goals(stm, self.current_reward)
+                    self.current_goal = max(self.goals, key=attrgetter("reward"))
                 else:
-                    drop_policy = True
-                    self.current_success = 0.0
-                    if self.current_policy.activation >= self.current_policy.threshold:
-                        self.add_antipoint()
-                self.update_policies_to_test(drop=drop_policy)
+                    self.current_goal = None
+                self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
                 if plot:
-                    self.show()
+                    self.show(self.current_policy)
                 self.statistics()
                 self.iteration += 1
-                if self.reset_world():
+                if self.reset_world(self.current_reward):
                     sensing = self.read_perceptions()
-                    self.track_sensor_changes(sensing, force=True)
+                    stm = []
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")

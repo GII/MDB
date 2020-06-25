@@ -42,7 +42,7 @@ class Policy(Node):
         """
         Calculate the new activation value.
 
-        This activation value is the sum of the connected c-nodes.
+        This activation value is the maximum of the connected c-nodes.
         """
         cnodes = [node for node in self.neighbors if node.type == "CNode"]
         if cnodes:

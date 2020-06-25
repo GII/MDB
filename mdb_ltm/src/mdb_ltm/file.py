@@ -50,18 +50,14 @@ class FileGoodness(File):
 
     def write(self):
         """Write statistics data."""
-        if self.ltm.current_goal is not None:
-            goal_name = self.ltm.current_goal.ident
-        else:
-            goal_name = "None"
         self.file_object.write(
             str(self.ltm.iteration)
             + "\t"
-            + goal_name
+            + (self.ltm.current_goal.ident if self.ltm.current_goal else "None")
             + "\t"
             + self.ltm.current_world
             + "\t"
-            + str(self.ltm.current_success)
+            + str(self.ltm.current_reward)
             + "\t"
             + self.ltm.current_policy.ident
             + "\t"

@@ -58,7 +58,6 @@ add_message_files(
   PickDist.msg
   PNodeMsg.msg
   PolicyMsg.msg
-  RewardMsg.msg
   SensData.msg
 )
 
