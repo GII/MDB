@@ -105,7 +105,7 @@ class PointBasedSpace(Space):
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
         # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
-        if confidence > 0.0 or self.get_probability(perception) > 0.0:
+        if (confidence > 0.0) or (self.get_probability(perception) > 0.0):
             if self.parent_space:
                 self.parent_space.add_point(perception, confidence)
             # Check if we need to initialize the structured numpy array for storing points

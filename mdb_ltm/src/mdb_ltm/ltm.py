@@ -635,7 +635,7 @@ class LTM(object):
             if max([len(sensor) for sensor in previous_state.values()]) == 1:
                 policy.perception = OrderedDict()
                 for sensor, value in previous_state.items():
-                    policy.perception[sensor] = value[0]
+                    policy.perception[sensor + "0"] = value[0]
         if not policy.perception:
             rospy.logwarn(
                 "It can't be determined what combination of sensor values caused a goal success, "
@@ -977,7 +977,8 @@ class LTM(object):
                 old_sensing, sensing = sensing, self.read_perceptions()
                 current_state = (old_sensing, self.current_policy, sensing)
                 self.update_pnodes(current_state)
-                stm.append(current_state)
+                if self.sensorial_changes():
+                    stm.append(current_state)
                 self.read_reward()
                 if self.current_reward > 0.0:
                     self.update_goals(stm, self.current_reward)
