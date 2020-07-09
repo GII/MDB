@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
     <name>mdb_robots</name>
     <version>1.0.0</version>
     <description>The mdb_robots package</description>
@@ -7,7 +7,8 @@
     <!-- One maintainer tag required, multiple allowed, one person per tag -->
     <!-- Example:  -->
     <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-    <maintainer email="luis.calvo@udc.es">Luis Calvo Varela</maintainer>
+    <maintainer email="alejandro.romero.montero@udc.es">Alejandro Romero Montero</maintainer>
+    <maintainer email="jose.antonio.becerra.permuy@udc.es">Jose Antonio Becerra Permuy</maintainer>
 
 
     <!-- One license tag required, multiple allowed, one license per tag -->
@@ -20,13 +21,15 @@
     <!-- Optional attribute type can be: website, bugtracker, or repository -->
     <!-- Example: -->
     <!-- <url type="website">http://wiki.ros.org/mdb_cafer</url> -->
+    <url type="website">https://github.com/GII/MDB</url>
 
 
     <!-- Author tags are optional, mutiple are allowed, one per tag -->
     <!-- Authors do not have to be maintianers, but could be -->
     <!-- Example: -->
     <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
-    <author email="luis.calvo@udc.es">Luis Calvo Varela</author>
+    <author email="alejandro.romero.montero@udc.es">Alejandro Romero Montero</author>
+    <author email="jose.antonio.becerra.permuy@udc.es">Jose Antonio Becerra Permuy</author>
 
 
     <!-- The *_depend tags are used to specify dependencies -->
@@ -61,33 +64,42 @@
     <!-- Use doc_depend for packages you need only for building documentation: -->
     <!--   <doc_depend>doxygen</doc_depend> -->
     <buildtool_depend>catkin</buildtool_depend>
+    <depend>rospy</depend>
+    <depend>std_msgs</depend>
+    <depend>mdb_common</depend>
+    <build_export_depend>message_runtime</build_export_depend>
+    <exec_depend>message_runtime</exec_depend>
+    <exec_depend>python-future</exec_depend>
 
-    <build_depend>message_generation</build_depend>
-    <build_depend>rospy</build_depend>
-    <build_depend>std_msgs</build_depend>
+
+
+
+
+    <!-- <exec_depend>python-numpy</exec_depend>
+    <exec_depend>python-yaml</exec_depend>
+    <exec_depend>python-yamlloader</exec_depend>
+    <exec_depend>python-argparse</exec_depend>
+    <exec_depend>python-networkx</exec_depend>
+    <exec_depend>python-matplotlib</exec_depend>
+    <exec_depend>python-pandas</exec_depend>
+
+
     <build_depend>sensor_msgs</build_depend>
     <build_depend>geometry_msgs</build_depend>
-    <build_depend>mdb_common</build_depend>
     <build_depend>image_geometry</build_depend>
     <build_depend>roslib</build_depend>
     <build_depend>boost</build_depend>
     <build_depend>cv_bridge</build_depend>
     <build_depend>image_transport</build_depend>
-    <build_depend>aruco_ros</build_depend>
 
 
-    <run_depend>message_runtime</run_depend>
-    <run_depend>rospy</run_depend>
-    <run_depend>std_msgs</run_depend>
     <run_depend>sensor_msgs</run_depend>
     <run_depend>geometry_msgs</run_depend>
-    <run_depend>mdb_common</run_depend>
     <run_depend>image_geometry</run_depend>
     <run_depend>roslib</run_depend>
     <run_depend>boost</run_depend>
     <run_depend>cv_bridge</run_depend>
-    <run_depend>image_transport</run_depend>
-    <run_depend>aruco_ros</run_depend>
+    <run_depend>image_transport</run_depend> -->
 
     <!-- The export tag contains other, unspecified, tags -->
     <export>

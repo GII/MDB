@@ -757,19 +757,49 @@ class LTM(object):
             + policy.ident
         )
 
-    def update_goals(self, stm, reward):
+    def find_changes(self, sensing1, sensing2):
+        pass
+
+    def filter_sensing(self, sensing, filter):
+        new_sensing = OrderedDict()
+        for sensor, objects in sensing.items():
+            if sensor in filter:
+                #voy aquí
+                for element in objects:
+                    for attribute, value in element.items():
+        return new_sensing
+
+    def filter_stm(self, stm, first_sensing, last_sensing):
+        new_stm = []
+        relevant_sensors = self.find_changes(first_sensing, last_sensing)
+        for (old_sensing, policy, sensing) in stm:
+            new_stm.append(
+                (
+                    self.filter_sensing(old_sensing, relevant_sensors),
+                    policy,
+                    self.filter_sensing(sensing, relevant_sensors),
+                )
+            )
+        return new_stm
+
+    def update_goals(self, stm, first_sensing, last_sensing, reward):
         """
         Assign reward to every goal contained in the current state. A new goal is created if necessary.
 
         Algorithm:
         ----------
-        1 - For each element in STM, check if there is a goal connected to the policy matching the resulting state.
-            1.1 - If previous test fails, check if there is a goal NOT connected to the policy matching the resulting
-            state and, in that case, create a new C-node connecting policy and goal.
-            1.2 - If previous test fails, check if there is a goal connected to the policy embeded in the resulting
-            state and, in that case, create a new specialized goal and connect it to the policy.
-            1.3 - If previous test fails, create a new goal and connect it to the policy.
-            1.4 - Add the goal to a candidate VF.
+        1 - For each element in STM:
+            1.1 - Check if there is a goal connected to the policy exactly matching the current state.
+            1.2 - Otherwise, check if there is a goal connected to the policy defined over the same sensors but that
+            does not include the current state. In this case, add the current state to the goal and the previous state
+            to the P-node. WARNING: this assumes that the same policy cannot be used for two different things that
+            need the same sensors and for achieving the same goal.
+            1.3 - Otherwise, check if there is a goal NOT connected to the policy matching the current state and, in
+            that case, create a new C-node connecting policy and goal.
+            1.4 - Otherwise, check if there is a goal connected to the policy embeded in the current state and, in that
+            case, create a new specialized goal and connect it to the policy.
+            1.5 - Otherwise, create a new goal and connect it to the policy.
+            1.6 - Add the goal to a candidate VF.
         2 - Assign reward to the matching goal of the latest instant time (the one when reward was obtained).
         3 - Add the candidate VF to that matching goal if its length is larger than one.
 
@@ -782,6 +812,7 @@ class LTM(object):
         assign reward to every goal embeded in the current state.
         - We are not storing the particular subset of sensing used by a policy in every instant of time so, when we
         inspect FM's activation, we just pick the maximum. This is clearly something that needs to be changed.
+        - VERY IMPORTANT WARNING: This assumes that the goal did not change during the whole STM contents.
 
         Parameters:
         ----------
@@ -792,41 +823,73 @@ class LTM(object):
                 Executed policy.
             sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
                 Sensorial state after the execution of the policy.
+        first_sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+            First sensorial state just after the previous reward.
+        last_sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
+            Sensorial state after receiving reward.
         reward : Float
             Last obtained reward.
 
         """
+        stm = self.filter_stm(stm, first_sensing, last_sensing)
         candidate_vf = []
+        # 1
         for (old_sensing, policy, sensing) in stm:
             old_perception = self.create_perception(old_sensing)
+            perception = self.create_perception(sensing)
             space = self.create_space(sensing)
-            perfect_goal = perfect_cnode = candidate_cnode = None
+            perfect_goal = None
+            # 1.1
             for cnode in (node for node in policy.neighbors if node.type == "CNode"):
                 if cnode.forward_model.max_activation > cnode.forward_model.threshold:
-                    if space.contains(cnode.goal.space):
-                        candidate_cnode = cnode
-                        if cnode.goal.space.contains(space):
-                            perfect_cnode = candidate_cnode
-            if perfect_cnode:
-                perfect_goal = perfect_cnode.goal
-            else:
+                    if cnode.goal.space.contains(space) and cnode.goal.space.same_sensors(space):
+                        perfect_goal = cnode.goal
+                        break
+            # 1.2
+            if not perfect_goal:
+                for cnode in (node for node in policy.neighbors if node.type == "CNode"):
+                    if cnode.forward_model.max_activation > cnode.forward_model.threshold:
+                        if cnode.goal.space.same_sensors(space):
+                            cnode.goal.add_point(perception)
+                            self.add_point(cnode.p_node, old_perception)
+                            perfect_goal = cnode.goal
+                            break
+            # 1.3
+            if not perfect_goal:
                 for goal in self.goals:
-                    if space.contains(goal.space) and goal.space.contains(space):
+                    if goal.space.contains(space) and goal.space.same_sensors(space):
                         perfect_goal = goal
-                        candidate_cnode = None
-                if not perfect_goal:
-                    if candidate_cnode:
-                        space = candidate_cnode.goal.space.specialize(self.create_perception(sensing))
-                    perfect_goal = self.add_node(
-                        node_type="Goal",
-                        class_name="mdb_ltm.goal.Goal",
-                        space_class=self.default_class["Space"],
-                        space=space,
-                    )
-                self.new_cnode(old_perception, perfect_goal, policy, candidate_cnode)
+                        self.new_cnode(old_perception, perfect_goal, policy)
+                        break
+            # 1.4
+            if not perfect_goal:
+                for cnode in (node for node in policy.neighbors if node.type == "CNode"):
+                    if cnode.forward_model.max_activation > cnode.forward_model.threshold:
+                        if cnode.goal.space.contains(space):
+                            space = cnode.goal.space.specialize(self.create_perception(sensing))
+                            perfect_goal = self.add_node(
+                                node_type="Goal",
+                                class_name="mdb_ltm.goal.Goal",
+                                space_class=self.default_class["Space"],
+                                space=space,
+                            )
+                            self.new_cnode(old_perception, perfect_goal, policy, cnode)
+                            break
+            # 1.5
+            if not perfect_goal:
+                perfect_goal = self.add_node(
+                    node_type="Goal",
+                    class_name="mdb_ltm.goal.Goal",
+                    space_class=self.default_class["Space"],
+                    space=space,
+                )
+                self.new_cnode(old_perception, perfect_goal, policy)
+            # 1.6
             candidate_vf.append(perfect_goal)
+        # 2
         perfect_goal.reward = reward
         rospy.loginfo("Successful goal " + perfect_goal.ident + " => " + str(reward))
+        # 3
         if len(candidate_vf) > 1:
             perfect_goal.add_value_function(candidate_vf)
 
@@ -968,7 +1031,7 @@ class LTM(object):
         try:
             self.setup(log_level, seed)
             rospy.loginfo("Running LTM...")
-            sensing = self.read_perceptions()
+            first_sensing = last_sensing = sensing = self.read_perceptions()
             stm = []
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
@@ -979,19 +1042,19 @@ class LTM(object):
                 self.update_pnodes(current_state)
                 if self.sensorial_changes():
                     stm.append(current_state)
+                self.current_goal = None
                 self.read_reward()
-                if self.current_reward > 0.0:
-                    self.update_goals(stm, self.current_reward)
-                    self.current_goal = max(self.goals, key=attrgetter("reward"))
-                else:
-                    self.current_goal = None
+                if self.reset_world(self.current_reward):
+                    last_sensing = sensing = self.read_perceptions()
+                    if self.current_reward >= 0.9:
+                        self.update_goals(stm, first_sensing, last_sensing, self.current_reward)
+                        self.current_goal = max(self.goals, key=attrgetter("reward"))
+                    stm = []
+                    first_sensing = last_sensing
                 self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
                 if plot:
                     self.show(self.current_policy)
                 self.statistics()
                 self.iteration += 1
-                if self.reset_world(self.current_reward):
-                    sensing = self.read_perceptions()
-                    stm = []
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")

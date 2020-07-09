@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mdb_ltm)
+cmake_policy(SET CMP0048 NEW)
+project(mdb_ltm VERSION 2.0)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 # add_definitions(-std=c++11)
@@ -13,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
