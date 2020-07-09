@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-cmake_policy(SET CMP0048 NEW)
-project(mdb_simulator VERSION 2.0)
+project(mdb_simulator)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)

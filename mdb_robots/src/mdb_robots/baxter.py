@@ -9,6 +9,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import *  # noqa
 import numpy
 import skimage
+import skimage.morphology # it doesn't work in Ubuntu 14.04 without this!!!
+import skimage.feature
 import rospy
 from mdb_robots.robot import Robot
 
@@ -37,10 +39,10 @@ class Baxter(Robot):
         # Paint the space outside the table black
         dim = binarized_image.shape
         # Be ware! Due to flood_fill, this needs scikit-image 0.15.0
-        binarized_image = skimage.morphology.flood_fill(binarized_image, seed_point=(0, 0), new_value=0)
-        binarized_image = skimage.morphology.flood_fill(
-            binarized_image, seed_point=(dim[0] - 1, dim[1] - 1), new_value=0
-        )
+        #binarized_image = skimage.morphology.flood_fill(binarized_image, seed_point=(0, 0), new_value=0)
+        #binarized_image = skimage.morphology.flood_fill(
+        #    binarized_image, seed_point=(dim[0] - 1, dim[1] - 1), new_value=0
+        #)
         # Look for blobs. This works better with the gray image than with the binarized image
         blobs = skimage.feature.blob_doh(gray_image, threshold=0.006)
         # Paint red circles around the blobs
