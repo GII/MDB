@@ -9,11 +9,11 @@ Distributed under GPLv3.
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import *  # noqa
 import sys
-import skimage
+from skimage import io
 from mdb_robots.baxter import Baxter
 
 
 if __name__ == "__main__":
-    _, image = Baxter.detect_objects(skimage.io.imread(sys.argv[1]))
-    skimage.io.imshow(image)
-    skimage.io.show()
+    _, image = Baxter.detect_objects(io.imread(sys.argv[1]))
+    io.imshow(image)
+    io.show()
