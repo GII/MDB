@@ -171,7 +171,9 @@ include_directories(
 # )
 catkin_install_python(PROGRAMS
   nodes/mdb_baxter
-  scripts/detect_boxes
+  scripts/calculate_object_descriptors
+  scripts/classify_objects
+  scripts/extract_features
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
