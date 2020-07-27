@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+"""
+MDB.
+
+Available from https://github.com/robotsthatdream/MDB
+Distributed under GPLv3.
+"""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
+import sys
+from skimage import io
+from mdb_robots.baxter import Baxter
+
+
+if __name__ == "__main__":
+    image, _, features = Baxter.detect_objects(io.imread(sys.argv[1]))
+    features.to_csv(sys.argv[2], sep="\t", header=False, index=False)
+    io.imshow(image)
+    io.show()

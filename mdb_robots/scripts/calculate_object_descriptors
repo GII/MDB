@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+"""
+MDB.
+
+Available from https://github.com/robotsthatdream/MDB
+Distributed under GPLv3.
+"""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import *  # noqa
+import sys
+import glob
+import pandas
+
+
+def calculate_object_descriptors(directory):
+    csv_files = glob.glob(directory + "/*.csv")
+    data_frames = []
+    for file_name in csv_files:
+        data_frames.append(pandas.read_csv(file_name, delim_whitespace=True, header=None))
+    data = pandas.concat(data_frames, ignore_index=True)
+    n_columns = data.shape[1]
+    object_features = []
+    for object_type in data[0].unique():
+        object_data = data[data[0] == object_type]
+        red = object_data.loc[object_data[3] == "red", 4:n_columns].mean()
+        green = object_data.loc[object_data[3] == "green", 4:n_columns].mean()
+        blue = object_data.loc[object_data[3] == "blue", 4:n_columns].mean()
+        object_features.append(
+            pandas.DataFrame(
+                pandas.concat([pandas.Series([object_type]), red, green, blue], ignore_index=True)
+            ).transpose()
+        )
+    features = pandas.concat(object_features, ignore_index=True)
+    features.to_csv(directory + "/objects.csv", sep="\t", header=False, index=False)
+
+
+if __name__ == "__main__":
+    calculate_object_descriptors(sys.argv[1])
