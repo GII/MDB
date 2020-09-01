@@ -757,19 +757,49 @@ class LTM(object):
             + policy.ident
         )
 
-    def find_changes(self, sensing1, sensing2):
-        pass
+    @staticmethod
+    def find_changes(sensing1, sensing2):
+        """
+        Detect what sensors changed their values between rewards.
 
-    def filter_sensing(self, sensing, filter):
+        Notes:
+        -----
+        - Objects in a list of perceptions of a given type have not id, so their relative order
+        is used. This needs to be changed because is too fragile and risky.
+
+        """
         new_sensing = OrderedDict()
-        for sensor, objects in sensing.items():
-            if sensor in filter:
-                #voy aquí
-                for element in objects:
-                    for attribute, value in element.items():
+        for sensor in sensing1:
+            if sensor not in sensing2:
+                new_sensing[sensor] = sensing1[sensor]
+            else:
+                object_list = []
+                for sensed_object1, sensed_object2 in zip(sensing1[sensor], sensing2[sensor]):
+                    changed = False
+                    for attribute1, attribute2 in zip(sensed_object1, sensed_object2):
+                        if attribute1 != attribute2:
+                            rospy.logerr("It seems that a sensed object changed its type! This shouldn't happen!!")
+                        if sensed_object1[attribute1] != sensed_object2[attribute2]:
+                            changed = True
+                    if changed:
+                        object_list.append(sensed_object2)
+                if object_list:
+                    new_sensing[sensor] = object_list
+        for sensor in sensing2:
+            if sensor not in sensing1:
+                new_sensing[sensor] = sensing2[sensor]
+        return new_sensing
+
+    def filter_sensing(self, sensing, sensing_filter):
+        """Prune every sensorization from sensing not present also in sensing_filter."""
+        new_sensing = OrderedDict()
+        for sensor, object_list in sensing.items():
+            if sensor in sensing_filter:
+                new_sensing[sensor] = object_list
         return new_sensing
 
     def filter_stm(self, stm, first_sensing, last_sensing):
+        """Prune every sensorization that didn't change between first_sensing and last_sensing."""
         new_stm = []
         relevant_sensors = self.find_changes(first_sensing, last_sensing)
         for (old_sensing, policy, sensing) in stm:
@@ -850,7 +880,7 @@ class LTM(object):
                 for cnode in (node for node in policy.neighbors if node.type == "CNode"):
                     if cnode.forward_model.max_activation > cnode.forward_model.threshold:
                         if cnode.goal.space.same_sensors(space):
-                            cnode.goal.add_point(perception)
+                            cnode.goal.space.add_point(perception, 1.0)
                             self.add_point(cnode.p_node, old_perception)
                             perfect_goal = cnode.goal
                             break

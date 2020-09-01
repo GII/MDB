@@ -37,7 +37,8 @@ class File(object):
 
     def close(self):
         """Close de underlying file."""
-        self.file_object.close()
+        if self.file_object:
+            self.file_object.close()
 
 
 class FileGoodness(File):
