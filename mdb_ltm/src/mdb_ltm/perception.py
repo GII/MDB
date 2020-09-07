@@ -100,4 +100,4 @@ class ObjectListPerception(Perception):
             diameter = (perception.diameter - self.normalize_values["diameter_min"]) / (
                 self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
             )
-            self.value.append(OrderedDict(distance=distance, angle=angle, diameter=diameter))
+            self.value.append(OrderedDict(distance=distance, angle=angle, diameter=diameter, id=perception.id))

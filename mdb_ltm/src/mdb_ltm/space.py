@@ -137,7 +137,7 @@ class PointBasedSpace(Space):
                     closest = members[pos_closest]
                     if numpy.linalg.norm(point - closest) == 0.0:
                         if confidence <= 0.0:
-                            rospy.logerr("Adding twice the same anti-point, this should not happen ever!!!")
+                            rospy.logwarn("Trying to add twice the same anti-point")
                 # Store the new perception if there is a place for it
                 if self.size < self.real_size:
                     self.members[self.size] = candidate_point

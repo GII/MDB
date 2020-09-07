@@ -27,6 +27,24 @@ class World(Enum):
     kitchen = 4
 
 
+class Item(Enum):
+    """Types of objects."""
+
+    cylinder = 1
+    box = 2
+    skillet = 3
+    grapes = 4
+    apple = 5
+    tomato = 6
+    orange = 7
+    carrot = 8
+    lettuce = 9
+    pineapple = 10
+    watermelon = 11
+    eggplant = 12
+    banana = 13
+
+
 class LTMSim(object):
     """A very simple events-based simulator for LTM experiments."""
 
@@ -245,6 +263,7 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = distance
             self.perceptions["boxes"].data[0].angle = angle
             self.perceptions["boxes"].data[0].diameter = 0.12
+            self.perceptions["boxes"].data[0].id = Item.box
             self.perceptions["cylinders"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
@@ -254,6 +273,7 @@ class LTMSim(object):
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
+            self.perceptions["cylinders"].data[0].id = Item.cylinder
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
             object_distance = self.perceptions["cylinders"].data[0].distance
@@ -282,11 +302,13 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = distance
             self.perceptions["boxes"].data[0].angle = angle
             self.perceptions["boxes"].data[0].diameter = 0.12
+            self.perceptions["boxes"].data[0].id = Item.box
             distance, angle = self.random_position(in_valid=False, out_valid=True)
             self.perceptions["boxes"].data.append(self.base_messages["boxes"]())
             self.perceptions["boxes"].data[1].distance = distance
             self.perceptions["boxes"].data[1].angle = angle
             self.perceptions["boxes"].data[1].diameter = 0.12
+            self.perceptions["boxes"].data[1].id = Item.box
             self.perceptions["cylinders"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=False)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
@@ -296,6 +318,7 @@ class LTMSim(object):
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
+            self.perceptions["cylinders"].data[0].id = Item.cylinder
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
         elif self.world == World.kitchen:
@@ -304,26 +327,26 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = 0.605
             self.perceptions["boxes"].data[0].angle = 0.0
             self.perceptions["boxes"].data[0].diameter = 0.12
-            self.perceptions["boxes"].data[0].color = "skillet"
+            self.perceptions["boxes"].data[0].id = Item.skillet
             self.perceptions["cylinders"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
             self.perceptions["cylinders"].data[0].angle = angle
             self.perceptions["cylinders"].data[0].diameter = 0.03
-            self.perceptions["cylinders"].data[0].color = "carrot"
+            self.perceptions["cylinders"].data[0].id = Item.carrot
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[1].distance = distance
             self.perceptions["cylinders"].data[1].angle = angle
             self.perceptions["cylinders"].data[1].diameter = 0.03
-            self.perceptions["cylinders"].data[1].color = "eggplant"
+            self.perceptions["cylinders"].data[1].id = Item.eggplant
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[2].distance = distance
             self.perceptions["cylinders"].data[2].angle = angle
             self.perceptions["cylinders"].data[2].diameter = 0.03
-            self.perceptions["cylinders"].data[2].color = "cabbage"
+            self.perceptions["cylinders"].data[2].id = Item.orange
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
         else:

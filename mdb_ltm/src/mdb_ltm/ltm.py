@@ -90,6 +90,7 @@ class LTM(object):
         self.worlds = None
         self.current_world = 0
         self.current_policy = None
+        self.received_reward = 0
         self.current_reward = 0
         self.current_goal = None
         self.graph = networkx.Graph()
@@ -363,10 +364,9 @@ class LTM(object):
 
     def reward_callback(self, reward):
         """Read a reward from the outer world."""
-        # TODO: Hand-made goals need to be change so the reward cames from simulator or people.
         self.reward_semaphore.acquire()
         rospy.logdebug("Receiving reward = " + str(reward.data))
-        self.current_reward = reward.data
+        self.received_reward = reward.data
         self.reward_event.set()
         self.reward_semaphore.release()
 
@@ -655,6 +655,8 @@ class LTM(object):
 
     def create_space(self, sensing):
         """Create a new state space with one point."""
+        if not sensing:
+            rospy.logerr("Error: creating an empty state space!!!")
         space = self.class_from_classname(self.default_class["Space"])()
         space.add_point(self.create_perception(sensing), 1.0)
         return space
@@ -721,6 +723,7 @@ class LTM(object):
         rospy.loginfo("Reading reward...")
         self.reward_event.wait()
         self.reward_event.clear()
+        return self.received_reward
 
     def new_cnode(self, perception, goal, policy, candidate_cnode=None):
         """
@@ -758,50 +761,42 @@ class LTM(object):
         )
 
     @staticmethod
-    def find_changes(sensing1, sensing2):
-        """
-        Detect what sensors changed their values between rewards.
-
-        Notes:
-        -----
-        - Objects in a list of perceptions of a given type have not id, so their relative order
-        is used. This needs to be changed because is too fragile and risky.
-
-        """
-        new_sensing = OrderedDict()
+    def find_changes(relevant_sensors, sensing1, sensing2):
+        """Detect what sensors changed their values between rewards."""
         for sensor in sensing1:
             if sensor not in sensing2:
-                new_sensing[sensor] = sensing1[sensor]
+                relevant_sensors[sensor] = sensing1[sensor]
             else:
-                object_list = []
-                for sensed_object1, sensed_object2 in zip(sensing1[sensor], sensing2[sensor]):
-                    changed = False
-                    for attribute1, attribute2 in zip(sensed_object1, sensed_object2):
-                        if attribute1 != attribute2:
-                            rospy.logerr("It seems that a sensed object changed its type! This shouldn't happen!!")
-                        if sensed_object1[attribute1] != sensed_object2[attribute2]:
-                            changed = True
-                    if changed:
-                        object_list.append(sensed_object2)
-                if object_list:
-                    new_sensing[sensor] = object_list
+                if sensor not in relevant_sensors:
+                    relevant_sensors[sensor] = []
+                for sensed_object in sensing1[sensor]:
+                    if (sensed_object not in sensing2[sensor]) and (sensed_object not in relevant_sensors[sensor]):
+                        relevant_sensors[sensor].append(sensed_object)
         for sensor in sensing2:
             if sensor not in sensing1:
-                new_sensing[sensor] = sensing2[sensor]
-        return new_sensing
+                relevant_sensors[sensor] = sensing2[sensor]
 
-    def filter_sensing(self, sensing, sensing_filter):
+    @staticmethod
+    def filter_sensing(sensing, sensing_filter):
         """Prune every sensorization from sensing not present also in sensing_filter."""
         new_sensing = OrderedDict()
-        for sensor, object_list in sensing.items():
-            if sensor in sensing_filter:
-                new_sensing[sensor] = object_list
+        for sensor in sensing:
+            new_sensing[sensor] = []
+            for sensed_object in sensing[sensor]:
+                if sensed_object in sensing_filter[sensor]:
+                    new_sensing[sensor].append(sensed_object)
         return new_sensing
 
-    def filter_stm(self, stm, first_sensing, last_sensing):
-        """Prune every sensorization that didn't change between first_sensing and last_sensing."""
+    def filter_stm(self, stm, reset_sensing):
+        """Prune every sensorization that didn't change."""
         new_stm = []
-        relevant_sensors = self.find_changes(first_sensing, last_sensing)
+        relevant_sensors = OrderedDict()
+        for (pre_sensing, policy, post_sensing) in stm:
+            self.find_changes(relevant_sensors, pre_sensing, post_sensing)
+        _, _, last_sensing = stm[-1]
+        self.find_changes(relevant_sensors, last_sensing, reset_sensing)
+        if not relevant_sensors:
+            rospy.logerr("Error: not relevant sensors found when filtering STM!!!")
         for (old_sensing, policy, sensing) in stm:
             new_stm.append(
                 (
@@ -812,7 +807,7 @@ class LTM(object):
             )
         return new_stm
 
-    def update_goals(self, stm, first_sensing, last_sensing, reward):
+    def update_goals(self, stm, last_sensing):
         """
         Assign reward to every goal contained in the current state. A new goal is created if necessary.
 
@@ -857,11 +852,14 @@ class LTM(object):
             First sensorial state just after the previous reward.
         last_sensing : {sensor_name: [{attribute: value, ...}, ...], ...}
             Sensorial state after receiving reward.
-        reward : Float
-            Last obtained reward.
 
         """
-        stm = self.filter_stm(stm, first_sensing, last_sensing)
+        rospy.loginfo("Reward obtained => updating goals, c-nodes and p-nodes")
+        rospy.loginfo("STM =>")
+        rospy.loginfo(stm)
+        stm = self.filter_stm(stm, last_sensing)
+        rospy.loginfo("Filtered STM =>")
+        rospy.loginfo(stm)
         candidate_vf = []
         # 1
         for (old_sensing, policy, sensing) in stm:
@@ -917,8 +915,8 @@ class LTM(object):
             # 1.6
             candidate_vf.append(perfect_goal)
         # 2
-        perfect_goal.reward = reward
-        rospy.loginfo("Successful goal " + perfect_goal.ident + " => " + str(reward))
+        perfect_goal.reward = self.current_reward
+        rospy.loginfo("Successful goal " + perfect_goal.ident + " => " + str(self.current_reward))
         # 3
         if len(candidate_vf) > 1:
             perfect_goal.add_value_function(candidate_vf)
@@ -973,7 +971,7 @@ class LTM(object):
                 graph_edge_color.append("k")
         return graph_edge_width, graph_edge_color
 
-    def show(self, policy):
+    def show(self):
         """Plot the LTM structure."""
         pyplot.get_current_fig_manager().window.geometry("800x600-0-0")
         pyplot.clf()
@@ -995,9 +993,9 @@ class LTM(object):
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(policy.reward)
+                + str(self.current_reward)
                 + "\nPOLICY: "
-                + policy.ident,
+                + self.current_policy.ident,
                 fontsize=10,
             )
         else:
@@ -1009,9 +1007,9 @@ class LTM(object):
                 + "\nITERATION: "
                 + str(self.iteration)
                 + " REWARD: "
-                + str(policy.reward)
+                + str(self.current_reward)
                 + "\nPOLICY: "
-                + policy.ident,
+                + self.current_policy.ident,
                 fontsize=10,
             )
         # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
@@ -1039,11 +1037,11 @@ class LTM(object):
         for file_object in self.files:
             file_object.write()
 
-    def reset_world(self, reward=0):
+    def reset_world(self):
         """Reset the world if necessary, according to the experiment parameters."""
         changed = False
         self.trial += 1
-        if self.trial == self.trials or reward >= 0.9:
+        if self.trial == self.trials or self.current_reward >= 0.9:
             self.trial = 0
             changed = True
         if ((self.iteration % self.period) == 0) or self.restoring:
@@ -1053,7 +1051,7 @@ class LTM(object):
             changed = True
         if changed:
             rospy.loginfo("Asking for a world reset...")
-            self.control_publisher.publish(world=self.current_world, reward=(reward >= 0.9))
+            self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
     def run(self, seed=None, log_level="INFO", plot=False):
@@ -1061,7 +1059,7 @@ class LTM(object):
         try:
             self.setup(log_level, seed)
             rospy.loginfo("Running LTM...")
-            first_sensing = last_sensing = sensing = self.read_perceptions()
+            sensing = self.read_perceptions()
             stm = []
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
                 rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
@@ -1072,18 +1070,18 @@ class LTM(object):
                 self.update_pnodes(current_state)
                 if self.sensorial_changes():
                     stm.append(current_state)
+                self.current_reward = self.read_reward()
                 self.current_goal = None
-                self.read_reward()
-                if self.reset_world(self.current_reward):
-                    last_sensing = sensing = self.read_perceptions()
+                if self.reset_world():
+                    reset_sensing = self.read_perceptions()
                     if self.current_reward >= 0.9:
-                        self.update_goals(stm, first_sensing, last_sensing, self.current_reward)
+                        self.update_goals(stm, reset_sensing)
                         self.current_goal = max(self.goals, key=attrgetter("reward"))
+                    sensing = reset_sensing
                     stm = []
-                    first_sensing = last_sensing
                 self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
                 if plot:
-                    self.show(self.current_policy)
+                    self.show()
                 self.statistics()
                 self.iteration += 1
         except rospy.ROSInterruptException:
