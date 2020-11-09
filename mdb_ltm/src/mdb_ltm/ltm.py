@@ -767,11 +767,18 @@ class LTM(object):
             if sensor not in sensing2:
                 relevant_sensors[sensor] = sensing1[sensor]
             else:
-                if sensor not in relevant_sensors:
-                    relevant_sensors[sensor] = []
+                if sensor in relevant_sensors:
+                    changed_objects = relevant_sensors[sensor]
+                else:
+                    changed_objects = []
                 for sensed_object in sensing1[sensor]:
-                    if (sensed_object not in sensing2[sensor]) and (sensed_object not in relevant_sensors[sensor]):
-                        relevant_sensors[sensor].append(sensed_object)
+                    if (sensed_object not in sensing2[sensor]) and (sensed_object not in changed_objects):
+                        changed_objects.append(sensed_object)
+                for sensed_object in sensing2[sensor]:
+                    if (sensed_object not in sensing1[sensor]) and (sensed_object not in changed_objects):
+                        changed_objects.append(sensed_object)
+                if changed_objects:
+                    relevant_sensors[sensor] = changed_objects
         for sensor in sensing2:
             if sensor not in sensing1:
                 relevant_sensors[sensor] = sensing2[sensor]
@@ -779,13 +786,16 @@ class LTM(object):
     @staticmethod
     def filter_sensing(sensing, sensing_filter):
         """Prune every sensorization from sensing not present also in sensing_filter."""
-        new_sensing = OrderedDict()
+        pruned_sensing = OrderedDict()
         for sensor in sensing:
-            new_sensing[sensor] = []
-            for sensed_object in sensing[sensor]:
-                if sensed_object in sensing_filter[sensor]:
-                    new_sensing[sensor].append(sensed_object)
-        return new_sensing
+            if sensor in sensing_filter:
+                new_sensing = []
+                for sensed_object in sensing[sensor]:
+                    if sensed_object in sensing_filter[sensor]:
+                        new_sensing.append(sensed_object)
+                if new_sensing:
+                    pruned_sensing[sensor] = new_sensing
+        return pruned_sensing
 
     def filter_stm(self, stm, reset_sensing):
         """Prune every sensorization that didn't change."""

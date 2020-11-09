@@ -122,6 +122,7 @@ class PointBasedSpace(Space):
                     "Trying to add a perception to a NOT compatible space!!!"
                     "Please, take into account that, at the present time, sensor order in perception matters!!!"
                 )
+                raise RuntimeError("LTM operation cannot continue :-(")
             else:
                 # Copy the new perception on the structured array
                 self.copy_perception(candidate_point, 0, perception)
