@@ -8,7 +8,6 @@ project(mdb_view)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  mdb_view
   mdb_common
   rospy
   std_msgs
