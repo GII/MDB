@@ -473,15 +473,16 @@ class LTMSim(object):
     def new_command_callback(self, data):
         """Process a command."""
         rospy.logdebug("Command received...")
-        self.world = World[data.world]
-        self.random_perceptions()
-        for ident, publisher in self.publishers.items():
-            rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
-            publisher.publish(self.perceptions[ident])
-        if (not self.catched_object) and (
-            self.perceptions["ball_in_left_hand"].data or self.perceptions["ball_in_right_hand"].data
-        ):
-            rospy.logerr("Critical error: catched_object is empty and it should not!!!")
+        if data.command == "reset_world":
+            self.world = World[data.world]
+            self.random_perceptions()
+            for ident, publisher in self.publishers.items():
+                rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
+                publisher.publish(self.perceptions[ident])
+            if (not self.catched_object) and (
+                self.perceptions["ball_in_left_hand"].data or self.perceptions["ball_in_right_hand"].data
+            ):
+                rospy.logerr("Critical error: catched_object is empty and it should not!!!")
 
     def new_action_callback(self, data):
         """Execute a policy and publish new perceptions."""

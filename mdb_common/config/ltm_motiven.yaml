@@ -25,27 +25,35 @@ LTM:
             data: 1000
     Connectors:
         -
+            data: Perception
+            ros_node_prefix: /mdb/perception
+            callback: add_node_callback
+            default_class: mdb_ltm.perception.Perception
+        -
             data: PNode
-            ros_name_prefix: /mdb/p_node
+            ros_node_prefix: /mdb/p_node
             callback: add_node_callback
             default_class: mdb_ltm.pnode.PNodeActCentroidAndNormal
         -
             data: CNode
-            ros_name_prefix: /mdb/c_node
+            ros_node_prefix: /mdb/c_node
             callback: add_node_callback
+            default_class: mdb_ltm.cnode.CNode
         -
             data: Goal
-            ros_name_prefix: /mdb/goal
+            ros_node_prefix: /mdb/goal
             callback: add_node_callback
-            default_class: mdb_ltm.goal.GoalMotiven
+            default_class: mdb_ltm.goal.Goal
         -
             data: ForwardModel
-            ros_name_prefix: /mdb/forward_model
+            ros_node_prefix: /mdb/forward_model
             callback: add_node_callback
+            default_class: mdb_ltm.forward_model.ForwardModel
         -
             data: Policy
-            ros_name_prefix: /mdb/policy
+            ros_node_prefix: /mdb/policy
             callback: add_node_callback
+            default_class: mdb_ltm.policy.Policy
     Nodes:
         Perception:
             -
@@ -58,7 +66,7 @@ LTM:
                     angle_max: 1.4
                     diameter_min: 0.0
                     diameter_max: 0.15
-                ros_name_prefix: /mdb/baxter/sensor/cylinders
+                ros_data_prefix: /mdb/baxter/sensor/cylinders
             -
                 id: boxes
                 class: mdb_ltm.perception.ObjectListPerception
@@ -69,15 +77,15 @@ LTM:
                     angle_max: 1.4
                     diameter_min: 0.0
                     diameter_max: 0.15
-                ros_name_prefix: /mdb/baxter/sensor/boxes
+                ros_data_prefix: /mdb/baxter/sensor/boxes
             -
                 id: ball_in_left_hand
                 class: mdb_ltm.perception.Perception
-                ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+                ros_data_prefix: /mdb/baxter/sensor/ball_in_left_hand
             -
                 id: ball_in_right_hand
                 class: mdb_ltm.perception.Perception
-                ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+                ros_data_prefix: /mdb/baxter/sensor/ball_in_right_hand
         ForwardModel:
             -
                 id: gripper_and_low_friction
@@ -86,73 +94,73 @@ LTM:
             -
                 id: grasp_object
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: grasp_with_two_hands
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: change_hands
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: sweep_object
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: put_object_in_box
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: put_object_with_robot
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: throw
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
             -
                 id: ask_nicely
                 class: mdb_ltm.policy.Policy
-                ros_name_prefix: /mdb/executed_policy
+                ros_data_prefix: /mdb/executed_policy
 SimulatedBaxter:
     Perceptions:
         -
             id: cylinders
-            ros_name_prefix: /mdb/baxter/sensor/cylinders
+            ros_data_prefix: /mdb/baxter/sensor/cylinders
         -
             id: boxes
-            ros_name_prefix: /mdb/baxter/sensor/boxes
+            ros_data_prefix: /mdb/baxter/sensor/boxes
         -
             id: ball_in_left_hand
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+            ros_data_prefix: /mdb/baxter/sensor/ball_in_left_hand
         -
             id: ball_in_right_hand
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+            ros_data_prefix: /mdb/baxter/sensor/ball_in_right_hand
         -
             id: clean_area
-            ros_name_prefix: /mdb/baxter/sensor/happy_human
+            ros_data_prefix: /mdb/baxter/sensor/happy_human
 Baxter:
     Sensors:
         -
             id: camera
-            ros_name_prefix: /mdb/baxter/camera
+            ros_data_prefix: /mdb/baxter/camera
     Perceptions:
         -
             id: cylinders
-            ros_name_prefix: /mdb/baxter/sensor/cylinders
+            ros_data_prefix: /mdb/baxter/sensor/cylinders
         -
             id: boxes
-            ros_name_prefix: /mdb/baxter/sensor/boxes
+            ros_data_prefix: /mdb/baxter/sensor/boxes
         -
             id: ball_in_left_hand
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_left_hand
+            ros_data_prefix: /mdb/baxter/sensor/ball_in_left_hand
         -
             id: ball_in_right_hand
-            ros_name_prefix: /mdb/baxter/sensor/ball_in_right_hand
+            ros_data_prefix: /mdb/baxter/sensor/ball_in_right_hand
         -
             id: clean_area
-            ros_name_prefix: /mdb/baxter/sensor/happy_human
+            ros_data_prefix: /mdb/baxter/sensor/happy_human
         -
             id: monitor_image
-            ros_name_prefix: /mdb/baxter/sensor/monitor_image
+            ros_data_prefix: /mdb/baxter/sensor/monitor_image

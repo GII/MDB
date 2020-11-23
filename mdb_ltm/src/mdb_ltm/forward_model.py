@@ -15,10 +15,6 @@ from mdb_ltm.node import Node
 class ForwardModel(Node):
     """A model of the environment (including the own robot) for a given set of sensors."""
 
-    def __init__(self, **kwargs):
-        """Constructor."""
-        super().__init__(**kwargs)
-
     @property
     def max_activation(self):
         """Return the maximum value of all activations."""

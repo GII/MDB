@@ -16,24 +16,6 @@ from mdb_ltm.node import Node
 class Policy(Node):
     """Action or set of actions (behaviour in Evolutionary Robotics / controller in Robotics)."""
 
-    def __init__(self, ros_name_prefix=None, **kwargs):
-        """Constructor."""
-        super().__init__(**kwargs)
-        self.topic = rospy.get_param(ros_name_prefix + "_topic")
-        self.message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_msg"))
-        self.publisher = None
-        self.init_ros()
-
-    def __getstate__(self):
-        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
-        state = self.__dict__.copy()
-        del state["publisher"]
-        return state
-
-    def init_ros(self):
-        """Create publishers and make subscriptions."""
-        self.publisher = rospy.Publisher(self.topic, self.message, latch=True, queue_size=0)
-
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         raise NotImplementedError
@@ -57,7 +39,7 @@ class Policy(Node):
     def execute(self):
         """Run the policy."""
         rospy.loginfo("Executing policy " + self.ident)
-        self.publisher.publish(self.ident)
+        self.data_publisher.publish(self.ident)
 
 
 class SuperThrow(Policy):

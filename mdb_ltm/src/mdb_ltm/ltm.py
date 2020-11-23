@@ -78,7 +78,7 @@ class LTM(object):
         self.init_threading()
         #
         self.default_class = OrderedDict()
-        self.default_ros_name_prefix = OrderedDict()
+        self.default_ros_node_prefix = OrderedDict()
         self.control_publisher = None
         self.restoring = False
         self.policies_to_test = []
@@ -319,7 +319,7 @@ class LTM(object):
                 self.add_node(
                     node_type=node_type,
                     class_name=node_class,
-                    ros_name_prefix=self.default_ros_name_prefix[node_type],
+                    ros_node_prefix=self.default_ros_node_prefix[node_type],
                     ident=data.id,
                     execute_service=data.execute_service,
                     get_service=data.get_service,
@@ -340,10 +340,10 @@ class LTM(object):
         """Load topic configuration for adding nodes."""
         for connector in connectors:
             self.default_class[connector["data"]] = connector.get("default_class")
-            self.default_ros_name_prefix[connector["data"]] = connector.get("ros_name_prefix")
-            if self.default_ros_name_prefix[connector["data"]] is not None:
-                topic = rospy.get_param(connector["ros_name_prefix"] + "_topic")
-                message = self.class_from_classname(rospy.get_param(connector["ros_name_prefix"] + "_msg"))
+            self.default_ros_node_prefix[connector["data"]] = connector.get("ros_node_prefix")
+            if self.default_ros_node_prefix[connector["data"]] is not None:
+                topic = rospy.get_param(connector["ros_node_prefix"] + "_topic")
+                message = self.class_from_classname(rospy.get_param(connector["ros_node_prefix"] + "_msg"))
                 callback = getattr(self, connector["callback"])
                 callback_args = connector["data"]
                 rospy.logdebug("Subscribing to %s...", topic)
@@ -357,10 +357,16 @@ class LTM(object):
                 class_name = element["class"]
                 ident = element["id"]
                 data = element.get("data")
-                ros_name_prefix = element.get("ros_name_prefix")
+                ros_data_prefix = element.get("ros_data_prefix")
                 self.add_node(
-                    node_type=node_type, class_name=class_name, ident=ident, data=data, ros_name_prefix=ros_name_prefix,
+                    node_type=node_type, class_name=class_name, ros_node_prefix=self.default_ros_node_prefix[node_type], ident=ident, data=data, ros_data_prefix=ros_data_prefix,
                 )
+
+    def control_callback(self, message):
+        """Read a command published in the control topic and find out if something must be done."""
+        if message.command == "publish_ltm":
+            for node in self.nodes:
+                node.publish()
 
     def reward_callback(self, reward):
         """Read a reward from the outer world."""
@@ -375,6 +381,7 @@ class LTM(object):
         topic = rospy.get_param(control_channel["control_prefix"] + "_topic")
         message = self.class_from_classname(rospy.get_param(control_channel["control_prefix"] + "_msg"))
         self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
+        rospy.Subscriber(topic, message, callback=self.control_callback)
         topic = rospy.get_param(control_channel["reward_prefix"] + "_topic")
         message = self.class_from_classname(rospy.get_param(control_channel["reward_prefix"] + "_msg"))
         rospy.logdebug("Subscribing to %s...", topic)
@@ -739,13 +746,14 @@ class LTM(object):
         p_node = self.add_node(
             node_type="PNode",
             class_name=self.default_class["PNode"],
+            ros_node_prefix=self.default_ros_node_prefix["PNode"],
             space_class=self.default_class["Space"],
             space=space,
         )
         p_node.add_perception(perception, 1.0)
         forward_model = max(self.forward_models, key=attrgetter("max_activation"))
         neighbors = [p_node, forward_model, goal, policy]
-        c_node = self.add_node(node_type="CNode", class_name="mdb_ltm.cnode.CNode", neighbors=neighbors, weight=1.0)
+        c_node = self.add_node(node_type="CNode", class_name="mdb_ltm.cnode.CNode", ros_node_prefix=self.default_ros_node_prefix["CNode"], neighbors=neighbors, weight=1.0)
         rospy.loginfo("Added point in p-node " + p_node.ident)
         rospy.loginfo(
             "New c-node "
@@ -908,6 +916,7 @@ class LTM(object):
                             perfect_goal = self.add_node(
                                 node_type="Goal",
                                 class_name="mdb_ltm.goal.Goal",
+                                ros_node_prefix=self.default_ros_node_prefix["Goal"],
                                 space_class=self.default_class["Space"],
                                 space=space,
                             )
@@ -918,6 +927,7 @@ class LTM(object):
                 perfect_goal = self.add_node(
                     node_type="Goal",
                     class_name="mdb_ltm.goal.Goal",
+                    ros_node_prefix=self.default_ros_node_prefix["Goal"],
                     space_class=self.default_class["Space"],
                     space=space,
                 )
@@ -1061,7 +1071,7 @@ class LTM(object):
             changed = True
         if changed:
             rospy.loginfo("Asking for a world reset...")
-            self.control_publisher.publish(world=self.current_world, reward=(self.current_reward >= 0.9))
+            self.control_publisher.publish(command="reset_world", world=self.current_world, reward=(self.current_reward >= 0.9))
         return changed
 
     def run(self, seed=None, log_level="INFO", plot=False):

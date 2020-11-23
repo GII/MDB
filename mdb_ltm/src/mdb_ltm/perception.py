@@ -17,7 +17,7 @@ from mdb_ltm.node import Node
 class Perception(Node):
     """A perception. Its content cames from a sensor or a redescription and it is stored in a memory."""
 
-    def __init__(self, ros_name_prefix=None, **kwargs):
+    def __init__(self, **kwargs):
         """Constructor."""
         super(Perception, self).__init__(**kwargs)
         # Init data storage attributes
@@ -29,13 +29,10 @@ class Perception(Node):
         self.semaphore = None
         self.flag = None
         self.init_threading()
-        # Init ROS stuff
-        self.ros_name_prefix = ros_name_prefix
-        self.init_ros()
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
-        state = self.__dict__.copy()
+        state = super().__getstate__()
         del state["semaphore"]
         del state["flag"]
         return state
@@ -47,10 +44,9 @@ class Perception(Node):
 
     def init_ros(self):
         """Create publishers and make subscriptions."""
-        topic = rospy.get_param(self.ros_name_prefix + "_topic")
-        message = self.class_from_classname(rospy.get_param(self.ros_name_prefix + "_msg"))
-        rospy.logdebug("Subscribing to %s...", topic)
-        rospy.Subscriber(topic, message, callback=self.read_callback)
+        super().init_ros()
+        rospy.logdebug("Subscribing to %s...", self.data_topic)
+        rospy.Subscriber(self.data_topic, self.data_message, callback=self.read_callback)
 
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""

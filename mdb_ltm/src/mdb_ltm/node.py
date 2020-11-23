@@ -16,7 +16,7 @@ import rospy
 class Node(object):
     """An MDB element."""
 
-    def __init__(self, ident=None, node_type=None, threshold=0.1, ltm=None, **kwargs):
+    def __init__(self, ident=None, node_type=None, threshold=0.1, ltm=None, ros_node_prefix=None, ros_data_prefix=None, **kwargs):
         """Constructor."""
         self.ident = ident
         self.type = node_type
@@ -25,6 +25,9 @@ class Node(object):
         self.threshold = threshold
         self.neighbors = []
         self.ltm = ltm
+        self.ros_node_prefix = ros_node_prefix
+        self.ros_data_prefix = ros_data_prefix
+        self.init_ros()
 
     @staticmethod
     def class_from_classname(class_name):
@@ -37,6 +40,37 @@ class Node(object):
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
+
+    def init_ros(self):
+        """Create publishers and make subscriptions."""
+        if self.ros_node_prefix is not None:
+            self.node_topic = rospy.get_param(self.ros_node_prefix + "_topic")
+            self.node_message = self.class_from_classname(rospy.get_param(self.ros_node_prefix + "_msg"))
+            self.node_publisher = rospy.Publisher(self.node_topic, self.node_message, latch=True, queue_size=0)
+        if self.data_node_prefix is not None:
+            self.data_topic = rospy.get_param(self.ros_data_prefix + "_topic")
+            self.data_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_msg"))
+            self.data_publisher = rospy.Publisher(self.data_topic, self.data_message, latch=True, queue_size=0)
+        self.publish()
+
+    def __getstate__(self):
+        """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
+        state = self.__dict__.copy()
+        if self.ros_node_prefix is not None:
+            del state["node_publisher"]
+        if self.data_node_prefix is not None:
+            del state["data_publisher"]
+        return state
+
+    def publish(self):
+        message = self.node_message()
+        message.command = "publish"
+        message.id = self.ident
+        message.execute_service = ""
+        message.get_service = ""
+        message.class_name = ""
+        message.language = "python"
+        self.node_publisher.publish(message)
 
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""

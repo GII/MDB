@@ -239,9 +239,8 @@ class Goal(Node):
 class GoalMotiven(Goal):
     """Goal generated (and managed) by MOTIVEN."""
 
-    def __init__(self, ros_name_prefix=None, **kwargs):
+    def __init__(self, **kwargs):
         """Initialize."""
-        super().__init__(**kwargs)
         self.new_activation_event = None
         self.new_reward_event = None
         self.init_threading()
@@ -249,11 +248,11 @@ class GoalMotiven(Goal):
         self.activation_message = None
         self.ok_topic = None
         self.ok_message = None
-        self.init_ros(ros_name_prefix)
+        super().__init__(**kwargs)
 
     def __getstate__(self):
         """Return the object to be serialize with PyYAML as the result of removing the unpicklable entries."""
-        state = self.__dict__.copy()
+        state = super().__getstate__()
         del state["new_activation_event"]
         del state["new_reward_event"]
         return state
@@ -263,15 +262,16 @@ class GoalMotiven(Goal):
         self.new_activation_event = threading.Event()
         self.new_reward_event = threading.Event()
 
-    def init_ros(self, ros_name_prefix=None):
+    def init_ros(self):
         """Create publishers and make subscriptions."""
+        super().init_ros()
         # Ugly hack
-        if ros_name_prefix is None:
-            ros_name_prefix = "/mdb/goal"
-        self.activation_topic = rospy.get_param(ros_name_prefix + "_activation_topic")
-        self.activation_message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_activation_msg"))
-        self.ok_topic = rospy.get_param(ros_name_prefix + "_ok_topic")
-        self.ok_message = self.class_from_classname(rospy.get_param(ros_name_prefix + "_ok_msg"))
+        if self.ros_data_prefix is None:
+            self.ros_data_prefix = "/mdb/goal"
+        self.activation_topic = rospy.get_param(self.ros_data_prefix + "_activation_topic")
+        self.activation_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_activation_msg"))
+        self.ok_topic = rospy.get_param(self.ros_data_prefix + "_ok_topic")
+        self.ok_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_ok_msg"))
         rospy.logdebug("Subscribing to %s...", self.activation_topic)
         rospy.Subscriber(self.activation_topic, self.activation_message, callback=self.update_activation_callback)
         rospy.logdebug("Subscribing to %s...", self.ok_topic)
