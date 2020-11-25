@@ -7,7 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 from operator import attrgetter
 import rospy
 from mdb_ltm.node import Node
@@ -46,7 +67,7 @@ class SuperThrow(Policy):
     """Interface to the learnt throw policy."""
 
     def __init__(self, **kwargs):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         super().__init__(**kwargs)
         self.throw_topic = rospy.get_param("/mdb/superthrow_topic")
         self.throw_message = self.class_from_classname(rospy.get_param("/mdb/superthrow_msg"))

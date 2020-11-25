@@ -7,7 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import numpy
 from numpy.lib.recfunctions import structured_to_unstructured
 import pandas as pd
@@ -19,7 +40,7 @@ class Space(object):
     """A n-dimensional state space."""
 
     def __init__(self, ident=None, **kwargs):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         self.ident = ident
         self.parent_space = None
 
@@ -28,7 +49,7 @@ class PointBasedSpace(Space):
     """A state space based on points."""
 
     def __init__(self, size=5000, **kwargs):
-        """Initialize."""
+        """Init attributes when a new object is created."""
         self.real_size = size
         self.size = 0
         # These lists must be empty, not None, in order loops correctly operate with empty spaces.

@@ -7,8 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
-from io import open
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import yaml
 import yamlloader
 
@@ -17,7 +37,7 @@ class File(object):
     """A MDB file."""
 
     def __init__(self, **kwargs):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         self.ident = kwargs["ident"]
         self.file_name = kwargs["file_name"]
         self.file_object = None
@@ -134,7 +154,7 @@ class FileLTMDump(File):
 
     def close(self):
         """Close de underlying file."""
-        self.write(force=True)
+        self.write()
         super().close()
 
 

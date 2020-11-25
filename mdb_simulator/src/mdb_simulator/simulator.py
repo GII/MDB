@@ -6,11 +6,31 @@ Distributed under GPLv3.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 from enum import Enum
 import sys
 import os.path
-from io import open
 import math
 import yaml
 import yamlloader
@@ -52,7 +72,7 @@ class LTMSim(object):
     outer = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3))
 
     def __init__(self):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         self.ident = None
         self.world = None
         self.base_messages = {}

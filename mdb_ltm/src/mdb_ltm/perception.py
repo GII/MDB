@@ -7,7 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import threading
 from collections import OrderedDict
 import rospy
@@ -18,7 +39,7 @@ class Perception(Node):
     """A perception. Its content cames from a sensor or a redescription and it is stored in a memory."""
 
     def __init__(self, **kwargs):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         super(Perception, self).__init__(**kwargs)
         # Init data storage attributes
         self.old_raw = 0.0
@@ -79,7 +100,7 @@ class ObjectListPerception(Perception):
     """A perception corresponding with a list of objects."""
 
     def __init__(self, data=None, **kwargs):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         self.normalize_values = data
         super(ObjectListPerception, self).__init__(**kwargs)
 

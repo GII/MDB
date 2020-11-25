@@ -7,7 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import sys
 from collections import OrderedDict
 import rospy
@@ -16,8 +37,10 @@ import rospy
 class Node(object):
     """An MDB element."""
 
-    def __init__(self, ident=None, node_type=None, threshold=0.1, ltm=None, ros_node_prefix=None, ros_data_prefix=None, **kwargs):
-        """Constructor."""
+    def __init__(
+        self, ident=None, node_type=None, threshold=0.1, ltm=None, ros_node_prefix=None, ros_data_prefix=None, **kwargs
+    ):
+        """Init attributes when a new object is created."""
         self.ident = ident
         self.type = node_type
         self.perception = None
@@ -47,7 +70,7 @@ class Node(object):
             self.node_topic = rospy.get_param(self.ros_node_prefix + "_topic")
             self.node_message = self.class_from_classname(rospy.get_param(self.ros_node_prefix + "_msg"))
             self.node_publisher = rospy.Publisher(self.node_topic, self.node_message, latch=True, queue_size=0)
-        if self.data_node_prefix is not None:
+        if self.ros_data_prefix is not None:
             self.data_topic = rospy.get_param(self.ros_data_prefix + "_topic")
             self.data_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_msg"))
             self.data_publisher = rospy.Publisher(self.data_topic, self.data_message, latch=True, queue_size=0)
@@ -58,18 +81,23 @@ class Node(object):
         state = self.__dict__.copy()
         if self.ros_node_prefix is not None:
             del state["node_publisher"]
-        if self.data_node_prefix is not None:
+        if self.ros_data_prefix is not None:
             del state["data_publisher"]
         return state
 
     def publish(self):
+        """Publish node information."""
         message = self.node_message()
-        message.command = "publish"
+        message.command = "update"
         message.id = self.ident
+        if isinstance(self.activation, list):
+            message.activation = max(self.activation)
+        else:
+            message.activation = self.activation
         message.execute_service = ""
         message.get_service = ""
         message.class_name = ""
-        message.language = "python"
+        message.language = ""
         self.node_publisher.publish(message)
 
     def calc_activation(self, perception=None):
@@ -92,3 +120,4 @@ class Node(object):
                 activation_value = 0.0
             self.activation.append(activation_value)
             rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(activation_value))
+        self.publish()

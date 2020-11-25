@@ -7,7 +7,28 @@ Distributed under the (yes, we are still thinking about this too...).
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import os.path
 import random
 import sys
@@ -16,7 +37,6 @@ from operator import attrgetter
 from enum import Enum
 import threading
 from collections import OrderedDict
-from io import open
 import yaml
 import yamlloader
 import numpy
@@ -60,7 +80,7 @@ class LTM(object):
     """
 
     def __init__(self):
-        """Constructor."""
+        """Init attributes when a new object is created."""
         self.file_name = None
         self.files = []
         self.nodes = OrderedDict(Perception=OrderedDict(), PNode=[], CNode=[], Goal=[], ForwardModel=[], Policy=[])
@@ -359,7 +379,12 @@ class LTM(object):
                 data = element.get("data")
                 ros_data_prefix = element.get("ros_data_prefix")
                 self.add_node(
-                    node_type=node_type, class_name=class_name, ros_node_prefix=self.default_ros_node_prefix[node_type], ident=ident, data=data, ros_data_prefix=ros_data_prefix,
+                    node_type=node_type,
+                    class_name=class_name,
+                    ros_node_prefix=self.default_ros_node_prefix[node_type],
+                    ident=ident,
+                    data=data,
+                    ros_data_prefix=ros_data_prefix,
                 )
 
     def control_callback(self, message):
@@ -753,7 +778,13 @@ class LTM(object):
         p_node.add_perception(perception, 1.0)
         forward_model = max(self.forward_models, key=attrgetter("max_activation"))
         neighbors = [p_node, forward_model, goal, policy]
-        c_node = self.add_node(node_type="CNode", class_name="mdb_ltm.cnode.CNode", ros_node_prefix=self.default_ros_node_prefix["CNode"], neighbors=neighbors, weight=1.0)
+        c_node = self.add_node(
+            node_type="CNode",
+            class_name="mdb_ltm.cnode.CNode",
+            ros_node_prefix=self.default_ros_node_prefix["CNode"],
+            neighbors=neighbors,
+            weight=1.0,
+        )
         rospy.loginfo("Added point in p-node " + p_node.ident)
         rospy.loginfo(
             "New c-node "
@@ -1071,7 +1102,9 @@ class LTM(object):
             changed = True
         if changed:
             rospy.loginfo("Asking for a world reset...")
-            self.control_publisher.publish(command="reset_world", world=self.current_world, reward=(self.current_reward >= 0.9))
+            self.control_publisher.publish(
+                command="reset_world", world=self.current_world, reward=(self.current_reward >= 0.9)
+            )
         return changed
 
     def run(self, seed=None, log_level="INFO", plot=False):
