@@ -44,7 +44,7 @@ class Node(object):
         self.ident = ident
         self.type = node_type
         self.perception = None
-        self.activation = None
+        self.activation = 0.0
         self.threshold = threshold
         self.neighbors = []
         self.ltm = ltm

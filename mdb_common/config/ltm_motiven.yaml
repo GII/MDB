@@ -2,7 +2,8 @@ Experiment:
     iterations: 10000
     period: 10001
     trials: 10001
-    worlds: ['gripper_and_low_friction_two_boxes']
+    worlds:
+        - gripper_and_low_friction_two_boxes
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control
@@ -19,11 +20,19 @@ LTM:
             file: pnodes.txt
             data: 1000
         -
+            id: goals
+            class: mdb_ltm.file.FileGoals
+            file: goals.txt
+            data: 1000
+        -
             id: ltm_dump
             class: mdb_ltm.file.FileLTMPeriodicDump
             file: ltm_dump
             data: 1000
     Connectors:
+        -
+            data: Space
+            default_class: mdb_ltm.space.NormalCentroidPointBasedSpace
         -
             data: Perception
             ros_node_prefix: /mdb/perception
@@ -33,7 +42,7 @@ LTM:
             data: PNode
             ros_node_prefix: /mdb/p_node
             callback: add_node_callback
-            default_class: mdb_ltm.pnode.PNodeActCentroidAndNormal
+            default_class: mdb_ltm.pnode.PNode
         -
             data: CNode
             ros_node_prefix: /mdb/c_node

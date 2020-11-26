@@ -521,7 +521,7 @@ class LTMSim(object):
         """Configure the ROS publishers where publish perception values."""
         for perception in perceptions:
             sid = perception["id"]
-            prefix = perception["ros_name_prefix"]
+            prefix = perception["ros_data_prefix"]
             topic = rospy.get_param(prefix + "_topic")
             classname = rospy.get_param(prefix + "_msg")
             message = self.class_from_classname(classname)

@@ -312,38 +312,37 @@ class LTM(object):
 
     def add_node_callback(self, data, node_type):
         """Add a new node without worrying about its class."""
-        node_class = None
-        if data.command != "new":
-            rospy.logerr("Unknown command while processing a message for creating a new node!")
-        elif data.execute_service != "" or data.get_service != "":
-            node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
-        elif data.language != "" and data.language != "python":
-            rospy.logerr("Language not supported while processing a message for creating a new node!")
-        elif data.class_name != "":
-            node_class = self.class_from_classname(data.class_name)
-        else:
-            node_class = self.default_class.get(node_type)
-            if node_class is None:
-                rospy.logerr(
-                    "Class name not specified and default value not found while processing a message for "
-                    "creating a new node!"
-                )
-        if node_class is not None:
-            if self.node_exists(data.id):
-                rospy.logwarn(
-                    "Received new %s object, but there is already a node with that name (%s). Ignoring...",
-                    node_type,
-                    data.id,
-                )
+        if data.command == "new":
+            node_class = None
+            if data.execute_service != "" or data.get_service != "":
+                node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
+            elif data.language != "" and data.language != "python":
+                rospy.logerr("Language not supported while processing a message for creating a new node!")
+            elif data.class_name != "":
+                node_class = self.class_from_classname(data.class_name)
             else:
-                self.add_node(
-                    node_type=node_type,
-                    class_name=node_class,
-                    ros_node_prefix=self.default_ros_node_prefix[node_type],
-                    ident=data.id,
-                    execute_service=data.execute_service,
-                    get_service=data.get_service,
-                )
+                node_class = self.default_class.get(node_type)
+                if node_class is None:
+                    rospy.logerr(
+                        "Class name not specified and default value not found while processing a message for "
+                        "creating a new node!"
+                    )
+            if node_class is not None:
+                if self.node_exists(data.id):
+                    rospy.logwarn(
+                        "Received new %s object, but there is already a node with that name (%s). Ignoring...",
+                        node_type,
+                        data.id,
+                    )
+                else:
+                    self.add_node(
+                        node_type=node_type,
+                        class_name=node_class,
+                        ros_node_prefix=self.default_ros_node_prefix[node_type],
+                        ident=data.id,
+                        execute_service=data.execute_service,
+                        get_service=data.get_service,
+                    )
 
     def shutdown(self):
         """Save to disk everything is needed before shutting down."""

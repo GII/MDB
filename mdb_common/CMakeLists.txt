@@ -45,19 +45,15 @@ add_message_files(
   Candidates.msg
   CartReq.msg
   CMReq.msg
-  CNodeMsg.msg
   ControlMsg.msg
-  ForwardModelMsg.msg
   GoalActivationMsg.msg
-  GoalMsg.msg
   GoalOkMsg.msg
+  NodeMsg.msg
   ObjDet.msg
   ObjectListMsg.msg
   ObjectMsg.msg
   OpenGripReq.msg
   PickDist.msg
-  PNodeMsg.msg
-  PolicyMsg.msg
   SensData.msg
 )
 

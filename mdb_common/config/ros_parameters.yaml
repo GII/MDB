@@ -4,12 +4,18 @@
 # Topic to communicate with the simulator
 /mdb/control_topic: /mdb/baxter/control
 /mdb/control_msg: mdb_common.msg.ControlMsg
+# Topic for publishing Perception creation
+/mdb/perception_topic: /mdb/ltm/perception
+/mdb/perception_msg: mdb_common.msg.NodeMsg
 # Topic for publishing P-node creation
 /mdb/p_node_topic: /mdb/ltm/p_node
-/mdb/p_node_msg: mdb_common.msg.PNodeMsg
+/mdb/p_node_msg: mdb_common.msg.NodeMsg
+# Topic for publishing C-node creation
+/mdb/c_node_topic: /mdb/ltm/c_node
+/mdb/c_node_msg: mdb_common.msg.NodeMsg
 # Topic for publishing Goal creation
 /mdb/goal_topic: /mdb/motiven/goal
-/mdb/goal_msg: mdb_common.msg.GoalMsg
+/mdb/goal_msg: mdb_common.msg.NodeMsg
 # Topic for publishing goal activations
 /mdb/goal_activation_topic: /mdb/motiven/goal_activation
 /mdb/goal_activation_msg: mdb_common.msg.GoalActivationMsg
@@ -18,10 +24,10 @@
 /mdb/goal_ok_msg: mdb_common.msg.GoalOkMsg
 # Topic for publishing Forward Model creation
 /mdb/forward_model_topic: /mdb/stm/forward_model
-/mdb/forward_model_msg: mdb_common.msg.ForwardModelMsg
+/mdb/forward_model_msg: mdb_common.msg.NodeMsg
 # Topic for publishing Policy creation
 /mdb/policy_topic: /mdb/stm/policy
-/mdb/policy_msg: mdb_common.msg.PolicyMsg
+/mdb/policy_msg: mdb_common.msg.NodeMsg
 # Topic for publishing the executed policy's id
 /mdb/executed_policy_topic: /mdb/ltm/executed_policy
 /mdb/executed_policy_msg: std_msgs.msg.String
