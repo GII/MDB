@@ -26,13 +26,13 @@ class VIEW(object):
         self.paused = True
         self.pnode_temp_trace = go.Scatter()
         self.pnode_dict = {}
-        self.nodes_config = {'pnode': {'history': 0},
-                             'cnode': {'history': 0},
-                             'goal':  {'history': 0},
-                             'forward_model': {'history': 0},
-                             'goal': {'history': 0},
-                             'perception': {'history': 0},
-                             'policy': {'history': 0}}
+        self.nodes_config = {'PNode': {'history': 0},
+                             'CNode': {'history': 0},
+                             'Goal':  {'history': 0},
+                             'ForwardModel': {'history': 0},
+                             'Goal': {'history': 0},
+                             'Perception': {'history': 0},
+                             'Policy': {'history': 0}}
 
         self.default_class = OrderedDict()
         self.default_ros_node_prefix = OrderedDict()
@@ -58,45 +58,39 @@ class VIEW(object):
                 }
             },
             {
-                'selector': '[node_type *= "pnode"]',
+                'selector': '[node_type *= "PNode"]',
                 'style': {
                     'background-color': 'purple'
                 }
             },
             {
-                'selector': '[node_type *= "cnode"]',
+                'selector': '[node_type *= "CNode"]',
                 'style': {
                     'background-color': 'blue'
                 }
             },
             {
-                'selector': '[node_type *= "policy"]',
+                'selector': '[node_type *= "Policy"]',
                 'style': {
                     'background-color': 'red'
                 }
             },
             {
-                'selector': '[node_type *= "perception"]',
+                'selector': '[node_type *= "Perception"]',
                 'style': {
                     'background-color': 'grey'
                 }
             },
             {
-                'selector': '[node_type *= "forward_model"]',
+                'selector': '[node_type *= "ForwardModel"]',
                 'style': {
                     'background-color': 'orange'
                 }
             },
             {
-                'selector': '[node_type *= "goal"]',
+                'selector': '[node_type *= "Goal"]',
                 'style': {
                     'background-color': 'green'
-                }
-            },
-            {
-                'selector': '[type *= "PC"]',
-                'style': {
-                    'line-color': 'green'
                 }
             }
         ]
@@ -531,8 +525,9 @@ class VIEW(object):
                 topic = rospy.get_param(connector["ros_node_prefix"] + "_topic")
                 message = self.class_from_classname(rospy.get_param(connector["ros_node_prefix"] + "_msg"))
                 callback = getattr(self, connector["callback"])
+                callback_args = connector["data"]
                 rospy.logdebug("Subscribing to %s...", topic)
-                rospy.Subscriber(topic, message, callback=callback)
+                rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
     
     def setup(self, log_level, file_name):
         """Init VIEW: read ROS parameters, init ROS subscribers and load initial nodes."""
@@ -574,38 +569,36 @@ class VIEW(object):
     published in a topic to which the node is subscribed 
     and for sending commands to the control topic'''
 
-    def add_node_callback(self, data):
+    def add_node_callback(self, data, node_type):
         rospy.loginfo('Received node')
         ident = data.id
-        name = data.class_name
-        name = name.split('/')[2]
         if(not(self.graph.has_node(ident))):
-            idx = self.nodes_config[name]['history']
-            if(name == "pnode"):
+            idx = self.nodes_config[node_type]['history']
+            if(node_type == "PNode"):
                 posx = idx // 3
                 posy = idx % 3
                 posx = 1 + posx + posy / 3.0
-            elif(name == "goal"):
+            elif(node_type == "Goal"):
                 posx, posy = 3*idx, 4
-            elif(name == "forward_model"):
+            elif(node_type == "ForwardModel"):
                 posx, posy = 3 * idx, 6
-            elif(name == "policy"):
+            elif(node_type == "Policy"):
                 posx, posy = 13, idx + 3
-            elif(name == "cnode"):
+            elif(node_type == "CNode"):
                 posx = idx // 3
                 posy = idx % 3
                 posx, posy = 1 + posx + posy / 3.0, posy + 8
-            elif(name == "perception"):
+            elif(node_type == "Perception"):
                 posx, posy = -3, idx + 3
             
             self.graph.add_node(ident,
                                 id = ident,
                                 position =  {'x': posx*75, 'y': posy*75},
-                                node_type = name,
+                                node_type = node_type,
                                 name = ident,
                                 activation = 0.5
                                 )
-            self.nodes_config[name]['history'] += 1
+            self.nodes_config[node_type]['history'] += 1
         else:
             rospy.logwarn('Node {} already created'.format(ident))
 
