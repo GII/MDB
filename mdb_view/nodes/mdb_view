@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+from mdb_view.view import VIEW
+import rospy
+import argparse
+
+def setup_node():
+    """Setup and run the VIEW object"""
+    parser = argparse.ArgumentParser(description="This script starts the VIEW component of the MDB 3.0")
+    parser.add_argument("-s", "--seed", help="Yaml file with some nodes to populate the LTM")
+    parser.add_argument("-l", "--log_level", help="ROS log level (DEBUG, INFO, WARN, ERROR or FATAL)")
+    parser.add_argument("-d", "--save_dir", help="Directory to save images and files")
+    args, _ = parser.parse_known_args()
+    kwargs = vars(args)
+    view = VIEW()
+    view.run(**kwargs)  
+
+if __name__ == '__main__':
+    setup_node()
