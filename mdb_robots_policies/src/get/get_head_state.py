@@ -2,7 +2,7 @@
 
 # Copyright 2018, GII / Universidad de la Coruna (UDC)
 #
-# Main contributor(s): 
+# Main contributor(s):
 # * Luis Calvo, luis.calvo@udc.es
 #
 #  This file is also part of MDB.
@@ -20,34 +20,46 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *
+from builtins import object
 import rospy
 from mdb_robots_policies.srv import GetHeadState
 from baxter_core_msgs.msg import HeadState
 
-class get_head_state():
-	def __init__(self):
-		rospy.init_node('get_head_state_server')
-		
-		self.current_state = None
 
-		self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
-		self.geths_sv = rospy.Service('/get_head_state', GetHeadState, self.handle_geths)
+class get_head_state(object):
+    def __init__(self):
+        rospy.init_node("get_head_state_server")
 
-	def head_state_cb(self, state):
-		self.current_state = state
+        self.current_state = None
 
-	def handle_geths(self, req):
-		if (req.request.data == True):
-			print "Sending current joint states"
-			#while len(self.current_state.position)==1:
-				#pass
-			return self.current_state
-		else:
-			return None
+        self.head_state_sb = rospy.Subscriber("/robot/head/head_state", HeadState, self.head_state_cb)
+        self.geths_sv = rospy.Service("/get_head_state", GetHeadState, self.handle_geths)
+
+    def head_state_cb(self, state):
+        self.current_state = state
+
+    def handle_geths(self, req):
+        if req.request.data == True:
+            print("Sending current joint states")
+            # while len(self.current_state.position)==1:
+            # pass
+            return self.current_state
+        else:
+            return None
+
 
 def get_head_state_server():
-	get_head_state()
-	rospy.spin()
+    get_head_state()
+    rospy.spin()
+
 
 if __name__ == "__main__":
     get_head_state_server()

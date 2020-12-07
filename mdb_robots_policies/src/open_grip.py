@@ -2,7 +2,7 @@
 
 # Copyright 2018, GII / Universidad de la Coruna (UDC)
 #
-# Main contributor(s): 
+# Main contributor(s):
 # * Luis Calvo, luis.calvo@udc.es
 #
 #  This file is also part of MDB.
@@ -20,44 +20,61 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *
+from builtins import object
 import rospy
 from mdb_common.msg import OpenGripReq
 from sensor_msgs.msg import JointState
 from baxter_interface.gripper import Gripper
 
-class open_grip():
-	def __init__(self):
-		rospy.init_node('open_grip_server')		
 
-		self.arm = rospy.get_param("~arm")
-		self.gripper = Gripper(self.arm)
+class open_grip(object):
+    def __init__(self):
+        rospy.init_node("open_grip_server")
 
-		self.angle = None
-		self.arm_check = None
+        self.arm = rospy.get_param("~arm")
+        self.gripper = Gripper(self.arm)
 
-		self.state_sub = rospy.Subscriber("/robot/joint_states", JointState, self.state_cb)
-		self.grip_sub = rospy.Subscriber("/open_grip", OpenGripReq, self.open_grip_cb)
+        self.angle = None
+        self.arm_check = None
 
-	def select_arm_angle(self, arg):
-		options = {
-			'left': 7,
-			'right': 14,
-		}
-		return options[arg]	
+        self.state_sub = rospy.Subscriber("/robot/joint_states", JointState, self.state_cb)
+        self.grip_sub = rospy.Subscriber("/open_grip", OpenGripReq, self.open_grip_cb)
 
-	def state_cb(self, state):
-		if self.angle != None and self.arm == self.arm_check  and self.arm+"_w1" in state.name[:] and state.position[self.select_arm_angle(self.arm)]<self.angle:
-			print "opening grip "+self.arm
-			self.gripper.open()
-			self.angle = None
+    def select_arm_angle(self, arg):
+        options = {
+            "left": 7,
+            "right": 14,
+        }
+        return options[arg]
 
-	def open_grip_cb(self, msg):
-		self.angle = msg.angle
-		self.arm_check = msg.arm.data
+    def state_cb(self, state):
+        if (
+            self.angle != None
+            and self.arm == self.arm_check
+            and self.arm + "_w1" in state.name[:]
+            and state.position[self.select_arm_angle(self.arm)] < self.angle
+        ):
+            print("opening grip " + self.arm)
+            self.gripper.open()
+            self.angle = None
+
+    def open_grip_cb(self, msg):
+        self.angle = msg.angle
+        self.arm_check = msg.arm.data
+
 
 def open_grip_server():
-	open_grip()
-	rospy.spin()
+    open_grip()
+    rospy.spin()
+
 
 if __name__ == "__main__":
     open_grip_server()

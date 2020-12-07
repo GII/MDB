@@ -20,6 +20,18 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import *
+from builtins import object
+from past.utils import old_div
 import rospy
 import tf
 import rospkg
@@ -39,7 +51,7 @@ from mdb_common.srv import CandAct, BaxMC, BaxChange, CandActResponse, BaxCart
 from mdb_robots_policies.srv import BaxThrow, BaxPush, BaxGrabBoth, BaxDropBoth, BaxGrab, BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, BaxGetCompleteSense, CheckActionValidity, ManagePlanScene, JoystickControl
 from gazebo_msgs.srv import GetModelState
 
-class baxter_policies():
+class baxter_policies(object):
 	def __init__(self):
 		rospy.init_node("baxter_policies_server")
 		rospy.on_shutdown(node_shutdown)
@@ -131,8 +143,8 @@ class baxter_policies():
 		# ROS Service Clients
 		try:
 			self.scene_clnt = rospy.ServiceProxy('/mdb3/baxter/modify_planning_scene', ManagePlanScene) ###Used in calibration_policies
-		except rospy.ServiceException, e:
-			print "Service exception", str(e)
+		except rospy.ServiceException as e:
+			print("Service exception", str(e))
 			exit(1)
 
 		# Dynamic reconfigure client instance
@@ -226,7 +238,7 @@ class baxter_policies():
 		return dx, dy
 
 	def cartesian_to_polar(self, co, cc):
-		angle = np.arctan(co/cc)
+		angle = np.arctan(old_div(co,cc))
 		dist = self.obtain_dist(co, cc)
 		return angle, dist
 
@@ -258,7 +270,7 @@ class baxter_policies():
 	def readtcfile(self):
 		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~throw_param_file")
 		config = yaml.load(open(custom_configuration_file))
-		for k in config.keys():
+		for k in list(config.keys()):
 			if k == 'speed':
 				for speed in config[k]:
 					self.speed_l.append(speed)
@@ -386,7 +398,7 @@ class baxter_policies():
 							return True
 					return False
 				else:
-					print "Adjusting"
+					print("Adjusting")
 					self.loop_tries -= 1
 					self.push_loop(srv, x, y, dx, dy)
 		return False
@@ -472,7 +484,7 @@ class baxter_policies():
 
 		far = self.g_highpoly(abs(srv.obj_sens.angle.data))
 		if srv.obj_sens.const_dist.data < far:
-			print "push close"
+			print("push close")
 			odx, ody = self.polar_to_cartesian(d_angle, -srv.radius.data)
 			if self.regular_push (obx+odx, oby+ody, dx, dy, srv, d_angle):
 				self.baxter_arm.restore_arm_pose('both')
@@ -485,7 +497,7 @@ class baxter_policies():
 					self.baxter_arm.gripper_manager(srv.arm.data)
 				return Bool(False)
 		else:
-			print "push far"
+			print("push far")
 			if self.first_push(far, srv, obx, oby):
 				self.baxter_arm.restore_arm_pose('both')
 				if srv.grip.data:
@@ -506,7 +518,7 @@ class baxter_policies():
 	def readgcfile(self):
 		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~grab_param_file")
 		config = yaml.load(open(custom_configuration_file))
-		for k in config.keys():
+		for k in list(config.keys()):
 			if k == 'angles':
 				for angle in config[k]:
 					self.g_angle_l.append(angle)
@@ -556,7 +568,7 @@ class baxter_policies():
 							return True
 					return False
 				else:
-					print "Adjusting"
+					print("Adjusting")
 					self.loop_tries -= 1
 					self.grab_loop(srv, x, y, first)
 		return False
@@ -600,7 +612,7 @@ class baxter_policies():
 
 						xf, yf = self.polar_to_cartesian(self.exp_senses.obj_sense.angle.data, self.exp_senses.obj_sense.dist.data)
 						if self.normal_reach_grab (xf, yf, srv, first):
-							print "far->normal_grab"
+							print("far->normal_grab")
 							result = True
 			else:
 				result = True
@@ -634,7 +646,7 @@ class baxter_policies():
 		current_angles = self.baxter_arm.choose_arm_group(srv.arm.data).get_current_joint_values()
 
 		if sens.const_dist.data < far:
-			print "Normal reach"
+			print("Normal reach")
 			if self.normal_reach_grab(dx, dy, srv, first):
 				if self.exp_rec == "ltm":
 					self.baxter_arm.restore_arm_pose(srv.arm.data)
@@ -652,7 +664,7 @@ class baxter_policies():
 				return Bool(False)
 
 		elif sens.const_dist.data > far:
-			print "Far reach"
+			print("Far reach")
 			if self.far_reach_grab(dx, dy, srv, sens, far-0.05, first):
 				if self.exp_rec == "ltm":
 					self.baxter_arm.restore_arm_pose(srv.arm.data)
@@ -847,23 +859,23 @@ class baxter_policies():
 
 		div = 0.05
 
-		initx = (cles.x+cres.x)/2
-		inity = (cles.y+cres.y)/2
+		initx = old_div((cles.x+cres.x),2)
+		inity = old_div((cles.y+cres.y),2)
 
 		distance = self.obtain_dist(dx-initx, dy-inity)
-		iterations = distance/div
+		iterations = old_div(distance,div)
 
-		incx = (dx-initx)/iterations
-		incy = (dy-inity)/iterations
+		incx = old_div((dx-initx),iterations)
+		incy = old_div((dy-inity),iterations)
 
 		cposx = initx+incx
 		cposy = inity+incy
 
 		keep = True
 
-		print "distance: ", distance
+		print("distance: ", distance)
 		while (iterations > 1.0) and keep:
-			print "iterations: ", iterations
+			print("iterations: ", iterations)
 			if self.move_object(cposx, cposy, z, size):
 				keep=True
 				cposx+=incx
@@ -874,7 +886,7 @@ class baxter_policies():
 				keep=False
 
 		if keep and self.move_object(dx, dy, z, size):
-			print "last_step"
+			print("last_step")
 			self.baxter_arm.update_data()
 			return True
 		else:
@@ -893,13 +905,13 @@ class baxter_policies():
 		#if self.check_dual_grab():
 		dx, dy = self.polar_to_cartesian(srv.destination.angle.data, srv.destination.const_dist.data)
 		if self.adquire_dual_drop_configuration(dx, dy, srv.destination.height.data, srv.size.data):
-			print "adquire_dual_drop_configuration"
+			print("adquire_dual_drop_configuration")
 			if self.dual_drop_first_step(dx, dy, srv.destination.height.data, srv.size.data):
-				print "dual_drop_first_step"
+				print("dual_drop_first_step")
 				if self.both_arms_cartesian_move([0.0, 0.10, 0.0, 0.0, -0.10, 0.0]):
-					print "separate arms"
+					print("separate arms")
 					if self.both_arms_cartesian_move([0.0, 0.0, 0.2, 0.0, 0.0, 0.2]):
-						print "up arms"
+						print("up arms")
 						if self.move_object(dx, 0.0, 0.25, srv.size.data):
 							if not self.check_dual_grab():
 								self.baxter_arm.restore_arm_pose('both')
@@ -1084,13 +1096,13 @@ class baxter_policies():
 		current_angles = self.baxter_arm.choose_arm_group(arm).get_current_joint_values()
 		current_angles[6]-= angle
 		current_angles[6] = self.translate_into_threshold(current_angles[6])
-		print "Aim gripper towards the angle ", -(angle_correction - angle)
+		print("Aim gripper towards the angle ", -(angle_correction - angle))
 		self.baxter_arm.move_joints_directly(current_angles, 'moveit', arm, True, 2.0)
 		self.baxter_arm.update_data()
 
 	def update_gripper_orientation (self, arm='right'):
 		self.exp_senses.rgrip_ori = -self.obtain_wrist_offset(arm)
-		print "Current gripper orientation: ", self.exp_senses.rgrip_ori
+		print("Current gripper orientation: ", self.exp_senses.rgrip_ori)
 
 	def handle_move_xyz(self, srv):
 
@@ -1100,7 +1112,7 @@ class baxter_policies():
 
 			#Move the gripper towards the destination
 			pos = self.baxter_arm.choose_arm_state(srv.arm.data).current_es.pose.position
-			print "pos ini robot", pos.x, pos.y, pos.z
+			print("pos ini robot", pos.x, pos.y, pos.z)
 			self.exp_senses.rgrip_ori = self.angle_fix(self.exp_senses.rgrip_ori)
 
 			result = False
@@ -1224,7 +1236,7 @@ class baxter_policies():
 	def readmcfile(self):
 		custom_configuration_file = self.rospack.get_path('mdb_robots_policies')+"/config/"+rospy.get_param("~motiven_param_file")
 		config = yaml.load(open(custom_configuration_file))
-		for k in config.keys():
+		for k in list(config.keys()):
 			if k == 'right_arm_angle':
 				for angle in config[k]:
 					self.ra_angle_l.append(angle)

@@ -20,6 +20,15 @@
 # * You should have received a copy of the GNU Affero General Public License
 # * along with MDB. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *
+from builtins import object
 import math
 import rospy
 import numpy as np
@@ -30,7 +39,7 @@ from mdb_common.srv import GetSenseMotiv
 from mdb_robots_policies.srv import GetSense, GetRobSense
 
 
-class exp_senses:
+class exp_senses(object):
     def __init__(self, global_policies):
         self.global_policies = global_policies
 
