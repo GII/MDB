@@ -1,9 +1,7 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Copyright 2017 Richard J. Duro, Jose A. Becerra.
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -97,6 +95,7 @@ class LTM(object):
         self.default_class = OrderedDict()
         self.default_ros_node_prefix = OrderedDict()
         self.control_publisher = None
+        self.info_publisher = None
         self.restoring = False
         self.policies_to_test = []
         self.iteration = 0
@@ -362,6 +361,9 @@ class LTM(object):
         message = self.class_from_classname(rospy.get_param(control_channel["control_prefix"] + "_msg"))
         self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
         rospy.Subscriber(topic, message, callback=self.control_callback)
+        topic = rospy.get_param(control_channel["info_prefix"] + "_topic")
+        message = self.class_from_classname(rospy.get_param(control_channel["info_prefix"] + "_msg"))
+        self.info_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
         topic = rospy.get_param(control_channel["reward_prefix"] + "_topic")
         message = self.class_from_classname(rospy.get_param(control_channel["reward_prefix"] + "_msg"))
         rospy.logdebug("Subscribing to %s...", topic)
@@ -970,10 +972,17 @@ class LTM(object):
                         return True
         return False
 
-    def statistics(self):
-        """Update some statistics and write them to files."""
+    def update_status(self):
+        """Update experiment information, and write / publish it."""
         for file_object in self.files:
             file_object.write()
+        self.info_publisher.publish(
+            iteration=self.iteration,
+            current_world=self.current_world,
+            current_policy=self.current_policy,
+            current_reward=self.current_reward,
+            current_goal=self.current_goal,
+        )
 
     def reset_world(self):
         """Reset the world if necessary, according to the experiment parameters."""
@@ -1021,7 +1030,7 @@ class LTM(object):
                         sensing = reset_sensing
                         stm = []
                     self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
-                    self.statistics()
+                    self.update_status()
                     self.iteration += 1
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")

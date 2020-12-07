@@ -1,34 +1,37 @@
 # Topic to publish reward
 /mdb/reward_topic: /mdb/reward
 /mdb/reward_msg: std_msgs.msg.Float64
-# Topic to communicate with the simulator
+# Topic to send commands from one node to another
 /mdb/control_topic: /mdb/baxter/control
 /mdb/control_msg: mdb_common.msg.ControlMsg
-# Topic for publishing Perception creation
+# Topic to publish information about the current state of an experiment
+/mdb/info_topic: /mdb/ltm/info
+/mdb/info_msg: mdb_common.msg.InfoMsg
+# Topic to publish Perception creation
 /mdb/perception_topic: /mdb/ltm/perception
 /mdb/perception_msg: mdb_common.msg.NodeMsg
-# Topic for publishing P-node creation
+# Topic to publish P-node creation
 /mdb/p_node_topic: /mdb/ltm/p_node
 /mdb/p_node_msg: mdb_common.msg.NodeMsg
-# Topic for publishing C-node creation
+# Topic to publish C-node creation
 /mdb/c_node_topic: /mdb/ltm/c_node
 /mdb/c_node_msg: mdb_common.msg.NodeMsg
-# Topic for publishing Goal creation
+# Topic to publish Goal creation
 /mdb/goal_topic: /mdb/motiven/goal
 /mdb/goal_msg: mdb_common.msg.NodeMsg
-# Topic for publishing goal activations
+# Topic to publish goal activations
 /mdb/goal_activation_topic: /mdb/motiven/goal_activation
 /mdb/goal_activation_msg: mdb_common.msg.GoalActivationMsg
-# Topic for publishing goal accomplishment
+# Topic to publish goal accomplishment
 /mdb/goal_ok_topic: /mdb/motiven/goal_ok
 /mdb/goal_ok_msg: mdb_common.msg.GoalOkMsg
-# Topic for publishing Forward Model creation
+# Topic to publish Forward Model creation
 /mdb/forward_model_topic: /mdb/stm/forward_model
 /mdb/forward_model_msg: mdb_common.msg.NodeMsg
-# Topic for publishing Policy creation
+# Topic to publish Policy creation
 /mdb/policy_topic: /mdb/stm/policy
 /mdb/policy_msg: mdb_common.msg.NodeMsg
-# Topic for publishing the executed policy's id
+# Topic to publish the executed policy's id
 /mdb/executed_policy_topic: /mdb/ltm/executed_policy
 /mdb/executed_policy_msg: std_msgs.msg.String
 # Topics for Baxter's sensors
@@ -44,7 +47,7 @@
 /mdb/baxter/sensor/happy_human_msg: std_msgs.msg.Bool
 /mdb/baxter/sensor/monitor_image_topic: /mdb/baxter/sensor/monitor_image
 /mdb/baxter/sensor/monitor_image_msg: sensor_msgs.msg.Image
-# Topic for publishing commands to baxter_throwing policy
+# Topic to publish commands to baxter_throwing policy
 /mdb/superthrow_topic: /baxter_throwing/command
 /mdb/superthrow_msg: std_msgs.msg.Int16
 # Topic for communication with the X-tion camera

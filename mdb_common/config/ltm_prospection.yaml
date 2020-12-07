@@ -8,6 +8,7 @@ Experiment:
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control
+    info_prefix: /mdb/info
     reward_prefix: /mdb/reward
 LTM:
     Files:
