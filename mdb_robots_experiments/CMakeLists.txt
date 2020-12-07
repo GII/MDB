@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   baxter_core_msgs
   mdb_common
-  mdb_robots_detection
+  mdb_robots
   message_generation
 )
 
@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mdb_baxter_experiments
-  CATKIN_DEPENDS rospy std_msgs sensor_msgs geometry_msgs baxter_core_msgs mdb_common mdb_robots_detection message_runtime
+  CATKIN_DEPENDS rospy std_msgs sensor_msgs geometry_msgs baxter_core_msgs mdb_common mdb_robots message_runtime
 #  DEPENDS system_lib
 )
 

@@ -9,6 +9,7 @@
     <arg name="plot" default="False"/>
     <arg name="plot_arg" value="" unless="$(arg plot)"/>
     <arg name="plot_arg" value="--plot" if="$(arg plot)"/>
+    <arg name="save_dir" default="$(find mdb_view)"/>
     <arg name="standalone" default="False"/>
     <arg name="standalone_arg" value="" unless="$(arg standalone)"/>
     <arg name="standalone_arg" value="--standalone" if="$(arg standalone)"/>
@@ -17,10 +18,12 @@
         <node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" if="$(arg simulator)"/>
         <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" if="$(arg motiven)"/>
         <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)"/>
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)"/>/>
     </group>
     <group ns="mdb" if="$(arg debug)">
         <node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" launch-prefix="winpdb" if="$(arg simulator)"/>
         <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" launch-prefix="winpdb" if="$(arg motiven)"/>
         <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)" launch-prefix="winpdb"/>
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)"/>/>
     </group>
 </launch>
