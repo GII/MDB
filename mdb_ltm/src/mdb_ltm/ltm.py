@@ -110,6 +110,7 @@ class LTM(object):
         self.received_reward = 0
         self.current_reward = 0
         self.current_goal = None
+        self.paused = False
         super().__init__()
 
     def __getstate__(self):
@@ -342,6 +343,10 @@ class LTM(object):
         if message.command == "publish_ltm":
             for node in self.nodes:
                 node.publish()
+        elif message.command == "pause":
+            self.paused = True
+        elif message.command == "continue":
+            self.paused = False
 
     def reward_callback(self, reward):
         """Read a reward from the outer world."""
@@ -997,25 +1002,26 @@ class LTM(object):
             sensing = self.read_perceptions()
             stm = []
             while (not rospy.is_shutdown()) and (self.iteration <= self.iterations):
-                rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
-                self.current_policy = self.select_policy(sensing)
-                self.current_policy.execute()
-                old_sensing, sensing = sensing, self.read_perceptions()
-                current_state = (old_sensing, self.current_policy, sensing)
-                self.update_pnodes(current_state)
-                if self.sensorial_changes():
-                    stm.append(current_state)
-                self.current_reward = self.read_reward()
-                self.current_goal = None
-                if self.reset_world():
-                    reset_sensing = self.read_perceptions()
-                    if self.current_reward >= 0.9:
-                        self.update_goals(stm, reset_sensing)
-                        self.current_goal = max(self.goals, key=attrgetter("reward"))
-                    sensing = reset_sensing
-                    stm = []
-                self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
-                self.statistics()
-                self.iteration += 1
+                if not self.paused:
+                    rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
+                    self.current_policy = self.select_policy(sensing)
+                    self.current_policy.execute()
+                    old_sensing, sensing = sensing, self.read_perceptions()
+                    current_state = (old_sensing, self.current_policy, sensing)
+                    self.update_pnodes(current_state)
+                    if self.sensorial_changes():
+                        stm.append(current_state)
+                    self.current_reward = self.read_reward()
+                    self.current_goal = None
+                    if self.reset_world():
+                        reset_sensing = self.read_perceptions()
+                        if self.current_reward >= 0.9:
+                            self.update_goals(stm, reset_sensing)
+                            self.current_goal = max(self.goals, key=attrgetter("reward"))
+                        sensing = reset_sensing
+                        stm = []
+                    self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
+                    self.statistics()
+                    self.iteration += 1
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
