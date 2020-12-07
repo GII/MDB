@@ -40,9 +40,6 @@ from collections import OrderedDict
 import yaml
 import yamlloader
 import numpy
-import networkx
-from matplotlib import pyplot
-from matplotlib import cm
 import rospy
 
 
@@ -113,9 +110,6 @@ class LTM(object):
         self.received_reward = 0
         self.current_reward = 0
         self.current_goal = None
-        self.graph = networkx.Graph()
-        self.graph_node_label = OrderedDict()
-        self.graph_node_position = OrderedDict()
         super().__init__()
 
     def __getstate__(self):
@@ -212,45 +206,6 @@ class LTM(object):
         node_class = getattr(node_module, class_string)
         return node_class
 
-    def graph_set_perception_nodes_coordinates(self):
-        """Set node position in LTM graph for a Perception node."""
-        for idx, same_blood in enumerate(self.nodes["Perception"]):
-            self.graph_node_position[same_blood] = [0, idx + 1]
-
-    def graph_set_p_node_nodes_coordinates(self):
-        """Set node position in LTM graph for a P-node node."""
-        for idx, same_blood in enumerate(self.nodes["PNode"]):
-            posx = idx // 3
-            posy = idx % 3
-            self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy]
-
-    def graph_set_goal_nodes_coordinates(self):
-        """Set node position in LTM graph for a Goal node."""
-        for idx, same_blood in enumerate(self.nodes["Goal"]):
-            self.graph_node_position[same_blood] = [3 * (idx + 1), 4]
-
-    def graph_set_forward_model_nodes_coordinates(self):
-        """Set node position in LTM graph for a Forward Model node."""
-        for idx, same_blood in enumerate(self.nodes["ForwardModel"]):
-            self.graph_node_position[same_blood] = [3 * (idx + 1), 6]
-
-    def graph_set_policy_nodes_coordinates(self):
-        """Set node position in LTM graph for a Policy node."""
-        for idx, same_blood in enumerate(self.nodes["Policy"]):
-            self.graph_node_position[same_blood] = [9, idx + 1]
-
-    def graph_set_c_node_nodes_coordinates(self):
-        """Set node position in LTM graph for a C-node node."""
-        for idx, same_blood in enumerate(self.nodes["CNode"]):
-            posx = idx // 3
-            posy = idx % 3
-            self.graph_node_position[same_blood] = [1 + posx + posy / 3.0, posy + 8]
-
-    def graph_set_node_properties(self, node):
-        """Set node label and position for graphical representation."""
-        self.graph_node_label[node] = node.ident
-        getattr(self, "graph_set_" + self.module_names[node.type] + "_nodes_coordinates")()
-
     def add_node(self, node_type=None, class_name=None, ident=None, neighbors=None, **kwargs):
         """Add a new node."""
         # Set the name
@@ -263,9 +218,6 @@ class LTM(object):
             self.nodes[node.type][ident] = node
         else:
             self.nodes[node.type].append(node)
-        # Add the object to the graph
-        self.graph.add_node(node)
-        self.graph_set_node_properties(node)
         # Connect the object in the graph with the right nodes
         if neighbors is None:
             if node.type == "Perception":
@@ -276,7 +228,6 @@ class LTM(object):
             node.neighbors = neighbors
         for neighbor in node.neighbors:
             neighbor.neighbors.append(node)
-            self.graph.add_edge(neighbor, node)
         rospy.loginfo("Created " + node_type + " " + ident)
         return node
 
@@ -979,27 +930,6 @@ class LTM(object):
         else:
             self.policies_to_test = copy(self.policies)
 
-    def draw_nodes(self, node_type):
-        """Draw nodes of a given type using a specified color map."""
-        graph_node_color = []
-        nodes = [node for node in self.graph.nodes() if node.type == node_type]
-        for node in nodes:
-            graph_node_color.append(node.activation)
-        circles = networkx.draw_networkx_nodes(
-            self.graph,
-            self.graph_node_position,
-            nodelist=nodes,
-            node_size=1200,
-            node_color=graph_node_color,
-            alpha=0.5,
-            cmap=NodeColorMap[node_type].value,
-            vmin=0.0,
-            vmax=1.0,
-            label=node_type,
-        )
-        if circles:
-            circles.set_edgecolor("k")
-
     @staticmethod
     def graph_set_edge_properties(edges):
         """Set edge width and color for graphical representation."""
@@ -1020,53 +950,6 @@ class LTM(object):
                 graph_edge_width.append(0.2)
                 graph_edge_color.append("k")
         return graph_edge_width, graph_edge_color
-
-    def show(self):
-        """Plot the LTM structure."""
-        pyplot.get_current_fig_manager().window.geometry("800x600-0-0")
-        pyplot.clf()
-        pyplot.ioff()
-        pyplot.axis("off")
-        pyplot.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=0.9)
-        for node_type in self.nodes:
-            if node_type != "Goal":
-                self.draw_nodes(node_type)
-        graph_edge_width, graph_edge_color = self.graph_set_edge_properties(self.graph.edges())
-        networkx.draw_networkx_edges(
-            self.graph, self.graph_node_position, width=graph_edge_width, edge_color=graph_edge_color, alpha=0.5
-        )
-        networkx.draw_networkx_labels(self.graph, self.graph_node_position, labels=self.graph_node_label, font_size=8)
-        if not self.current_reward:
-            pyplot.title(
-                "GOAL: None WORLD: "
-                + self.current_world
-                + "\nITERATION: "
-                + str(self.iteration)
-                + " REWARD: "
-                + str(self.current_reward)
-                + "\nPOLICY: "
-                + self.current_policy.ident,
-                fontsize=10,
-            )
-        else:
-            pyplot.title(
-                "GOAL: "
-                + self.current_goal.ident
-                + " WORLD: "
-                + self.current_world
-                + "\nITERATION: "
-                + str(self.iteration)
-                + " REWARD: "
-                + str(self.current_reward)
-                + "\nPOLICY: "
-                + self.current_policy.ident,
-                fontsize=10,
-            )
-        # Legend is disable due to all nodes have the same color due to, when we paint nodes, we change color map.
-        # pyplot.legend(
-        #     loc="bottom right", shadow=True, fancybox=True, fontsize=10, labelspacing=3, bbox_to_anchor=(1.30, 0.5))
-        # You will not get any graph on the screen without this line
-        pyplot.pause(0.0001)
 
     def sensorial_changes(self):
         """Return false if all perceptions have the same value as the previous step. True otherwise."""
@@ -1106,7 +989,7 @@ class LTM(object):
             )
         return changed
 
-    def run(self, seed=None, log_level="INFO", plot=False):
+    def run(self, seed=None, log_level="INFO"):
         """Start the LTM part of the brain."""
         try:
             self.setup(log_level, seed)
@@ -1132,8 +1015,6 @@ class LTM(object):
                     sensing = reset_sensing
                     stm = []
                 self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
-                if plot:
-                    self.show()
                 self.statistics()
                 self.iteration += 1
         except rospy.ROSInterruptException:
