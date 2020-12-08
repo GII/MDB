@@ -43,6 +43,7 @@ LTM:
         -
             data: PNode
             ros_node_prefix: /mdb/p_node
+            ros_data_prefix: /mdb/p_node_update
             callback: add_node_callback
             default_class: mdb_ltm.pnode.PNode
         -
@@ -63,6 +64,7 @@ LTM:
         -
             data: Policy
             ros_node_prefix: /mdb/policy
+            ros_data_prefix: /mdb/executed_policy
             callback: add_node_callback
             default_class: mdb_ltm.policy.Policy
     Nodes:
@@ -108,35 +110,27 @@ LTM:
             -
                 id: grasp_object
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: grasp_with_two_hands
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: change_hands
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: sweep_object
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: put_object_in_box
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: put_object_with_robot
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: throw
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
             -
                 id: ask_nicely
                 class: mdb_ltm.policy.Policy
-                ros_data_prefix: /mdb/executed_policy
 SimulatedBaxter:
     Perceptions:
         -

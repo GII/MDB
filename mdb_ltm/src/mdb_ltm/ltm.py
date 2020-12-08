@@ -4,63 +4,27 @@ MDB.
 https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import (  # noqa pylint: disable=unused-import
-    bytes,
-    dict,
-    int,
-    list,
-    object,
-    range,
-    str,
-    ascii,
-    chr,
-    hex,
-    input,
-    next,
-    oct,
-    open,
-    pow,
-    round,
-    super,
-    filter,
-    map,
-    zip,
-)
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import os.path
 import random
 import sys
 from copy import copy
 from operator import attrgetter
-from enum import Enum
 import threading
 from collections import OrderedDict
+
+# Library imports
 import yaml
 import yamlloader
 import numpy
 import rospy
-
-
-class NodeColor(Enum):
-    """Colors for drawing nodes."""
-
-    Perception = 1.0
-    PNode = 3.0
-    Goal = 6.0
-    ForwardModel = 4.0
-    Policy = 10.0
-    CNode = 5.0
-
-
-class NodeColorMap(Enum):
-    """Color maps for drawing nodes."""
-
-    Perception = cm.get_cmap("Greys")
-    PNode = cm.get_cmap("Purples")
-    Goal = cm.get_cmap("Greens")
-    ForwardModel = cm.get_cmap("Oranges")
-    Policy = cm.get_cmap("Reds")
-    CNode = cm.get_cmap("Blues")
 
 
 class LTM(object):
@@ -94,6 +58,7 @@ class LTM(object):
         #
         self.default_class = OrderedDict()
         self.default_ros_node_prefix = OrderedDict()
+        self.default_ros_data_prefix = OrderedDict()
         self.control_publisher = None
         self.info_publisher = None
         self.restoring = False
@@ -263,7 +228,7 @@ class LTM(object):
 
     def add_node_callback(self, data, node_type):
         """Add a new node without worrying about its class."""
-        if data.command == "new":
+        if data._connection_header["callerid"] != rospy.get_name() and data.command == "new":
             node_class = None
             if data.execute_service != "" or data.get_service != "":
                 node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
@@ -290,6 +255,7 @@ class LTM(object):
                         node_type=node_type,
                         class_name=node_class,
                         ros_node_prefix=self.default_ros_node_prefix[node_type],
+                        ros_data_prefix=self.default_ros_data_prefix[node_type],
                         ident=data.id,
                         execute_service=data.execute_service,
                         get_service=data.get_service,
@@ -311,6 +277,7 @@ class LTM(object):
         for connector in connectors:
             self.default_class[connector["data"]] = connector.get("default_class")
             self.default_ros_node_prefix[connector["data"]] = connector.get("ros_node_prefix")
+            self.default_ros_data_prefix[connector["data"]] = connector.get("ros_data_prefix")
             if self.default_ros_node_prefix[connector["data"]] is not None:
                 topic = rospy.get_param(connector["ros_node_prefix"] + "_topic")
                 message = self.class_from_classname(rospy.get_param(connector["ros_node_prefix"] + "_msg"))
@@ -328,6 +295,8 @@ class LTM(object):
                 ident = element["id"]
                 data = element.get("data")
                 ros_data_prefix = element.get("ros_data_prefix")
+                if not ros_data_prefix:
+                    ros_data_prefix = self.default_ros_data_prefix[node_type]
                 self.add_node(
                     node_type=node_type,
                     class_name=class_name,
@@ -341,7 +310,7 @@ class LTM(object):
         """Read a command published in the control topic and find out if something must be done."""
         if message.command == "publish_ltm":
             for node in self.nodes:
-                node.publish()
+                node.publish(first_time=True)
         elif message.command == "pause":
             self.paused = True
         elif message.command == "continue":
@@ -729,6 +698,7 @@ class LTM(object):
             node_type="PNode",
             class_name=self.default_class["PNode"],
             ros_node_prefix=self.default_ros_node_prefix["PNode"],
+            ros_data_prefix=self.default_ros_data_prefix["PNode"],
             space_class=self.default_class["Space"],
             space=space,
         )
@@ -739,6 +709,7 @@ class LTM(object):
             node_type="CNode",
             class_name="mdb_ltm.cnode.CNode",
             ros_node_prefix=self.default_ros_node_prefix["CNode"],
+            ros_data_prefix=self.default_ros_data_prefix["CNode"],
             neighbors=neighbors,
             weight=1.0,
         )
@@ -905,6 +876,7 @@ class LTM(object):
                                 node_type="Goal",
                                 class_name="mdb_ltm.goal.Goal",
                                 ros_node_prefix=self.default_ros_node_prefix["Goal"],
+                                ros_data_prefix=self.default_ros_data_prefix["Goal"],
                                 space_class=self.default_class["Space"],
                                 space=space,
                             )
@@ -916,6 +888,7 @@ class LTM(object):
                     node_type="Goal",
                     class_name="mdb_ltm.goal.Goal",
                     ros_node_prefix=self.default_ros_node_prefix["Goal"],
+                    ros_data_prefix=self.default_ros_data_prefix["Goal"],
                     space_class=self.default_class["Space"],
                     space=space,
                 )

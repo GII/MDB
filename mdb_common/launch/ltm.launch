@@ -4,6 +4,7 @@
     <arg name="debug" default="False"/>
     <arg name="simulator" default="True"/>
     <arg name="motiven" default="False"/>
+    <arg name="view" default="False"/>
     <arg name="config_file" default="$(find mdb_common)/config/ltm_2020_one_box.yaml" unless="$(arg motiven)"/>
     <arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
     <arg name="save_dir" default="$(find mdb_view)"/>
@@ -14,13 +15,13 @@
     <group ns="mdb" unless="$(arg debug)">
         <node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" if="$(arg simulator)"/>
         <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" if="$(arg motiven)"/>
-        <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)"/>
-        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)"/>/>
+        <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)"/>
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)" if="$(arg view)"/>
     </group>
     <group ns="mdb" if="$(arg debug)">
         <node pkg="mdb_simulator" type="mdb_simulator" name="simulator" args="-c $(arg config_file) -l $(arg log_level)" launch-prefix="winpdb" if="$(arg simulator)"/>
         <node pkg="mdb_motiven" type="mdb_motiven" name="motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" launch-prefix="winpdb" if="$(arg motiven)"/>
-        <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level) $(arg plot_arg)" launch-prefix="winpdb"/>
-        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)"/>/>
+        <node pkg="mdb_ltm" type="mdb_ltm" name="ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="winpdb"/>
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)" launch-prefix="winpdb" if="$(arg view)"/>
     </group>
 </launch>

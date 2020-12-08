@@ -1,34 +1,17 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Copyright 2017 Richard J. Duro, Jose A. Becerra.
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import (  # noqa pylint: disable=unused-import
-    bytes,
-    dict,
-    int,
-    list,
-    object,
-    range,
-    str,
-    ascii,
-    chr,
-    hex,
-    input,
-    next,
-    oct,
-    open,
-    pow,
-    round,
-    super,
-    filter,
-    map,
-    zip,
-)
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import numpy
 from numpy.lib.recfunctions import structured_to_unstructured
 import pandas as pd
@@ -125,6 +108,7 @@ class PointBasedSpace(Space):
 
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
+        added_point = added_point_confidence = delete_point = delete_point_confidence = None
         # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
         if (confidence > 0.0) or (self.get_probability(perception) > 0.0):
             if self.parent_space:
@@ -166,9 +150,14 @@ class PointBasedSpace(Space):
                     self.memberships[self.size] = confidence
                     self.size += 1
                 else:
+                    delete_point = self.members[pos_closest]
+                    delete_point_confidence = self.memberships[pos_closest]
                     self.members[pos_closest] = candidate_point
                     self.memberships[pos_closest] = confidence
                     rospy.logdebug(self.ident + " full!")
+                added_point = candidate_point
+                added_point_confidence = confidence
+        return added_point, added_point_confidence, delete_point, delete_point_confidence
 
     def get_probability(self, perception):
         """Calculate the new activation value."""

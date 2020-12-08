@@ -23,7 +23,6 @@ def start_ltm():
     )
     parser.add_argument("-s", "--seed", help="Yaml file with some nodes to populate the LTM")
     parser.add_argument("-l", "--log_level", help="ROS log level (DEBUG, INFO, WARN, ERROR or FATAL)")
-    parser.add_argument("-p", "--plot", action="store_true", help="Show a LTM diagram in real time.")
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
     backup = kwargs.pop("backup", None)

@@ -313,7 +313,7 @@ class policies_manager(object):
     def policy_ask_nicely(self, policy_code, global_s, arm, srv):
         resp = False
         self.global_exp.pan_to("front", 0.1)
-        if not ((self.gripper_sense_data(global_s, "left") > 0.0 or self.gripper_sense_data(global_s, "right") > 0.0)):
+        if not (self.gripper_sense_data(global_s, "left") > 0.0 or self.gripper_sense_data(global_s, "right") > 0.0):
             srv.request.data = True
             self.choose_policy_srv(policy_code)(srv)
             rospy.sleep(1)

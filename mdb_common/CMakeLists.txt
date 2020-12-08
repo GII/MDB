@@ -48,11 +48,14 @@ add_message_files(
   ControlMsg.msg
   GoalActivationMsg.msg
   GoalOkMsg.msg
+  InfoMsg.msg
   NodeMsg.msg
   ObjDet.msg
   ObjectListMsg.msg
   ObjectMsg.msg
   OpenGripReq.msg
+  PNodeMsg.msg
+  PointMsg.msg
   PickDist.msg
   SensData.msg
 )

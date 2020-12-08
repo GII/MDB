@@ -6,17 +6,32 @@ MDB.
 https://github.com/GII/MDB
 """
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import input
-from builtins import *
-from builtins import object
-from past.utils import old_div
+from builtins import (  # noqa pylint: disable=unused-import
+    bytes,
+    dict,
+    int,
+    list,
+    object,
+    range,
+    str,
+    ascii,
+    chr,
+    hex,
+    input,
+    next,
+    oct,
+    open,
+    pow,
+    round,
+    super,
+    filter,
+    map,
+    zip,
+)
 import rospy
 import vlc
 import rospkg
@@ -32,7 +47,7 @@ from mdb_robots_policies.srv import (
 from std_msgs.msg import Bool, Float64, String
 from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment, BaxChangeRequest
 from mdb_common.msg import SensData, ControlMsg
-from policies_manager import *
+from policies_manager import policies_manager
 
 
 class exp_core(object):
@@ -87,7 +102,7 @@ class exp_core(object):
     def control_cb(self, control_msg):
         self.world = control_msg.world
         self.pan_to("front", 0.1)
-        if control_msg.reward == True:
+        if control_msg.reward:
             self.reward_sound()
         else:
             self.bax_restore_arm_pose_clnt(String("both"))
@@ -107,7 +122,7 @@ class exp_core(object):
 
     def translate_c2p(self, x, y):
         dist = np.sqrt((x ** 2) + (y ** 2))
-        angle = np.arctan(old_div(y, x))
+        angle = np.arctan(y / x)
         return dist, angle
 
     def translate_p2c(self, dist, angle):
@@ -170,7 +185,7 @@ class exp_core(object):
     def handle_ref_world(self, req):
         self.world = req.world.data
         self.pan_to("front", 0.1)
-        if req.reward.data == True:
+        if req.reward.data:
             self.reward_sound()
         else:
             self.bax_restore_arm_pose_clnt(String("both"))

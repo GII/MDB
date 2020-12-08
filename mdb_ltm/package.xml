@@ -51,11 +51,11 @@
     <!-- Use doc_depend for packages you need only for building documentation: -->
     <!--   <doc_depend>doxygen</doc_depend> -->
     <buildtool_depend>catkin</buildtool_depend>
+    <depend>python-numpy</depend>
     <depend>rospy</depend>
     <depend>std_msgs</depend>
     <depend>mdb_common</depend>
     <exec_depend>python-future</exec_depend>
-    <exec_depend>python-numpy</exec_depend>
     <exec_depend>python-yaml</exec_depend>
     <exec_depend>python-yamlloader</exec_depend>
     <exec_depend>python-argparse</exec_depend>

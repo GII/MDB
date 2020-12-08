@@ -12,7 +12,10 @@
 /mdb/perception_msg: mdb_common.msg.NodeMsg
 # Topic to publish P-node creation
 /mdb/p_node_topic: /mdb/ltm/p_node
-/mdb/p_node_msg: mdb_common.msg.NodeMsg
+/mdb/p_node_msg: mdb_common.msg.PNodeMsg
+# Topic to publish P-node updates
+/mdb/p_node_update_topic: /mdb/ltm/p_node_update
+/mdb/p_node_update_msg: mdb_common.msg.PointMsg
 # Topic to publish C-node creation
 /mdb/c_node_topic: /mdb/ltm/c_node
 /mdb/c_node_msg: mdb_common.msg.NodeMsg
