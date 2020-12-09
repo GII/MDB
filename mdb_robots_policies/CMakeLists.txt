@@ -186,8 +186,8 @@ catkin_install_python(PROGRAMS
   nodes/arduino_joystick_module
   nodes/baxter_policies
   nodes/exp_scene
-  nodes/get_end_scene
-  nodes/get_head_scene
+  nodes/get_end_state
+  nodes/get_head_state
   nodes/get_joints_state
   nodes/open_grip
   nodes/robobo_joystick_control
