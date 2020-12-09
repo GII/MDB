@@ -4,10 +4,10 @@
   <arg name="joystick_rate" default="3"/>
   <arg name="joystick_velocity" default="100"/>
 
-  <node name="arduino_joystick_module" pkg="mdb_robots_policies" type="arduino_joystick_module.py" required="true" output="screen" if="$(arg joystick)"/>
-  <node name="robobo_joystick_control" pkg="mdb_robots_policies" type="robobo_joystick_control.py" required="true" output="screen" if="$(arg joystick)"> 
-	<param name="joystick_rate" type="int" value="$(arg joystick_rate)"/>
-	<param name="joystick_velocity" type="int" value="$(arg joystick_velocity)"/>
+  <node name="arduino_joystick_module" pkg="mdb_robots_policies" type="arduino_joystick_module" required="true" output="screen" if="$(arg joystick)"/>
+  <node name="robobo_joystick_control" pkg="mdb_robots_policies" type="robobo_joystick_control" required="true" output="screen" if="$(arg joystick)">
+    <param name="joystick_rate" type="int" value="$(arg joystick_rate)"/>
+    <param name="joystick_velocity" type="int" value="$(arg joystick_velocity)"/>
   </node>
 
 </launch>

@@ -1,20 +1,22 @@
 <?xml version="1.0"?>
 <launch>
-   <arg name="exp_type" default="small"/> <!--regular/big-->
-   <arg name="config_time" default="20"/>
-   <arg name="fixed_height" default="-0.04"/>
-   <arg name="super_throw" default="false"/>
-   <arg name="exp_rec" default="ltm"/> <!--ltm/mot-->
-   <arg name="helper" default="true"/>
+  <arg name="exp_type" default="small"/>
+  <!--regular/big-->
+  <arg name="config_time" default="20"/>
+  <arg name="fixed_height" default="-0.04"/>
+  <arg name="super_throw" default="false"/>
+  <arg name="exp_rec" default="ltm"/>
+  <!--ltm/mot-->
+  <arg name="helper" default="true"/>
 
-  <node name="exp_ltm" pkg="mdb_robots_experiments" type="exp_core.py" required="true" output="screen">
-	<param name="exp_type" type="str" value="$(arg exp_type)" />
-	<param name="config_time" type="int" value="$(arg config_time)" />
-	<param name="fixed_height" type="double" value="$(arg fixed_height)" />
-	<param name="super_throw" type="bool" value="$(arg super_throw)"/>
+  <node name="exp_ltm" pkg="mdb_robots_experiments" type="exp_core" required="true" output="screen">
+    <param name="exp_type" type="str" value="$(arg exp_type)" />
+    <param name="config_time" type="int" value="$(arg config_time)" />
+    <param name="fixed_height" type="double" value="$(arg fixed_height)" />
+    <param name="super_throw" type="bool" value="$(arg super_throw)"/>
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />
-	<param name="helper" type="bool" value="$(arg helper)"/>	
+    <param name="helper" type="bool" value="$(arg helper)"/>
   </node>
 
-  <node name="exp_helper" pkg="mdb_robots_experiments" type="exp_helper.py" required="true" output="screen" if="$(arg helper)"/> 
+  <node name="exp_helper" pkg="mdb_robots_experiments" type="exp_helper" required="true" output="screen" if="$(arg helper)"/>
 </launch>
