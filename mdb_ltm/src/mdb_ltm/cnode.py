@@ -35,7 +35,7 @@ class CNode(Node):
         Calculate the new activation value.
 
         This activation value is the product of the activation value of the connected nodes, excluding the policy.
-        It is assumed that all the neighbours have the same list of perceptions but, probably, it should
+        It is assumed that all the neighbors have the same list of perceptions but, probably, it should
         be checked (although this would have a huge performance penalty).
         """
         pnode = [node for node in self.neighbors if node.type == "PNode"][0]

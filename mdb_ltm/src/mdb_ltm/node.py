@@ -80,6 +80,8 @@ class Node(object):
         else:
             message.command = "update"
         message.id = self.ident
+        message.neighbor_ids = [node.ident for node in self.neighbors]
+        message.neighbor_types = [node.type for node in self.neighbors]
         if isinstance(self.activation, list):
             message.activation = max(self.activation)
         else:

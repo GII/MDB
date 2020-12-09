@@ -1,5 +1,7 @@
 string command
 string id
+string[] neighbor_ids
+string[] neighbor_types
 float64 activation
 string execute_service
 string get_service
