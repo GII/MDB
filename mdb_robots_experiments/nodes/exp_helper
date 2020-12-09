@@ -1,22 +1,22 @@
 #!/usr/bin/env python
-
 """
 MDB.
 
 https://github.com/GII/MDB
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *
-from builtins import object
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import rospy
 from std_msgs.msg import String
+
+# MDB imports
 from mdb_common.srv import ExecPolicy, ExecPolicyRequest
 
 
@@ -28,7 +28,7 @@ class exp_helper(object):
     def executed_policy_cb(self, policy_code):
         req = ExecPolicyRequest()
         req.policy_code.data = policy_code.data
-        resp = self.exec_pol_clnt(req)
+        self.exec_pol_clnt(req)
 
 
 def main():

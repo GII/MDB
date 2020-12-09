@@ -4,15 +4,14 @@ MDB.
 https://github.com/GII/MDB
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *
-from builtins import object
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import rospy
 import cv2
 from sensor_msgs.msg import Image

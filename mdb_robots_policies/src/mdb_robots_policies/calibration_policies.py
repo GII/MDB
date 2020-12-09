@@ -4,25 +4,24 @@ MDB.
 https://github.com/GII/MDB
 """
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import str
-from builtins import input
-from builtins import range
-from builtins import *
-from builtins import object
-from past.utils import old_div
-import rospy
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
+
+# Library imports
+import rospy
 import tf
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
+
+# MDB imports
 from mdb_common.msg import ObjDet
 from mdb_robots_policies.srv import GridCalibration
 

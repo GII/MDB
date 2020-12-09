@@ -1,13 +1,19 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# MDB imports
 from mdb_motiven.goal import Goal
+
 
 class GoalManager(object):
     """
@@ -30,7 +36,6 @@ class GoalManager(object):
     def getGoalsList(self):
         """This method is used to obtain the list with all the goals the system has"""
         return self.goals
-
 
     # def goalAchieved(self, reward):
     #     if reward:

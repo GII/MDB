@@ -1,13 +1,19 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# MDB imports
 from mdb_motiven.episodic_buffer import EpisodicBuffer
+
 
 class TracesBuffer(EpisodicBuffer):
 
@@ -41,7 +47,7 @@ class TracesBuffer(EpisodicBuffer):
         """Return the antitrace values needed to use in the Correlations,
         the sensorization in t+1 obtained using the extrinsic motivation"""
         for i in reversed(list(range(len(self.buffer)))):
-            if self.buffer[i][4] == 'Int':
+            if self.buffer[i][4] == "Int":
                 break
         antiTrace = self.buffer[i:][2]
 

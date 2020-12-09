@@ -1,33 +1,32 @@
 #!/usr/bin/env python
-
 """
 MDB.
 
 https://github.com/GII/MDB
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import str
-from builtins import input
-from builtins import *
-from builtins import object
-import rospy
-import numpy as np
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
 import os
+
+# Library imports
+import rospy
+import numpy as np
 import cv2
-from tempfile import TemporaryFile
 from cv_bridge import CvBridge, CvBridgeError
-from mdb_common.srv import BaxMC, BaxMCRequest
-from mdb_robots_policies.srv import GetRobSense
 from std_msgs.msg import Bool, Int16
 from sensor_msgs.msg import Image
+
+# MDB imports
+from mdb_common.srv import BaxMC, BaxMCRequest
+from mdb_robots_policies.srv import GetRobSense
 
 
 class robobo_data_experiment(object):
@@ -165,7 +164,7 @@ class robobo_data_experiment(object):
         action_found = False
 
         while not action_found and not rospy.is_shutdown():
-            (singular_action, singular_distance) = self.candidate_actions(
+            singular_action, _ = self.candidate_actions(
                 exp_data,
                 reward_action_threshold=self.reward_action_threshold,
                 distance_action_threshold=self.distance_action_threshold,

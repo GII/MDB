@@ -1,53 +1,36 @@
 #!/usr/bin/env python
-
 """
 MDB.
 
 https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import (  # noqa pylint: disable=unused-import
-    bytes,
-    dict,
-    int,
-    list,
-    object,
-    range,
-    str,
-    ascii,
-    chr,
-    hex,
-    input,
-    next,
-    oct,
-    open,
-    pow,
-    round,
-    super,
-    filter,
-    map,
-    zip,
-)
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import rospy
 import vlc
 import rospkg
 import numpy as np
 from baxter_core_msgs.msg import HeadPanCommand, HeadState
-from mdb_robots_policies.srv import BaxRestoreArmPose, BaxChangeFace, BaxCheckReach, ManagePlanScene
-from mdb_robots_policies.srv import (
-    BaxRestoreArmPoseRequest,
-    BaxChangeFaceRequest,
-    BaxCheckReachRequest,
-    ManagePlanSceneRequest,
-)
 from std_msgs.msg import Bool, Float64, String
+
+# MDB imports
+from mdb_robots_policies.srv import (
+    BaxRestoreArmPose,
+    BaxChangeFace,
+    BaxCheckReach,
+    ManagePlanScene,
+    BaxChangeFaceRequest,
+)
 from mdb_common.srv import BaxChange, ExecPolicy, RefreshWorld, NewExperiment, BaxChangeRequest
-from mdb_common.msg import SensData, ControlMsg
-from policies_manager import policies_manager
+from mdb_common.msg import ControlMsg
+from mdb_robots_experiments.policies_manager import policies_manager
 
 
 class exp_core(object):
@@ -118,7 +101,7 @@ class exp_core(object):
             rospy.loginfo("Sense service call failed: {0}".format(e))
 
     def executed_policy_cb(self, policy):
-        resp = self.policies_manager.execute_policy(policy.data)
+        self.policies_manager.execute_policy(policy.data)
 
     def translate_c2p(self, x, y):
         dist = np.sqrt((x ** 2) + (y ** 2))
@@ -166,7 +149,7 @@ class exp_core(object):
         self.adopt_expression("normal")
         self.complete_pan_static()
         if self.exp_rec == "mot":
-            self.adopt_open_left_pose()
+            self.adopt_open_pose()
 
     def handle_new_exp(self, req):
         self.world = req.world.data
@@ -269,7 +252,7 @@ class exp_core(object):
 
 
 def main():
-    ltme = exp_core()
+    exp_core()
     rospy.spin()
 
 

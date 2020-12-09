@@ -1,12 +1,17 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# MDB imports
 from mdb_motiven.correlations import Correlations
 
 
@@ -24,14 +29,16 @@ class CorrelationsManager(object):
         self.threshold = 0.1  # Threshold to know when to give reward to the sub-correlations
 
     def newSUR(self, active_goal):
-        """ This method decides when a new SUR has to be created. Two conditions are considered to do it:
+        """This method decides when a new SUR has to be created. Two conditions are considered to do it:
         1- There are no SURs associated with the active goal.
         2- All the SURs associated with the active goal are established.
 
         :return:
         """
         surs_asoc_active_goal = 0  # Used to count the number of SURs associated with the active goal. Condition 1
-        index_last_sur_asoc = None  # Used to save the index of the last SUR associated wiht the active goal. Condition 2
+        index_last_sur_asoc = (
+            None  # Used to save the index of the last SUR associated wiht the active goal. Condition 2
+        )
         for i in range(len(self.correlations)):
             if self.correlations[i].goal == active_goal:
                 surs_asoc_active_goal += 1
@@ -60,7 +67,7 @@ class CorrelationsManager(object):
         #         rospy.loginfo('New correlation. Number of existing correlations: %s', len(self.correlations))
 
     def getActiveCorrelation(self, p, active_corr, active_goal):
-        """ This method provides the active correlation among all the possible correlations for a given point p
+        """This method provides the active correlation among all the possible correlations for a given point p
 
         :return: active_correlation
         """
@@ -76,7 +83,9 @@ class CorrelationsManager(object):
 
     def getActiveCorrelationPrueba(self, p, active_goal):
         # active_corr = len(self.correlations)-1
-        for i in range(len(self.correlations)):  # Index last sur asociada al goal, que debe ser la que no este consolidada
+        for i in range(
+            len(self.correlations)
+        ):  # Index last sur asociada al goal, que debe ser la que no este consolidada
             if self.correlations[i].goal == active_goal:
                 active_corr = i
         max_certainty = 0
@@ -131,7 +140,7 @@ class CorrelationsManager(object):
             self.correlations[active_corr].i_reward_assigned = 1
             # self.correlations[active_corr].associated_goal = goal_id
         else:
-        ###
+            ###
             for i in range(len(self.correlations[:active_corr])):
                 if self.correlations[i].getCertainty(p, active_goal) > self.threshold:
                     self.correlations[active_corr].i_reward = i

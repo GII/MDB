@@ -1,12 +1,16 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
 
 class Episode(object):
     """
@@ -43,7 +47,7 @@ class Episode(object):
     #     return self.motivation
 
     def getEpisode(self):
-        return [self.sensorialStateT, self.actionT, self.sensorialStateT1, self.rewardT1]  #, self.motivation]
+        return [self.sensorialStateT, self.actionT, self.sensorialStateT1, self.rewardT1]  # , self.motivation]
 
     def setSensorialStateT(self, sensorialState):
         self.sensorialStateT = sensorialState
@@ -60,7 +64,7 @@ class Episode(object):
     # def setMotivation(self, motivation):
     #     self.motivation = motivation
 
-    def setEpisode(self, sensorialStateT, action, sensorialStateT1, reward):#, motivation):
+    def setEpisode(self, sensorialStateT, action, sensorialStateT1, reward):  # , motivation):
         self.sensorialStateT = sensorialStateT
         self.actionT = action
         self.sensorialStateT1 = sensorialStateT1

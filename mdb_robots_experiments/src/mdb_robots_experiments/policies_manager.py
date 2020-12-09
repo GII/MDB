@@ -4,16 +4,18 @@ MDB.
 https://github.com/GII/MDB
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *
-from builtins import object
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import rospy
+from std_msgs.msg import Bool, Float64, Int16
+
+# MDB imports
 from mdb_robots_policies.srv import (
     BaxThrow,
     BaxGrab,
@@ -24,31 +26,22 @@ from mdb_robots_policies.srv import (
     BaxCheckReach,
     BaxGetCompleteSense,
     JoystickControl,
-)
-from mdb_robots_policies.srv import (
     BaxThrowRequest,
     BaxGrabRequest,
     BaxPushRequest,
     BaxGrabBothRequest,
     BaxDropBothRequest,
-    BaxChangeFaceRequest,
-    BaxCheckReachRequest,
     JoystickControlRequest,
 )
-from std_msgs.msg import Bool, Float64, String, Int16
 from mdb_common.srv import BaxChange, BaxChangeRequest
-from mdb_common.msg import SensData
 
 
 class policies_manager(object):
     def __init__(self, global_exp):
         self.global_exp = global_exp
-
         self.fixed_height = rospy.get_param("~fixed_height")
         self.super_throw = rospy.get_param("~super_throw")
-
         self.velocity = 0.85
-
         # Service Proxies
         self.bax_throw_clnt = rospy.ServiceProxy("/baxter/policy/throw", BaxThrow)
         self.bax_grab_clnt = rospy.ServiceProxy("/baxter/policy/grab", BaxGrab)
@@ -59,11 +52,9 @@ class policies_manager(object):
         self.bax_ask_help_clnt = rospy.ServiceProxy("/baxter/policy/ask_for_help", BaxChange)
         self.bax_joy_control_clnt = rospy.ServiceProxy("/baxter/policy/joystick", JoystickControl)
         self.bax_drop_clnt = rospy.ServiceProxy("/baxter/policy/drop", BaxGrab)
-
         self.bax_get_sense_clnt = rospy.ServiceProxy("/baxter/get_sense", GetSense)
         self.bax_get_complete_sense_clnt = rospy.ServiceProxy("/baxter/get_complete_sense", BaxGetCompleteSense)
         self.bax_check_far_reach_clnt = rospy.ServiceProxy("/baxter/check_far_reach", BaxCheckReach)
-
         # Publishers
         self.super_throwing_pub = rospy.Publisher("/baxter_throwing/command", Int16, queue_size=1)
 
@@ -277,7 +268,7 @@ class policies_manager(object):
             srv.size.data = 0.15
             self.global_exp.adopt_expression("focus")
             resp = self.bax_drop_both_clnt(srv).result.data
-        if resp == True:
+        if resp:
             rospy.set_param("/check_reward", True)
             self.global_exp.complete_pan_static()
             rospy.delete_param("/check_reward")
@@ -304,7 +295,7 @@ class policies_manager(object):
             srv.arm.data = arm
             self.global_exp.adopt_expression("focus")
             resp = self.choose_policy_srv(policy_code)(srv).result.data
-            if resp == True:
+            if resp:
                 rospy.set_param("/check_reward", True)
                 self.global_exp.complete_pan_static()
                 rospy.delete_param("/check_reward")
@@ -340,16 +331,16 @@ class policies_manager(object):
         resp = False
         srv.object_position.const_dist = global_s.box_sens.dist
         srv.object_position.angle = global_s.box_sens.angle
-        srv.object_position.height.data = self.fixed_height + self.choose_sweep_height(self.obj_type)
+        srv.object_position.height.data = self.fixed_height + self.choose_sweep_height(self.global_exp.obj_type)
         srv.orientation.data = "current"
         srv.arm.data = arm
         srv.scale.data = self.velocity
-        self.adopt_expression("focus")
+        self.global_exp.adopt_expression("focus")
         if self.gripper_sense_data(global_s, arm) >= 1.0:
             resp = self.choose_policy(policy_code)(srv).result.data
-        if resp == True:
+        if resp:
             rospy.set_param("/check_reward", True)
-            self.complete_pan()
+            self.global_exp.complete_pan()
             rospy.delete_param("/check_reward")
         return resp
 

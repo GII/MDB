@@ -1,37 +1,24 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Copyright 2017 Richard J. Duro, Jose A. Becerra.
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import (  # noqa pylint: disable=unused-import
-    bytes,
-    dict,
-    int,
-    list,
-    object,
-    range,
-    str,
-    ascii,
-    chr,
-    hex,
-    input,
-    next,
-    oct,
-    open,
-    pow,
-    round,
-    super,
-    filter,
-    map,
-    zip,
-)
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import threading
 from collections import OrderedDict
+
+# Library imports
 import rospy
+
+# MDB imports
 from mdb_ltm.node import Node
 
 

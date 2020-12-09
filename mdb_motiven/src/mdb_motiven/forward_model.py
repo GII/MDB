@@ -1,12 +1,17 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
 
 
@@ -36,9 +41,9 @@ class ForwardModel(object):
         :return: sens:Tuple containing the distances between the ball and the robots' actuators and the reward
         """
         (bax_l_pos, bax_l_angle, rob_pos, rob_angle, ball_pos, ball_situation, box1_pos, desp_vel) = state
-        rob_act_new_pos  = self.get_act_new_pos(rob_pos, rob_angle, candidate_action, 'robobo', desp_vel)
+        rob_act_new_pos = self.get_act_new_pos(rob_pos, rob_angle, candidate_action, "robobo", desp_vel)
         # Predicted Baxter left arm position after applying the particular action
-        bax_l_act_new_pos = self.get_act_new_pos(bax_l_pos, bax_l_angle, candidate_action, 'baxter', desp_vel)
+        bax_l_act_new_pos = self.get_act_new_pos(bax_l_pos, bax_l_angle, candidate_action, "baxter", desp_vel)
         # Predicted ball position attending to its former situation
         ball_new_pos = self.get_ball_pos(ball_pos, ball_situation, rob_act_new_pos, bax_l_act_new_pos)
         sens = self.get_sensorization(rob_act_new_pos, bax_l_act_new_pos, ball_new_pos, box1_pos)
@@ -53,9 +58,9 @@ class ForwardModel(object):
         :return: Tuple containing the new position (x, y) of the center of the ball
         """
 
-        if situation[1] == 0: #'baxter_larm':
+        if situation[1] == 0:  #'baxter_larm':
             ball_new_pos = bax_l_pos
-        elif situation[0] == 0: #'robobo':
+        elif situation[0] == 0:  #'robobo':
             ball_new_pos = rob_pos
         else:
             ball_new_pos = ball_pos
@@ -83,7 +88,7 @@ class ForwardModel(object):
         (x2, y2) = p2
         return math.sqrt(pow(x2 - x1, 2) + (pow(y2 - y1, 2)))
 
-    def get_act_new_pos(self, pos, angle, rel_angle, robot, vel=0.05*1000):
+    def get_act_new_pos(self, pos, angle, rel_angle, robot, vel=0.05 * 1000):
         """Returns the new position of the actuator of the robot.
 
         :param x, y: Tuple containing the position (x, y) of the center of the robot
@@ -97,7 +102,7 @@ class ForwardModel(object):
         :return: Tuple containing the new position (x, y) of the center of the robot actuator
         """
         (x, y) = pos
-        if robot == 'baxter':
+        if robot == "baxter":
             if rel_angle.baxter_valid.data == False:
                 x_act = x
                 y_act = y
@@ -106,15 +111,19 @@ class ForwardModel(object):
                 # New center position
                 x_act = x + vel * math.cos(angle * math.pi / 180.0)
                 y_act = y + vel * math.sin(angle * math.pi / 180.0)
-        elif robot == 'robobo':
+        elif robot == "robobo":
             if rel_angle.robobo_valid.data == False:
                 x_act = x + 100 * math.cos(angle * math.pi / 180.0)
                 y_act = y + 100 * math.sin(angle * math.pi / 180.0)
             else:
                 angle += rel_angle.robobo_action.data
                 # New center position
-                x_act = x + vel * math.cos(angle * math.pi / 180.0) + 100 * math.cos(angle * math.pi / 180.0) # Proy_x + pos_grip_x
-                y_act = y + vel * math.sin(angle * math.pi / 180.0) + 100 * math.sin(angle * math.pi / 180.0) # Proy_y + pos_grip_y
+                x_act = (
+                    x + vel * math.cos(angle * math.pi / 180.0) + 100 * math.cos(angle * math.pi / 180.0)
+                )  # Proy_x + pos_grip_x
+                y_act = (
+                    y + vel * math.sin(angle * math.pi / 180.0) + 100 * math.sin(angle * math.pi / 180.0)
+                )  # Proy_y + pos_grip_y
 
         return x_act, y_act
 

@@ -1,10 +1,23 @@
+"""
+MDB.
+
+https://github.com/GII/MDB
+"""
+
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import numpy as np
 from matplotlib import pyplot as plt
 import pickle
 
 
 class EVOLUTION(object):
-
     def calc_r(v):
         r = 0
         for i in range(len(v)):
@@ -23,7 +36,6 @@ class EVOLUTION(object):
             v = v2[:]
 
 
-
 class DRIVE(object):
     def __init__(self, name, coefficient):
         self.name = name
@@ -34,15 +46,15 @@ class DRIVE(object):
         # self.c_human = 0.95
 
     def update_value(self, sensor_value):
-        if self.name == 'energy':
+        if self.name == "energy":
             light = sensor_value  # Sensor light_value
             # self.value = light / 10
             # self.value = 100 - (light / 10)
             # if self.value > 80:
             #     self.value = 100
             # self.value = 100*0.8**(light/10.0)  PAPER ICAE
-            self.value = self.c_drive*(100*0.8**(light/10.0))
-        elif self.name == 'human_feedback':
+            self.value = self.c_drive * (100 * 0.8 ** (light / 10.0))
+        elif self.name == "human_feedback":
             human_presence = sensor_value[0]  # sensores human presence y iterations_without_human
             # it_without_human = sensor_value[1]
             satisfied_human = sensor_value[1]
@@ -50,13 +62,13 @@ class DRIVE(object):
             # self.value = min(100 - human_presence * 100, 2.5 * it_without_human)
             if human_presence:
                 # self.value = 0.95*(100 - satisfied_human*100) PAPER ICAE
-                self.value = self.c_drive*(100 - satisfied_human*100)
+                self.value = self.c_drive * (100 - satisfied_human * 100)
             else:
                 self.value = 0
         # elif self.name == 'human_close':
         #     human_presence = sensor_value  # sensores human presence y iterations_without_human
         #     self.value = self.c_drive*(100 - human_presence*100)
-        elif self.name == 'pleasure':
+        elif self.name == "pleasure":
             # new_piece_in_area = sensor_value[0] # Sensor assembly task step
             # piece1_assembled = sensor_value[1]
             # piece2_assembled = sensor_value[2]
@@ -67,9 +79,9 @@ class DRIVE(object):
             # basket_full = sensor_value[1]
             # self.value = (100 - (new_piece_in_area or basket_full) * 100)  # Montaje o # Fill basket
             # self.value = 0.85*(100 - (new_assembly_piece * 99.9)) PAPER ICAE
-            self.value = self.c_drive*(100 - (new_assembly_piece * 99.9))
-        elif self.name == 'novelty':
-            self.value = 0.9*(100 - sensor_value * 100)
+            self.value = self.c_drive * (100 - (new_assembly_piece * 99.9))
+        elif self.name == "novelty":
+            self.value = 0.9 * (100 - sensor_value * 100)
 
     def goal_achieved(self):
         self.value = 100
@@ -87,7 +99,9 @@ class SIMULATOR(object):
         self.human = False  # if True the human is in the scenario
         self.human_id = 0
         self.iterations_without_human = 0
-        self.iterations_for_human_to_appear = np.random.randint(75, 125)#np.random.randint(100, 150)np.random.randint(25, 75)
+        self.iterations_for_human_to_appear = np.random.randint(
+            75, 125
+        )  # np.random.randint(100, 150)np.random.randint(25, 75)
         self.human_basket_full = False
         self.pieces_in_human_basket = 0
         self.max_pieces_in_human_basket = 4
@@ -100,7 +114,7 @@ class SIMULATOR(object):
         # No usado: serviria para limitarle el numero de piezas que puede montar
         self.n_pieces_to_assembly = True  # Para saber si hay piezas disponibles para montar o no
 
-        #Si es falso, lo que hago es que el robot llama al humano y viene y le deja nuevas piezas para montar. Puedo contar que cada vez que viene el humano con la caja a recoger que siempre le deja piezas pero que puede que se quede sin ellas.
+        # Si es falso, lo que hago es que el robot llama al humano y viene y le deja nuevas piezas para montar. Puedo contar que cada vez que viene el humano con la caja a recoger que siempre le deja piezas pero que puede que se quede sin ellas.
 
         # Verify task
         self.verified_pieces = 0
@@ -108,7 +122,7 @@ class SIMULATOR(object):
         self.finish_verify_task = False
 
         self.reward = [False, False, False, False, False, False, False, False]  # To indicate when a goal is achieved
-                # [Light_switch, Assembly_task, light_human, basket_full,  , verify, novel_state_achieved, effectance]
+        # [Light_switch, Assembly_task, light_human, basket_full,  , verify, novel_state_achieved, effectance]
 
     def turn_on_light(self):
         self.light_value = 1000
@@ -123,17 +137,23 @@ class SIMULATOR(object):
     def update_light_state(self):
         self.iterations_light_on += 1
         # if self.iterations_light_on > 20:
-        self.light_value = max(0, 1000 - 20.0 * (self.iterations_light_on))#max(0, self.light_value - 0.95 * self.iterations_light_on) #
+        self.light_value = max(
+            0, 1000 - 20.0 * (self.iterations_light_on)
+        )  # max(0, self.light_value - 0.95 * self.iterations_light_on) #
         # else:
         #     self.light_value = 1000
 
     def update_human_state(self):
         if not self.human:
-            if self.iterations_for_human_to_appear == self.iterations_without_human: # Asi el humano puede aparecer tambien sin ser llamado
+            if (
+                self.iterations_for_human_to_appear == self.iterations_without_human
+            ):  # Asi el humano puede aparecer tambien sin ser llamado
                 self.human = True
-                self.human_id = np.random.choice([1, 2], p=[0.0, 1.0])#p=[0.5, 0.5])
+                self.human_id = np.random.choice([1, 2], p=[0.0, 1.0])  # p=[0.5, 0.5])
                 self.iterations_without_human = 0
-                self.iterations_for_human_to_appear = np.random.randint(50, 100)#np.random.randint(100, 150)np.random.randint(25, 80)
+                self.iterations_for_human_to_appear = np.random.randint(
+                    50, 100
+                )  # np.random.randint(100, 150)np.random.randint(25, 80)
             else:
                 self.iterations_without_human += 1
         else:
@@ -161,7 +181,9 @@ class SIMULATOR(object):
         # Cada pieza que meto en la cesta es una pieza menos para recoger
         self.pieces_in_human_basket += 1
         self.n_assembled_pieces -= 1
-        if self.pieces_in_human_basket == self.max_pieces_in_human_basket: #or self.n_assembled_pieces == 0:  # No quedan mas piezas que meter en la cesta
+        if (
+            self.pieces_in_human_basket == self.max_pieces_in_human_basket
+        ):  # or self.n_assembled_pieces == 0:  # No quedan mas piezas que meter en la cesta
             self.human_basket_full = True
             self.reward[3] = True
             # self.pieces_in_human_basket = 0  # Para la proxima vez volver a empezar de cero
@@ -175,7 +197,7 @@ class SIMULATOR(object):
             self.total_verified_pieces += 1
             # if self.verified_pieces == self.n_assembled_pieces:
             # if self.verified_pieces == self.n_assembled_pieces-self.total_verified_pieces:
-            if self.n_assembled_pieces-self.total_verified_pieces == 0:
+            if self.n_assembled_pieces - self.total_verified_pieces == 0:
                 self.finish_verify_task = True
                 self.reward[5] = True
             else:
@@ -184,31 +206,41 @@ class SIMULATOR(object):
             self.reward[5] = False
 
     def update_assembly_task(self):
-            if self.assembly_task_step == 5:#6:
-                self.assembly_task_step += 1  # Indico que la tarea no esta en proceso
-                self.n_assembled_pieces += 1  # tengo una pieza nueva montada
-                self.reward[1] = True
-            else:
-                if self.assembly_task_step == 6:#7:
-                    self.assembly_task_step = 1
-                self.assembly_task_step += 1  # Paso al siguiente paso de montaje
-                self.reward[1] = False
-
+        if self.assembly_task_step == 5:  # 6:
+            self.assembly_task_step += 1  # Indico que la tarea no esta en proceso
+            self.n_assembled_pieces += 1  # tengo una pieza nueva montada
+            self.reward[1] = True
+        else:
+            if self.assembly_task_step == 6:  # 7:
+                self.assembly_task_step = 1
+            self.assembly_task_step += 1  # Paso al siguiente paso de montaje
+            self.reward[1] = False
 
     def get_perception(self):
-        return self.light_value, self.human, self.human_id, self.human_basket_full, self.assembly_task_step, self.n_pieces_to_assembly
+        return (
+            self.light_value,
+            self.human,
+            self.human_id,
+            self.human_basket_full,
+            self.assembly_task_step,
+            self.n_pieces_to_assembly,
+        )
 
     def get_reward(self):
         return self.reward
 
     def world_rules(self, executed_policy, active_goal):
         # Presencia humano
-        if active_goal == 'fill_basket' and executed_policy == 'put_object_in' and self.light_value > 20:  # Estamos poniendo piezas en cesta humano
+        if (
+            active_goal == "fill_basket" and executed_policy == "put_object_in" and self.light_value > 20
+        ):  # Estamos poniendo piezas en cesta humano
             self.update_human_basket()
         else:
             self.reward[3] = False
 
-        if active_goal == 'verify_piece' and executed_policy == 'show_object' and self.light_value >20:  # Estamos ensenandole las piezas
+        if (
+            active_goal == "verify_piece" and executed_policy == "show_object" and self.light_value > 20
+        ):  # Estamos ensenandole las piezas
             self.update_verify_task()
         else:
             self.reward[5] = False
@@ -219,15 +251,22 @@ class SIMULATOR(object):
         #     self.reward[2] = True
         # else:
         #     self.reward[2] = False
-        if active_goal == 'call_human' and executed_policy == 'ask_nicely':
+        if active_goal == "call_human" and executed_policy == "ask_nicely":
             self.turn_on_light_by_human()
         else:
             self.reward[2] = False
         self.update_human_state()
 
         # Piezas para montaje/jugar
-        if active_goal == 'assemble_piece' and \
-                (executed_policy == 'grasp_object' or executed_policy == 'put_object_in' or executed_policy == 'sweep_object') and self.light_value >20:
+        if (
+            active_goal == "assemble_piece"
+            and (
+                executed_policy == "grasp_object"
+                or executed_policy == "put_object_in"
+                or executed_policy == "sweep_object"
+            )
+            and self.light_value > 20
+        ):
             self.update_assembly_task()
         else:
             if self.assembly_task_step == 6:
@@ -235,21 +274,22 @@ class SIMULATOR(object):
             self.reward[1] = False
 
         # Tiempo luz encendida
-        if active_goal == 'turn_on_light' and executed_policy == 'press_object':
+        if active_goal == "turn_on_light" and executed_policy == "press_object":
             self.turn_on_light()
         else:
             self.reward[0] = False
         self.update_light_state()
 
         # Novelty
-        if active_goal == 'novel_state_achieved' and executed_policy == 'ask_nicely':
+        if active_goal == "novel_state_achieved" and executed_policy == "ask_nicely":
             self.n_pieces_to_assembly = True
             self.reward[6] = True
         else:
             self.reward[6] = False
 
+
 class DREAM(object):
-    def __init__(self, c_energy, c_task, c_human_feedback):#, c_human_close):
+    def __init__(self, c_energy, c_task, c_human_feedback):  # , c_human_close):
 
         # Import seed
         # f = open('seed.pckl', 'rb')
@@ -258,56 +298,56 @@ class DREAM(object):
         # np.random.set_state(seed)
 
         self.drives = {
-            'Novelty': DRIVE('novelty', 1.0),
-            'Effectance': DRIVE('effectance', 1.0),
-            'Energy': DRIVE('energy', c_energy),
-            'Human Feedback': DRIVE('human_feedback', c_human_feedback),
+            "Novelty": DRIVE("novelty", 1.0),
+            "Effectance": DRIVE("effectance", 1.0),
+            "Energy": DRIVE("energy", c_energy),
+            "Human Feedback": DRIVE("human_feedback", c_human_feedback),
             # 'Human Close': DRIVE('human_close', c_human_close),
-            'Pleasure': DRIVE('pleasure', c_task),  # Task dependant
+            "Pleasure": DRIVE("pleasure", c_task),  # Task dependant
         }
         self.goals = [
-            'turn_on_light',
-            'assemble_piece',  # tiene subgoals asociados: agarrar_obj1, montar_obj1, agarrar_obj2, montar_obj2,
+            "turn_on_light",
+            "assemble_piece",  # tiene subgoals asociados: agarrar_obj1, montar_obj1, agarrar_obj2, montar_obj2,
             #'play_with_pieces',  # Juega con las piezas mediante sweep porque asi hacen ruido y le mola
-            'fill_basket',
-            'verify_piece',
-            'call_human',
-            'novel_state_achieved',
-            'unmodelled_state_achieved',
+            "fill_basket",
+            "verify_piece",
+            "call_human",
+            "novel_state_achieved",
+            "unmodelled_state_achieved",
         ]
         self.policies = [
-            'grasp_object',  # Use a gripper to grasp an object.
-            'ask_nicely',  # Ask experimenter to bring something to within reach.
-            'put_object_in',  # Place an object in a receptacle.
-            'sweep_object',  # Sweep an object to the central line of the table.
-            'show_object',  # Show the object to a human # Grab the object and show it
+            "grasp_object",  # Use a gripper to grasp an object.
+            "ask_nicely",  # Ask experimenter to bring something to within reach.
+            "put_object_in",  # Place an object in a receptacle.
+            "sweep_object",  # Sweep an object to the central line of the table.
+            "show_object",  # Show the object to a human # Grab the object and show it
             # 'look_for_human', # Look for the presence of a human to know his position
-            'press_object',  # Use a gripper to press an object/ a clickable object # Otro nombre: 'press_button'
+            "press_object",  # Use a gripper to press an object/ a clickable object # Otro nombre: 'press_button'
         ]
         self.sensors = {
-            'light': 0,
-            'human': False,  # detects the presence of a human
-            'human_id': 0,  # when there are several humans it indicates which one it is
+            "light": 0,
+            "human": False,  # detects the presence of a human
+            "human_id": 0,  # when there are several humans it indicates which one it is
             # 'assembled_piece_in_box': False,
             # 'part1_assembled': False, # No necesario porque consiste en ponerlo justo delante del robot?
             # 'part2_assembled': False,
-            'object_left_hand': False,
-            'object_right_hand': False,
+            "object_left_hand": False,
+            "object_right_hand": False,
             # Sensores que indiquen distancia y angulo a piezas y area de montaje y recepcion.
             # Debe existir un mecanismo de atencion para solo centrarse en una pieza
             # posicion objetivo, ya sea objeto, humano, zona... para agarrar, soltar, etc
-            'objective_distance': 0.0,
-            'objective_angle': 0.0,
+            "objective_distance": 0.0,
+            "objective_angle": 0.0,
         }
 
         self.iterations = 0
-        self.stop_condition = 500#445  # Iterations to finish
+        self.stop_condition = 500  # 445  # Iterations to finish
         self.simulator = SIMULATOR()
         self.perception = None
         self.active_goal = None
         self.active_policy = None
         self.graph = []
-        self.file_name = 'CognitiveDrives.txt'
+        self.file_name = "CognitiveDrives.txt"
 
     def run(self):
 
@@ -337,7 +377,9 @@ class DREAM(object):
             if iterations_policy < 0:
                 self.active_goal = self.choose_active_goal()
                 self.active_policy, iterations_policy = self.choose_action()
-            if iterations_policy > 0:  # Mientras se esta ejecutando una policy solo se actualizan los valores del simulador
+            if (
+                iterations_policy > 0
+            ):  # Mientras se esta ejecutando una policy solo se actualizan los valores del simulador
                 self.simulator.update_human_state()
                 self.simulator.update_light_state()
                 iterations_policy -= 1
@@ -365,13 +407,17 @@ class DREAM(object):
             elif drive == "Pleasure":
                 self.drives[drive].update_value(perception[4])  # self.assembly_task_step
             elif drive == "Novelty":
-                self.drives[drive].update_value(perception[5])  # Ad hoc: Le digo que no hay piezas disponibles, por lo que se busca un estado nuevo
+                self.drives[drive].update_value(
+                    perception[5]
+                )  # Ad hoc: Le digo que no hay piezas disponibles, por lo que se busca un estado nuevo
 
     def choose_active_goal(self):
         drive_less_satisfied = "Human Feedback"
         for drive in self.drives:
             if self.drives[drive].value > self.drives[drive_less_satisfied].value:
-                if (drive != "Human Feedback") or (drive == "Human Feedback" and self.perception[1]):  # Hay humano en escena
+                if (drive != "Human Feedback") or (
+                    drive == "Human Feedback" and self.perception[1]
+                ):  # Hay humano en escena
                     drive_less_satisfied = drive
 
         # if self.perception[1]:  # Human
@@ -392,72 +438,75 @@ class DREAM(object):
 
         if drive_less_satisfied == "Human Feedback":  # Human in scenario
             if self.perception[2] == 1:  # Human_id = 1
-                active_goal = 'fill_basket'
+                active_goal = "fill_basket"
             elif self.perception[2] == 2:  # Human_id = 2
-                active_goal = 'verify_piece'
+                active_goal = "verify_piece"
         # elif drive_less_satisfied == "Human Close":
         #     active_goal = 'call_human'
         elif drive_less_satisfied == "Energy":
             if self.simulator.switch_close:
-                active_goal = 'turn_on_light'
+                active_goal = "turn_on_light"
             else:
-                active_goal = 'call_human'
+                active_goal = "call_human"
         elif drive_less_satisfied == "Pleasure":
-            active_goal = 'assemble_piece'
+            active_goal = "assemble_piece"
         elif drive_less_satisfied == "Novelty":
-            active_goal = 'novel_state_achieved'
+            active_goal = "novel_state_achieved"
 
         return active_goal
 
     def choose_action(self):
-        if self.active_goal == 'fill_basket':
-            if self.active_policy == 'grasp_object':  # Si lo tenia cogido antes
-                policy = 'put_object_in'
+        if self.active_goal == "fill_basket":
+            if self.active_policy == "grasp_object":  # Si lo tenia cogido antes
+                policy = "put_object_in"
                 iterations_to_execute_policy = 2
             elif self.simulator.n_assembled_pieces > 0:
-                policy = 'grasp_object'
+                policy = "grasp_object"
                 iterations_to_execute_policy = 2
             else:
-                policy = 'ask_nicely'
+                policy = "ask_nicely"
                 iterations_to_execute_policy = 1
-        elif self.active_goal == 'turn_on_light':
-            policy = 'press_object'
+        elif self.active_goal == "turn_on_light":
+            policy = "press_object"
             iterations_to_execute_policy = 1
-        elif self.active_goal == 'call_human':
-            policy = 'ask_nicely'
+        elif self.active_goal == "call_human":
+            policy = "ask_nicely"
             iterations_to_execute_policy = np.random.randint(2, 5)  # Puede que no haya humanos cerca y que tarden mucho
-        elif self.active_goal == 'assemble_piece':
+        elif self.active_goal == "assemble_piece":
             assembly_step = self.perception[4]
-            if assembly_step == 1 or assembly_step == 3 or assembly_step == 6: #or assembly_step == 5 or assembly_step == 7:  # self.assembly_task_step
-                policy = 'grasp_object'
+            if (
+                assembly_step == 1 or assembly_step == 3 or assembly_step == 6
+            ):  # or assembly_step == 5 or assembly_step == 7:  # self.assembly_task_step
+                policy = "grasp_object"
                 iterations_to_execute_policy = np.random.randint(2, 4)
             elif assembly_step == 2 or assembly_step == 4:  # or assembly_step == 6:
-                policy = 'put_object_in'
+                policy = "put_object_in"
                 iterations_to_execute_policy = np.random.randint(2, 4)
-            elif assembly_step == 5:# or assembly_step == 6:
-                policy = 'sweep_object'
+            elif assembly_step == 5:  # or assembly_step == 6:
+                policy = "sweep_object"
                 iterations_to_execute_policy = 2
-        elif self.active_goal == 'novel_state_achieved':
-                if self.active_policy == 'grasp_object':
-                    policy = 'ask_nicely'
-                    iterations_to_execute_policy = np.random.randint(4, 6)  # Lo que tarda el operario en ir a por las piezas y traerlas
-                else:
-                    policy = 'grasp_object'
-                    iterations_to_execute_policy = 2
+        elif self.active_goal == "novel_state_achieved":
+            if self.active_policy == "grasp_object":
+                policy = "ask_nicely"
+                iterations_to_execute_policy = np.random.randint(
+                    4, 6
+                )  # Lo que tarda el operario en ir a por las piezas y traerlas
+            else:
+                policy = "grasp_object"
+                iterations_to_execute_policy = 2
         # elif self.active_goal == 'call_human':
         #     policy = 'press_object'
-        elif self.active_goal == 'verify_piece':
-            if self.active_policy == 'grasp_object':
-                policy = 'show_object'
-                iterations_to_execute_policy = 3#1
+        elif self.active_goal == "verify_piece":
+            if self.active_policy == "grasp_object":
+                policy = "show_object"
+                iterations_to_execute_policy = 3  # 1
             else:
-                policy = 'grasp_object'
+                policy = "grasp_object"
                 iterations_to_execute_policy = 2
         return policy, iterations_to_execute_policy  # 2
 
     def apply_action(self):
         self.simulator.world_rules(self.active_policy, self.active_goal)
-
 
     def save_data(self):
 
@@ -468,22 +517,15 @@ class DREAM(object):
         for i in range(len(self.simulator.get_reward())):
             rewards.append(self.simulator.get_reward()[i])
         self.graph.append(
-            (
-                self.iterations,
-                self.active_goal,
-                self.active_policy,
-                self.perception,
-                rewards,
-                drive_values
-            )
+            (self.iterations, self.active_goal, self.active_policy, self.perception, rewards, drive_values)
         )
 
     def save_graph_matrix_to_txt(self, matrix, file_name):
-        f = open(file_name, 'w')
+        f = open(file_name, "w")
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
-                f.write(str(matrix[i][j]) + ' ')
-            f.write('\n')
+                f.write(str(matrix[i][j]) + " ")
+            f.write("\n")
         f.close()
 
     # def read_graph_matrix_from_txt(self, file_name):
@@ -501,9 +543,11 @@ class DREAM(object):
         pleasure = []
         novelty = []
         effectance = []
-        performance = [] # Drive que mide las piezas que hace el robot. 1 si pieza montada. 0 en otro caso. Es antagonico al de pleasure
+        performance = (
+            []
+        )  # Drive que mide las piezas que hace el robot. 1 si pieza montada. 0 en otro caso. Es antagonico al de pleasure
         for i in range(300):
-        # for i in range(len(self.graph)):
+            # for i in range(len(self.graph)):
             energy.append(self.graph[i][5][1])
             human.append(self.graph[i][5][3])
             pleasure.append(self.graph[i][5][4])
@@ -518,35 +562,37 @@ class DREAM(object):
             else:
                 performance.append(100)
         plt.figure()
-        plt.plot(range(1, len(energy)+1), energy, color='m', label='Energy')
-        plt.plot(range(1, len(human)+1), human, color='orange', label='Human')
-        plt.plot(range(1, len(pleasure)+1), pleasure, color='r', label="Task")
-        plt.plot(range(1, len(performance) + 1), performance, color='g', linestyle='--', label="Performance")
-        plt.plot(range(1, len(novelty) + 1), novelty, linestyle=':', label="Novelty")
-        plt.plot(range(1, len(effectance) + 1), effectance, color='cyan', linestyle=':', label="Effectance")
+        plt.plot(list(range(1, len(energy) + 1)), energy, color="m", label="Energy")
+        plt.plot(list(range(1, len(human) + 1)), human, color="orange", label="Human")
+        plt.plot(list(range(1, len(pleasure) + 1)), pleasure, color="r", label="Task")
+        plt.plot(list(range(1, len(performance) + 1)), performance, color="g", linestyle="--", label="Performance")
+        plt.plot(list(range(1, len(novelty) + 1)), novelty, linestyle=":", label="Novelty")
+        plt.plot(list(range(1, len(effectance) + 1)), effectance, color="cyan", linestyle=":", label="Effectance")
         indices_humano1 = []
         indices_humano2 = []
         for i in range(300):
-        # for i in range(len(self.graph)):
-            if (self.graph[i][3][1] > self.graph[i - 1][3][1]) or (self.graph[i][3][1] < self.graph[i - 1][3][1]): #MArco cuando llega el humano y cuando se va
+            # for i in range(len(self.graph)):
+            if (self.graph[i][3][1] > self.graph[i - 1][3][1]) or (
+                self.graph[i][3][1] < self.graph[i - 1][3][1]
+            ):  # MArco cuando llega el humano y cuando se va
                 # Pintar las lineas de diferente color en funcion del humano que sea
                 if self.graph[i][3][2] == 1:
-                    plt.axvline(x=i, linewidth=1.5, color='grey', linestyle='--')
+                    plt.axvline(x=i, linewidth=1.5, color="grey", linestyle="--")
                     indices_humano1.append(i)
                 else:
-                    plt.axvline(x=i, linewidth=1.5, color='purple', linestyle='--')
+                    plt.axvline(x=i, linewidth=1.5, color="purple", linestyle="--")
                     # plt.axvline(x=i, linewidth=1.5, color='grey', linestyle='--')
                     indices_humano2.append(i)
         for i in range(0, len(indices_humano1), 2):
-            plt.fill_betweenx([0, 100], indices_humano1[i], indices_humano1[i+1], alpha=0.2, color='grey')
+            plt.fill_betweenx([0, 100], indices_humano1[i], indices_humano1[i + 1], alpha=0.2, color="grey")
         for i in range(0, len(indices_humano2), 2):
-            plt.fill_betweenx([0, 100], indices_humano2[i], indices_humano2[i+1], alpha=0.2, color='yellow')
+            plt.fill_betweenx([0, 100], indices_humano2[i], indices_humano2[i + 1], alpha=0.2, color="yellow")
             # plt.fill_betweenx([0, 100], indices_humano2[i], indices_humano2[i+1], alpha=0.2, color='grey')
         # Marco ejecucion de polcies aleatoriasw
         # plt.fill_betweenx([0, 100], 381, 388, alpha=0.4, color='magenta')
         # plt.axvline(x=250, linewidth=2.0, color='black', linestyle='-')  # Momento en el que cambio el pulsador de lugar
-        plt.axes().set_xlabel('time', size=11.0)
-        plt.axes().set_ylabel('Drive value (norm.)', size=11.0)
+        plt.axes().set_xlabel("time", size=11.0)
+        plt.axes().set_ylabel("Drive value (norm.)", size=11.0)
         plt.yticks([0, 20, 40, 60, 80, 100], [0, 0.2, 0.4, 0.6, 0.8, 1.0], size=11.0)
         plt.xticks(size=11.0)
         # plt.legend(loc='upper left')
@@ -554,13 +600,13 @@ class DREAM(object):
 
         # Genero la leyenda de la figura anterior
         plt.figure()
-        plt.plot(1, energy[0], color='m', label='Energy')
-        plt.plot(1, human[0], color='orange', label='Human')
-        plt.plot(1, pleasure[0], color='r', label="Task")
-        plt.plot(1, performance[0], linestyle='--', color='g', label="Performance")
-        plt.plot(1, novelty[0], linestyle=':', label="Novelty")
-        plt.plot(1, effectance[0], linestyle=':', color='cyan', label="Effectance")
-        plt.legend(loc='upper left')
+        plt.plot(1, energy[0], color="m", label="Energy")
+        plt.plot(1, human[0], color="orange", label="Human")
+        plt.plot(1, pleasure[0], color="r", label="Task")
+        plt.plot(1, performance[0], linestyle="--", color="g", label="Performance")
+        plt.plot(1, novelty[0], linestyle=":", label="Novelty")
+        plt.plot(1, effectance[0], linestyle=":", color="cyan", label="Effectance")
+        plt.legend(loc="upper left")
 
         # # Graph 2: Environment
         # plt.figure()
@@ -730,10 +776,11 @@ class DREAM(object):
         # plt.legend()
         # # plt.grid()
 
+
 def main():
     # Import seed
     # Graficas coeficientes hechas con seed4
-    f = open('seed4.pckl', 'rb')
+    f = open("seed4.pckl", "rb")
     seed = pickle.load(f)
     f.close()
     np.random.set_state(seed)
@@ -759,7 +806,7 @@ def main():
     rewardsp = []
     # v = [0.55, 0.5, 0.95]#, 0.0]
     v = [0.5, 0.5, 0.5]
-    instance = DREAM(c_task=v[0], c_human_feedback=v[1], c_energy=v[2])#, c_human_close=v[3])
+    instance = DREAM(c_task=v[0], c_human_feedback=v[1], c_energy=v[2])  # , c_human_close=v[3])
     instance.run()
     r = instance.simulator.n_assembled_pieces
     # r = instance.simulator.total_verified_pieces
@@ -775,7 +822,7 @@ def main():
         v2[0] = np.random.uniform(low=0.0, high=1.01)
         v2[1] = np.random.uniform(low=0.0, high=1.01)
         v2[2] = np.random.uniform(low=0.0, high=1.01)
-        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])#, c_human_close=v[3])
+        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])  # , c_human_close=v[3])
         instance2.run()
         r2 = instance2.simulator.n_assembled_pieces
         # r2 = instance2.simulator.total_verified_pieces
@@ -801,7 +848,7 @@ def main():
         v2[0] = np.random.uniform(low=0.0, high=1.01)
         v2[1] = np.random.uniform(low=0.0, high=1.01)
         v2[2] = np.random.uniform(low=0.0, high=1.01)
-        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])#, c_human_close=v[3])
+        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])  # , c_human_close=v[3])
         instance2.run()
         # r2 = instance2.simulator.n_assembled_pieces
         r2 = instance2.simulator.total_verified_pieces
@@ -819,40 +866,37 @@ def main():
         # coef_4p.append(v2[3])
         rewardsp.append(r2)
 
-
-
     # Plot
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(range(1, len(coef_1)+1), coef_1, 'yo', markersize=4.0, label='c_task')  # Puntos
-    ax.plot(range(1, len(coef_1) + 1), coef_1, 'y', markersize=0.5)  # Linea para unirlos
-    ax.plot(range(1, len(coef_2)+1), coef_2, 'mo', markersize=4.0, label='c_human_feedback')
-    ax.plot(range(1, len(coef_2) + 1), coef_2, 'm', markersize=0.5)
-    ax.plot(range(1, len(coef_3)+1), coef_3, 'co', markersize=4.0, label='c_energy')
-    ax.plot(range(1, len(coef_3) + 1), coef_3, 'c', markersize=0.5)
+    ax.plot(list(range(1, len(coef_1) + 1)), coef_1, "yo", markersize=4.0, label="c_task")  # Puntos
+    ax.plot(list(range(1, len(coef_1) + 1)), coef_1, "y", markersize=0.5)  # Linea para unirlos
+    ax.plot(list(range(1, len(coef_2) + 1)), coef_2, "mo", markersize=4.0, label="c_human_feedback")
+    ax.plot(list(range(1, len(coef_2) + 1)), coef_2, "m", markersize=0.5)
+    ax.plot(list(range(1, len(coef_3) + 1)), coef_3, "co", markersize=4.0, label="c_energy")
+    ax.plot(list(range(1, len(coef_3) + 1)), coef_3, "c", markersize=0.5)
     # ax.plot(range(1, len(coef_4) + 1), coef_4, 'bp', markersize=6.0, label='c_human_close')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
     # ax.legend()
     ax.grid()
     # ax.set_title("Valores finales")
     ax2 = ax.twinx()
-    ax2.plot(range(1, len(rewards) + 1), rewards, 'k', linewidth=2.5, label='valid pieces')
-    ax2.set_ylabel('Number of valid pieces', size=11.0)
+    ax2.plot(list(range(1, len(rewards) + 1)), rewards, "k", linewidth=2.5, label="valid pieces")
+    ax2.set_ylabel("Number of valid pieces", size=11.0)
     # ax2.legend()
-    plt.axvline(x=20, linewidth=2.0, color='grey', linestyle='--')  # Momento en el que cambio el objetivo
+    plt.axvline(x=20, linewidth=2.0, color="grey", linestyle="--")  # Momento en el que cambio el objetivo
 
     # Genero leyenda figura anterior
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(1, coef_1[0], 'yo', markersize=4.0, label='$c_{task}$')  # Puntos
-    ax.plot(1, coef_2[0], 'mo', markersize=4.0, label='$c_{human}$')
-    ax.plot(1, coef_3[0], 'co', markersize=4.0, label='$c_{energy}$')
-    ax.plot(1, rewards[0], 'r', linewidth=2.0, label='Valid pieces')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
-    ax.legend(prop={'size': 11})
-
+    ax.plot(1, coef_1[0], "yo", markersize=4.0, label="$c_{task}$")  # Puntos
+    ax.plot(1, coef_2[0], "mo", markersize=4.0, label="$c_{human}$")
+    ax.plot(1, coef_3[0], "co", markersize=4.0, label="$c_{energy}$")
+    ax.plot(1, rewards[0], "r", linewidth=2.0, label="Valid pieces")
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
+    ax.legend(prop={"size": 11})
 
     # Coeficientes estaticos
     coef_1b = []
@@ -867,7 +911,7 @@ def main():
     rewardspb = []
     # v = [0.55, 0.5, 0.95]#, 0.0]
     v = [0.38, 0.55, 0.8]
-    instance = DREAM(c_task=v[0], c_human_feedback=v[1], c_energy=v[2])#, c_human_close=v[3])
+    instance = DREAM(c_task=v[0], c_human_feedback=v[1], c_energy=v[2])  # , c_human_close=v[3])
     instance.run()
     r = instance.simulator.n_assembled_pieces
     # r = instance.simulator.total_verified_pieces
@@ -878,7 +922,7 @@ def main():
         # v2[0] = 0.5#np.random.uniform(low=0.0, high=1.01)
         # v2[1] = 0.5#np.random.uniform(low=0.0, high=1.01)
         # v2[2] = 0.5#np.random.uniform(low=0.0, high=1.01)
-        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])#, c_human_close=v[3])
+        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])  # , c_human_close=v[3])
         instance2.run()
         r2 = instance2.simulator.n_assembled_pieces
         # r2 = instance2.simulator.total_verified_pieces
@@ -904,7 +948,7 @@ def main():
         # v2[0] = 0.5#np.random.uniform(low=0.0, high=1.01)
         # v2[1] = 0.5#np.random.uniform(low=0.0, high=1.01)
         # v2[2] = 0.5#np.random.uniform(low=0.0, high=1.01)
-        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])#, c_human_close=v[3])
+        instance2 = DREAM(c_task=v2[0], c_human_feedback=v2[1], c_energy=v2[2])  # , c_human_close=v[3])
         instance2.run()
         # r2 = instance2.simulator.n_assembled_pieces
         r2 = instance2.simulator.total_verified_pieces
@@ -925,23 +969,23 @@ def main():
     # Plot
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(range(1, len(coef_1b)+1), coef_1b, 'yo', markersize=4.0, label='c_task')  # Puntos
-    ax.plot(range(1, len(coef_1b) + 1), coef_1b, 'y', markersize=0.5)  # Linea para unirlos
-    ax.plot(range(1, len(coef_2b)+1), coef_2b, 'mo', markersize=4.0, label='c_human_feedback')
-    ax.plot(range(1, len(coef_2b) + 1), coef_2b, 'm', markersize=0.5)
-    ax.plot(range(1, len(coef_3b)+1), coef_3b, 'co', markersize=4.0, label='c_energy')
-    ax.plot(range(1, len(coef_3b) + 1), coef_3b, 'c', markersize=0.5)
+    ax.plot(list(range(1, len(coef_1b) + 1)), coef_1b, "yo", markersize=4.0, label="c_task")  # Puntos
+    ax.plot(list(range(1, len(coef_1b) + 1)), coef_1b, "y", markersize=0.5)  # Linea para unirlos
+    ax.plot(list(range(1, len(coef_2b) + 1)), coef_2b, "mo", markersize=4.0, label="c_human_feedback")
+    ax.plot(list(range(1, len(coef_2b) + 1)), coef_2b, "m", markersize=0.5)
+    ax.plot(list(range(1, len(coef_3b) + 1)), coef_3b, "co", markersize=4.0, label="c_energy")
+    ax.plot(list(range(1, len(coef_3b) + 1)), coef_3b, "c", markersize=0.5)
     # ax.plot(range(1, len(coef_4) + 1), coef_4, 'bp', markersize=6.0, label='c_human_close')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
     # ax.legend()
     ax.grid()
     # ax.set_title("Valores finales")
     ax2 = ax.twinx()
-    ax2.plot(range(1, len(rewardsb) + 1), rewardsb, 'k', linewidth=2.5, label='valid pieces')
-    ax2.set_ylabel('Number of valid pieces', size=11.0)
+    ax2.plot(list(range(1, len(rewardsb) + 1)), rewardsb, "k", linewidth=2.5, label="valid pieces")
+    ax2.set_ylabel("Number of valid pieces", size=11.0)
     # ax2.legend()
-    plt.axvline(x=20, linewidth=2.0, color='grey', linestyle='--')  # Momento en el que cambio el objetivo
+    plt.axvline(x=20, linewidth=2.0, color="grey", linestyle="--")  # Momento en el que cambio el objetivo
 
     # Coeficientes estaticos 2
     coef_1c = []
@@ -1018,85 +1062,97 @@ def main():
 
     rewardsc_mean = []
     rewardspc_mean = []
-    for i in range(len(coef_1c)/2+1):
-        rewardsc_mean.append(np.array(rewardsc[:len(rewardsc)/2+1]).mean())
-        rewardspc_mean.append(np.array(rewardspc[:len(rewardspc)/2+1]).mean())
-    for i in range(len(coef_1c)/2+1, len(coef_1c)):
-        rewardsc_mean.append(np.array(rewardsc[len(rewardsc)/2+1:]).mean())
-        rewardspc_mean.append(np.array(rewardspc[len(rewardspc)/2+1:]).mean())
+    for i in range(len(coef_1c) // 2 + 1):
+        rewardsc_mean.append(np.array(rewardsc[: len(rewardsc) // 2 + 1]).mean())
+        rewardspc_mean.append(np.array(rewardspc[: len(rewardspc) // 2 + 1]).mean())
+    for i in range(len(coef_1c) // 2 + 1, len(coef_1c)):
+        rewardsc_mean.append(np.array(rewardsc[len(rewardsc) // 2 + 1 :]).mean())
+        rewardspc_mean.append(np.array(rewardspc[len(rewardspc) // 2 + 1 :]).mean())
 
     # Plot
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(range(1, len(coef_1c) + 1), coef_1c, 'yo', markersize=4.0, label='c_task')  # Puntos
-    ax.plot(range(1, len(coef_1c) + 1), coef_1c, 'y', markersize=0.5)  # Linea para unirlos
-    ax.plot(range(1, len(coef_2c) + 1), coef_2c, 'mo', markersize=4.0, label='c_human_feedback')
-    ax.plot(range(1, len(coef_2c) + 1), coef_2c, 'm', markersize=0.5)
-    ax.plot(range(1, len(coef_3c) + 1), coef_3c, 'co', markersize=4.0, label='c_energy')
-    ax.plot(range(1, len(coef_3c) + 1), coef_3c, 'c', markersize=0.5)
+    ax.plot(list(range(1, len(coef_1c) + 1)), coef_1c, "yo", markersize=4.0, label="c_task")  # Puntos
+    ax.plot(list(range(1, len(coef_1c) + 1)), coef_1c, "y", markersize=0.5)  # Linea para unirlos
+    ax.plot(list(range(1, len(coef_2c) + 1)), coef_2c, "mo", markersize=4.0, label="c_human_feedback")
+    ax.plot(list(range(1, len(coef_2c) + 1)), coef_2c, "m", markersize=0.5)
+    ax.plot(list(range(1, len(coef_3c) + 1)), coef_3c, "co", markersize=4.0, label="c_energy")
+    ax.plot(list(range(1, len(coef_3c) + 1)), coef_3c, "c", markersize=0.5)
     # ax.plot(range(1, len(coef_4) + 1), coef_4, 'bp', markersize=6.0, label='c_human_close')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
     # ax.legend()
     ax.grid()
     # ax.set_title("Valores finales")
     ax2 = ax.twinx()
-    ax2.plot(range(1, len(rewardsc) + 1), rewardsc, 'k', linewidth=2.5, label='valid pieces')
-    ax2.plot(range(1, len(rewardspc) + 1), rewardspc, 'red', linewidth=2.5, label='valid pieces')
-    ax2.plot(range(1, len(rewardsc_mean) + 1), rewardsc_mean, 'k',linestyle=':', linewidth=2.5, label='valid pieces')
-    ax2.plot(range(1, len(rewardspc_mean) + 1), rewardspc_mean, 'red',linestyle=':', linewidth=2.5, label='valid pieces')
-    ax2.set_ylabel('Number of valid pieces', size=11.0)
+    ax2.plot(list(range(1, len(rewardsc) + 1)), rewardsc, "k", linewidth=2.5, label="valid pieces")
+    ax2.plot(list(range(1, len(rewardspc) + 1)), rewardspc, "red", linewidth=2.5, label="valid pieces")
+    ax2.plot(
+        list(range(1, len(rewardsc_mean) + 1)), rewardsc_mean, "k", linestyle=":", linewidth=2.5, label="valid pieces"
+    )
+    ax2.plot(
+        list(range(1, len(rewardspc_mean) + 1)),
+        rewardspc_mean,
+        "red",
+        linestyle=":",
+        linewidth=2.5,
+        label="valid pieces",
+    )
+    ax2.set_ylabel("Number of valid pieces", size=11.0)
     # ax2.legend()
-    plt.axvline(x=20, linewidth=2.0, color='grey', linestyle='--')  # Momento en el que cambio el objetivo
-
+    plt.axvline(x=20, linewidth=2.0, color="grey", linestyle="--")  # Momento en el que cambio el objetivo
 
     ## FINAL
     # Plot
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(range(0, len(coef_1)), coef_1, 'yo', markersize=4.0, label='c_task')  # Puntos
-    ax.plot(range(0, len(coef_1)), coef_1, 'y', linewidth=1.0)  # Linea para unirlos
-    ax.plot(range(0, len(coef_2)), coef_2, 'mo', markersize=4.0, label='c_human_feedback')
-    ax.plot(range(0, len(coef_2)), coef_2, 'm', linewidth=1.0)
-    ax.plot(range(0, len(coef_3)), coef_3, 'co', markersize=4.0, label='c_energy')
-    ax.plot(range(0, len(coef_3)), coef_3, 'c', linewidth=1.0)
+    ax.plot(list(range(0, len(coef_1))), coef_1, "yo", markersize=4.0, label="c_task")  # Puntos
+    ax.plot(list(range(0, len(coef_1))), coef_1, "y", linewidth=1.0)  # Linea para unirlos
+    ax.plot(list(range(0, len(coef_2))), coef_2, "mo", markersize=4.0, label="c_human_feedback")
+    ax.plot(list(range(0, len(coef_2))), coef_2, "m", linewidth=1.0)
+    ax.plot(list(range(0, len(coef_3))), coef_3, "co", markersize=4.0, label="c_energy")
+    ax.plot(list(range(0, len(coef_3))), coef_3, "c", linewidth=1.0)
     # ax.plot(range(1, len(coef_4) + 1), coef_4, 'bp', markersize=6.0, label='c_human_close')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
     # ax.legend()
     ax.grid(alpha=0.2)
     # ax.set_title("Valores finales")
     ax2 = ax.twinx()
-    ax2.plot(range(0, len(rewards)), rewards, 'k', linewidth=2.5, label='valid pieces')
-    ax2.plot(range(0, len(rewardspc_mean)), rewardspc_mean, 'yellowgreen', linewidth=2.5, label='valid pieces')
-    ax2.set_ylabel('Number of valid pieces', size=11.0)
+    ax2.plot(list(range(0, len(rewards))), rewards, "k", linewidth=2.5, label="valid pieces")
+    ax2.plot(list(range(0, len(rewardspc_mean))), rewardspc_mean, "yellowgreen", linewidth=2.5, label="valid pieces")
+    ax2.set_ylabel("Number of valid pieces", size=11.0)
     # ax2.legend()
     # plt.axvline(x=20, linewidth=2.0, color='grey', linestyle='--')  # Momento en el que cambio el objetivo
-    plt.axvline(x=20, ymin=0.0 , ymax=0.02, linewidth=2.0, color='k')
-    plt.axvline(x=20, ymin=0.98, ymax=1.1, linewidth=2.0, color='k')
+    plt.axvline(x=20, ymin=0.0, ymax=0.02, linewidth=2.0, color="k")
+    plt.axvline(x=20, ymin=0.98, ymax=1.1, linewidth=2.0, color="k")
 
-    an2 = ax.annotate("Task change", xy=(0.5, 1.), xycoords=ax,
-                      xytext=(0.5, 1.08), textcoords=(ax, "axes fraction"),
-                      va="bottom", ha="center",
-                      bbox=dict(boxstyle="round", fc="w"),
-                      arrowprops=dict(arrowstyle="->"))
+    an2 = ax.annotate(
+        "Task change",
+        xy=(0.5, 1.0),
+        xycoords=ax,
+        xytext=(0.5, 1.08),
+        textcoords=(ax, "axes fraction"),
+        va="bottom",
+        ha="center",
+        bbox=dict(boxstyle="round", fc="w"),
+        arrowprops=dict(arrowstyle="->"),
+    )
 
-
-    plt.savefig('coefs_40executions_dpi_new.png', dpi=200)
+    plt.savefig("coefs_40executions_dpi_new.png", dpi=200)
 
     # Genero leyenda figura anterior
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(1, coef_1[0], 'yo', markersize=4.0, label='$c_{task}$')  # Puntos
-    ax.plot(1, coef_2[0], 'mo', markersize=4.0, label='$c_{human}$')
-    ax.plot(1, coef_3[0], 'co', markersize=4.0, label='$c_{energy}$')
-    ax.plot(1, rewards[0], 'k', linewidth=2.0, label='Valid pieces')
-    ax.plot(1, rewards[0], 'yellowgreen', linewidth=2.0, label='Valid pieces baseline')
-    ax.set_xlabel('Execution', size=11.0)
-    ax.set_ylabel('Coefficient value', size=11.0)
-    ax.legend(prop={'size': 11})
-    plt.savefig('legend_40execution_dpi_new.png', dpi=200)
-
+    ax.plot(1, coef_1[0], "yo", markersize=4.0, label="$c_{task}$")  # Puntos
+    ax.plot(1, coef_2[0], "mo", markersize=4.0, label="$c_{human}$")
+    ax.plot(1, coef_3[0], "co", markersize=4.0, label="$c_{energy}$")
+    ax.plot(1, rewards[0], "k", linewidth=2.0, label="Valid pieces")
+    ax.plot(1, rewards[0], "yellowgreen", linewidth=2.0, label="Valid pieces baseline")
+    ax.set_xlabel("Execution", size=11.0)
+    ax.set_ylabel("Coefficient value", size=11.0)
+    ax.legend(prop={"size": 11})
+    plt.savefig("legend_40execution_dpi_new.png", dpi=200)
 
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
@@ -1113,7 +1169,6 @@ def main():
     # ax2.plot(range(1, len(rewardsp) + 1), rewardsp, 'r', markersize=6.0, label='valid pieces')
     # ax2.set_ylabel('number of verified pieces')
     # plt.axvline(x=10, linewidth=2.0, color='grey', linestyle='--')  # Momento en el que cambio el objetivo
-
 
     # 30 ejecuciones
     # datos = open('datos.txt', 'w')
@@ -1166,8 +1221,8 @@ def main():
     #     datos.write(("%f %f %f %f %f %f %f %f \n" % (coef_1[19], coef_2[19], coef_3[19], rewards[19], coef_1[39], coef_2[39], coef_3[39], rewards[39])))
 
     # Plot datos 30 ejecuciones
-    archivo = open('datos.txt', 'r')
-    datos=archivo.readlines()
+    archivo = open("datos.txt", "r")
+    datos = archivo.readlines()
     coef1_m = []
     coef2_m = []
     coef3_m = []
@@ -1177,7 +1232,7 @@ def main():
     coef3_f = []
     rewards_f = []
     for i in range(len(datos)):
-        aux = datos[i].strip().split(' ')
+        aux = datos[i].strip().split(" ")
         coef1_m.append(float(aux[0]))
         coef2_m.append(float(aux[1]))
         coef3_m.append(float(aux[2]))
@@ -1204,7 +1259,6 @@ def main():
         coef2_f_mean.append(np.array(coef2_f).mean())
         coef3_f_mean.append(np.array(coef3_f).mean())
         rewards_f_mean.append(np.array(rewards_f).mean())
-
 
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
@@ -1324,7 +1378,6 @@ def main():
     #     patch.set_color(color)
     #     patch.set_linewidth(1.5)
 
-
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
     # data_boxplot = [np.array(coef1_m), np.array(coef2_m), np.array(coef3_m), np.array(coef1_f),np.array(coef2_f), np.array(coef3_f)]
@@ -1339,120 +1392,137 @@ def main():
     fig, ax = plt.subplots(ncols=2, sharey=True)
     fig.subplots_adjust(wspace=0)
     data1_boxplot = [np.array(coef1_m), np.array(coef2_m), np.array(coef3_m)]
-    data2_boxplot = [np.array(coef1_f),np.array(coef2_f), np.array(coef3_f)]
-    medianprops = dict(linestyle='-', linewidth=2.5, color='k')
-    bp1 = ax[0].boxplot(data1_boxplot, patch_artist=True, medianprops=medianprops, labels=['$c_{task}$', '$c_{human}$', '$c_{energy}$'])
-    bp2 = ax[1].boxplot(data2_boxplot, patch_artist=True, medianprops=medianprops, labels=['$c_{task}$', '$c_{human}$', '$c_{energy}$'])
-    colors = ['y', 'm', 'c']
-    for patch, color in zip(bp1['boxes'], colors):
+    data2_boxplot = [np.array(coef1_f), np.array(coef2_f), np.array(coef3_f)]
+    medianprops = dict(linestyle="-", linewidth=2.5, color="k")
+    bp1 = ax[0].boxplot(
+        data1_boxplot, patch_artist=True, medianprops=medianprops, labels=["$c_{task}$", "$c_{human}$", "$c_{energy}$"]
+    )
+    bp2 = ax[1].boxplot(
+        data2_boxplot, patch_artist=True, medianprops=medianprops, labels=["$c_{task}$", "$c_{human}$", "$c_{energy}$"]
+    )
+    colors = ["y", "m", "c"]
+    for patch, color in zip(bp1["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_linewidth(0)
-    for patch, color in zip(bp2['boxes'], colors):
+    for patch, color in zip(bp2["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_linewidth(0)
-    colors2 = ['y', 'y', 'm', 'm', 'c', 'c']  # We have two whiskers
-    for patch, color in zip(bp1['whiskers'], colors2):
+    colors2 = ["y", "y", "m", "m", "c", "c"]  # We have two whiskers
+    for patch, color in zip(bp1["whiskers"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-        patch.set_linestyle('--')
-    for patch, color in zip(bp2['whiskers'], colors2):
+        patch.set_linestyle("--")
+    for patch, color in zip(bp2["whiskers"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-        patch.set_linestyle('--')
-    for patch, color in zip(bp1['caps'], colors2):
+        patch.set_linestyle("--")
+    for patch, color in zip(bp1["caps"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-    for patch, color in zip(bp2['caps'], colors2):
+    for patch, color in zip(bp2["caps"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-    ax[0].set_title('Original task')#ax[0].set_title('Assembled pieces')
-    ax[1].set_title('New task')#ax[1].set_title('Verified pieces')
+    ax[0].set_title("Original task")  # ax[0].set_title('Assembled pieces')
+    ax[1].set_title("New task")  # ax[1].set_title('Verified pieces')
     ax[0].tick_params(labelsize=12.0)
     ax[1].tick_params(labelsize=12.0)
-    ax[0].set_ylabel('Coefficient value', size=11.0)
+    ax[0].set_ylabel("Coefficient value", size=11.0)
 
-    plt.savefig('boxplots_coefficient_values_title_dpi.png', dpi=200)
-
+    plt.savefig("boxplots_coefficient_values_title_dpi.png", dpi=200)
 
     # Boxplot para demostrar que el aprendizaje es util y relevante para la tarea
-    archivo = open('datos_coef_fijos_mismo_valor.txt', 'r')
-    datos=archivo.readlines()
+    archivo = open("datos_coef_fijos_mismo_valor.txt", "r")
+    datos = archivo.readlines()
     rewards_m_valor = []
     rewards_f_valor = []
     for i in range(len(datos)):
-        aux = datos[i].strip().split(' ')
+        aux = datos[i].strip().split(" ")
         rewards_m_valor.append(float(aux[3]))
         rewards_f_valor.append(float(aux[7]))
-    archivo = open('datos_coef_fijos_no_humano.txt', 'r')
+    archivo = open("datos_coef_fijos_no_humano.txt", "r")
     datos = archivo.readlines()
     rewards_m_no_humano = []
     rewards_f_no_humano = []
     for i in range(len(datos)):
-        aux = datos[i].strip().split(' ')
+        aux = datos[i].strip().split(" ")
         rewards_m_no_humano.append(float(aux[3]))
         rewards_f_no_humano.append(float(aux[7]))
-    archivo = open('datos_coef_fijos_humano.txt', 'r')
+    archivo = open("datos_coef_fijos_humano.txt", "r")
     datos = archivo.readlines()
     rewards_m_humano = []
     rewards_f_humano = []
     for i in range(len(datos)):
-        aux = datos[i].strip().split(' ')
+        aux = datos[i].strip().split(" ")
         rewards_m_humano.append(float(aux[3]))
         rewards_f_humano.append(float(aux[7]))
 
     fig, ax = plt.subplots(ncols=2, sharey=True)
     fig.subplots_adjust(wspace=0)
-    data1_boxplot = [np.array(rewards_m), np.array(rewards_m_valor), np.array(rewards_m_no_humano), np.array(rewards_m_humano)]
-    data2_boxplot = [np.array(rewards_f),np.array(rewards_f_valor), np.array(rewards_f_no_humano), np.array(rewards_f_humano)]
-    medianprops = dict(linestyle='-', linewidth=2.5, color='k')
-    bp1 = ax[0].boxplot(data1_boxplot, patch_artist=True, medianprops=medianprops, labels=['$a$', '$b$', '$c$', '$d$'])
-    bp2 = ax[1].boxplot(data2_boxplot, patch_artist=True, medianprops=medianprops, labels=['$a$', '$b$', '$c$', '$d$'])
-    colors = ['y', 'c', 'm', 'r']
-    for patch, color in zip(bp1['boxes'], colors):
+    data1_boxplot = [
+        np.array(rewards_m),
+        np.array(rewards_m_valor),
+        np.array(rewards_m_no_humano),
+        np.array(rewards_m_humano),
+    ]
+    data2_boxplot = [
+        np.array(rewards_f),
+        np.array(rewards_f_valor),
+        np.array(rewards_f_no_humano),
+        np.array(rewards_f_humano),
+    ]
+    medianprops = dict(linestyle="-", linewidth=2.5, color="k")
+    bp1 = ax[0].boxplot(data1_boxplot, patch_artist=True, medianprops=medianprops, labels=["$a$", "$b$", "$c$", "$d$"])
+    bp2 = ax[1].boxplot(data2_boxplot, patch_artist=True, medianprops=medianprops, labels=["$a$", "$b$", "$c$", "$d$"])
+    colors = ["y", "c", "m", "r"]
+    for patch, color in zip(bp1["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.6)
         patch.set_linewidth(0)
-    for patch, color in zip(bp2['boxes'], colors):
+    for patch, color in zip(bp2["boxes"], colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
         patch.set_linewidth(0)
-    colors2 = ['y', 'y', 'c', 'c', 'm', 'm', 'r', 'r']  # We have two whiskers
-    for patch, color in zip(bp1['whiskers'], colors2):
+    colors2 = ["y", "y", "c", "c", "m", "m", "r", "r"]  # We have two whiskers
+    for patch, color in zip(bp1["whiskers"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-        patch.set_linestyle('--')
-    for patch, color in zip(bp2['whiskers'], colors2):
+        patch.set_linestyle("--")
+    for patch, color in zip(bp2["whiskers"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-        patch.set_linestyle('--')
-    for patch, color in zip(bp1['caps'], colors2):
+        patch.set_linestyle("--")
+    for patch, color in zip(bp1["caps"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-    for patch, color in zip(bp2['caps'], colors2):
+    for patch, color in zip(bp2["caps"], colors2):
         patch.set_color(color)
         patch.set_linewidth(1.5)
-    for patch, color in zip(bp1['medians'], ['goldenrod', 'darkcyan', 'purple', 'darkred']):
+    for patch, color in zip(bp1["medians"], ["goldenrod", "darkcyan", "purple", "darkred"]):
         patch.set_color(color)
         # patch.set_linewidth(1.5)
-    for patch, color in zip(bp2['medians'], ['goldenrod', 'darkcyan', 'purple', 'darkred']):
+    for patch, color in zip(bp2["medians"], ["goldenrod", "darkcyan", "purple", "darkred"]):
         patch.set_color(color)
         # patch.set_linewidth(1.5)
-    colors3 = ['goldenrod', 'darkcyan', 'purple', 'darkred']  # We have four fliers
-    for patch, color in zip(bp1['fliers'], colors3):
+    colors3 = ["goldenrod", "darkcyan", "purple", "darkred"]  # We have four fliers
+    for patch, color in zip(bp1["fliers"], colors3):
         patch.set_markeredgecolor(color)
         # patch.set_linewidth(1.5)
-    for patch, color in zip(bp2['fliers'], colors3):
+    for patch, color in zip(bp2["fliers"], colors3):
         patch.set_markeredgecolor(color)
         # patch.set_linewidth(1.5)
-    ax[0].set_title('Original task')#ax[0].set_title('Assembled pieces')
-    ax[1].set_title('New task')#ax[1].set_title('Verified pieces')
+    ax[0].set_title("Original task")  # ax[0].set_title('Assembled pieces')
+    ax[1].set_title("New task")  # ax[1].set_title('Verified pieces')
     ax[0].tick_params(labelsize=12.0)
     ax[1].tick_params(labelsize=12.0)
-    ax[0].set_ylabel('Number of valid pieces', size=11.0)
+    ax[0].set_ylabel("Number of valid pieces", size=11.0)
     legend_boxes = [bp2["boxes"][0], bp2["boxes"][1], bp2["boxes"][2], bp2["boxes"][3]]
-    labels_legend = ['$a$: $Autonomous$ $balance$', '$b$: $c_{task}=c_{human}=c_{energy}$',
-                     '$c$: $c_{energy}>c_{task}>c_{human}$', '$d$: $c_{energy}>c_{human}>c_{energy}$']
-    ax[1].legend(legend_boxes, labels_legend, loc='upper right', fontsize='small')
+    labels_legend = [
+        "$a$: $Autonomous$ $balance$",
+        "$b$: $c_{task}=c_{human}=c_{energy}$",
+        "$c$: $c_{energy}>c_{task}>c_{human}$",
+        "$d$: $c_{energy}>c_{human}>c_{energy}$",
+    ]
+    ax[1].legend(legend_boxes, labels_legend, loc="upper right", fontsize="small")
 
     # an2 = ax.annotate("Task change", xy=(0.5, 1.), xycoords=ax,
     #                   xytext=(0.5, 1.08), textcoords=(ax, "axes fraction"),
@@ -1460,12 +1530,10 @@ def main():
     #                   bbox=dict(boxstyle="round", fc="w"),
     #                   arrowprops=dict(arrowstyle="->"))
 
-    plt.savefig('boxplots_valid_pieces_title_dpi_new.png', dpi=200)
-
-
+    plt.savefig("boxplots_valid_pieces_title_dpi_new.png", dpi=200)
 
     # Datos para Boxplot para demostrar que el aprendizaje es util y relevante para la tarea
-    #30 ejecuciones
+    # 30 ejecuciones
     # datos = open('datos_coef_fijos_humano.txt', 'w')
     # for i in range(1, 31):
     #     f = open('seed'+str(i)+'.pckl', 'rb')
@@ -1517,26 +1585,27 @@ def main():
 
     # Genero la leyenda de la figura anterior
     plt.figure()
-    plt.plot(1, 2, color='m', label='Energy $(_{op}D_{e})$')
-    plt.plot(1, 2, color='orange', label='Human $(_{op}D_{h})$')
-    plt.plot(1, 2, color='r', label="Task $(_{op}D_{t})$")
-    plt.plot(1, 2, linestyle='--', color='g', label="Performance $(_{op}D_{p})$")
-    plt.plot(1, 2, linestyle=':', label="Novelty $(_{cg}D_{nov})$")
-    plt.plot(1, 2, linestyle=':', color='cyan', label="Effectance $(_{cg}D_{eff})$")
-    plt.legend(loc='upper left')
-    plt.savefig('legend_drives.png', dpi=200)
+    plt.plot(1, 2, color="m", label="Energy $(_{op}D_{e})$")
+    plt.plot(1, 2, color="orange", label="Human $(_{op}D_{h})$")
+    plt.plot(1, 2, color="r", label="Task $(_{op}D_{t})$")
+    plt.plot(1, 2, linestyle="--", color="g", label="Performance $(_{op}D_{p})$")
+    plt.plot(1, 2, linestyle=":", label="Novelty $(_{cg}D_{nov})$")
+    plt.plot(1, 2, linestyle=":", color="cyan", label="Effectance $(_{cg}D_{eff})$")
+    plt.legend(loc="upper left")
+    plt.savefig("legend_drives.png", dpi=200)
 
     plt.figure()
-    plt.plot(1, 2, color='m', label='$_{op}D_{e}$')
-    plt.plot(1, 2, color='orange', label='$_{op}D_{h}$')
-    plt.plot(1, 2, color='r', label="$_{op}D_{t}$")
-    plt.plot(1, 2, linestyle='--', color='g', label="$_{op}D_{p}$")
-    plt.plot(1, 2, linestyle=':', label="$_{cg}D_{nov}$")
-    plt.plot(1, 2, linestyle=':', color='cyan', label="$_{cg}D_{eff}$")
-    plt.legend(loc='upper left')
-    plt.savefig('legend_drives2.png', dpi=200)
+    plt.plot(1, 2, color="m", label="$_{op}D_{e}$")
+    plt.plot(1, 2, color="orange", label="$_{op}D_{h}$")
+    plt.plot(1, 2, color="r", label="$_{op}D_{t}$")
+    plt.plot(1, 2, linestyle="--", color="g", label="$_{op}D_{p}$")
+    plt.plot(1, 2, linestyle=":", label="$_{cg}D_{nov}$")
+    plt.plot(1, 2, linestyle=":", color="cyan", label="$_{cg}D_{eff}$")
+    plt.legend(loc="upper left")
+    plt.savefig("legend_drives2.png", dpi=200)
 
-    print 2
+    print(2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

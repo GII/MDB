@@ -1,12 +1,16 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
 
 class TracesMemory(object):
     """
@@ -58,8 +62,8 @@ class TracesMemory(object):
     # def getWeaksRemoved(self):
     #     return self.weaksRemoved
 
-        # def setWeakTracesList(self, weakTracesList):
-        #     self.weakTracesList = weakTracesList
+    # def setWeakTracesList(self, weakTracesList):
+    #     self.weakTracesList = weakTracesList
 
     # def addWeaksRemoved(self, weakTracesList):
     #     self.weaksRemoved.extend(weakTracesList)

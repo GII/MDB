@@ -1,16 +1,23 @@
 """
 MDB.
 
-Available from https://github.com/robotsthatdream/MDB
-Distributed under GPLv3.
+https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 from enum import Enum
 import sys
 import os.path
 import math
+
+# Library imports
 import numpy
 import yaml
 import yamlloader

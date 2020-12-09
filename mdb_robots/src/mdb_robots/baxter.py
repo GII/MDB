@@ -1,17 +1,24 @@
 """
 MDB.
 
-Available from https://github.com/robotsthatdream/MDB
-Distributed under GPLv3.
+https://github.com/GII/MDB
 """
 
+# Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import *  # noqa
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Library imports
 import numpy
-from skimage import img_as_ubyte, color, filters, morphology, feature, draw, io, util, transform
+from skimage import color, filters, morphology, feature, draw, io, util, transform
 from scipy import ndimage
 import pandas
 import rospy
+
+# MDB imports
 from mdb_robots.robot import Robot
 
 
@@ -158,19 +165,19 @@ class Baxter(Robot):
         self.perceptions["cylinders"].data = []
         self.perceptions["boxes"].data = []
         for blob in blobs:
-            row, col, radius = [int(round(x)) for x in blob]
+            _, _, radius = [int(round(x)) for x in blob]
             if radius > 0:  # TODO
                 detected_object = self.base_messages["boxes"]()
                 detected_object.distance = 0  # TODO
                 detected_object.angle = 0  # TODO
                 detected_object.diameter = 0  # TODO
-                self.perception["boxes"].data.append(detected_object)
+                self.perceptions["boxes"].data.append(detected_object)
             else:
                 detected_object = self.base_messages["cylinders"]()
                 detected_object.distance = 0  # TODO
                 detected_object.angle = 0  # TODO
                 detected_object.diameter = 0  # TODO
-                self.perception["cylinders"].data.append(detected_object)
+                self.perceptions["cylinders"].data.append(detected_object)
 
     def update_monitor_image(self, image):
         """Update stored image (contains circles around detected objects)."""
@@ -180,7 +187,7 @@ class Baxter(Robot):
         """Process a new sensor reading."""
         rospy.logdebug("Camera image received...")
         start_time = rospy.get_time()
-        blobs, image = self.detect_objects(
+        image, blobs, _ = self.detect_objects(
             numpy.fromstring(data.data, dtype=numpy.uint8).reshape(data.height, data.width, 3)
         )
         data.data = numpy.array_str(image.reshape(data.width)).strip("[]").replace("\n", "")

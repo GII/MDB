@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -182,6 +182,17 @@ include_directories(
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+catkin_install_python(PROGRAMS
+  nodes/arduino_joystick_module
+  nodes/baxter_policies
+  nodes/exp_scene
+  nodes/get_end_scene
+  nodes/get_head_scene
+  nodes/get_joints_state
+  nodes/open_grip
+  nodes/robobo_joystick_control
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS mdb_baxter mdb_baxter_node

@@ -1,40 +1,27 @@
 #!/usr/bin/env python
+"""
+MDB.
 
-# Copyright 2018, GII / Universidad de la Coruna (UDC)
-#
-# Main contributor(s):
-# * Luis Calvo, luis.calvo@udc.es
-#
-#  This file is also part of MDB.
-#
-# * MDB is free software: you can redistribute it and/or modify it under the
-# * terms of the GNU Affero General Public License as published by the Free
-# * Software Foundation, either version 3 of the License, or (at your option) any
-# * later version.
-# *
-# * MDB is distributed in the hope that it will be useful, but WITHOUT ANY
-# * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# * A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-# * details.
-# *
-# * You should have received a copy of the GNU Affero General Public License
-# * along with MDB. If not, see <http://www.gnu.org/licenses/>.
+https://github.com/GII/MDB
+"""
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import str
-from builtins import *
-from builtins import object
-from past.utils import old_div
-import rospy, math
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
+import math
+
+# Library imports
+import rospy
 from std_msgs.msg import Int8, Int16, Int32
-from robobo_msgs.srv import MoveWheels, SetSensorFrequency
 from geometry_msgs.msg import Vector3
+
+# MDB imports
+from robobo_msgs.srv import MoveWheels, SetSensorFrequency
 
 
 class robobo_joystick_control(object):
@@ -75,10 +62,8 @@ class robobo_joystick_control(object):
         alpha = 0.5 * math.atan2(y, x)
         m = math.sqrt((x ** 2) + (y ** 2))
         beta = alpha + 0.785
-        epsilon = 0.00001
-        left_speed = (old_div(self.max_velocity, self.max_module)) * m * math.cos(beta)
-        right_speed = (old_div(self.max_velocity, self.max_module)) * m * math.sin(beta)
-
+        left_speed = (self.max_velocity / self.max_module) * m * math.cos(beta)
+        right_speed = (self.max_velocity / self.max_module) * m * math.sin(beta)
         return left_speed, right_speed
 
     def joystick_rob_move(self, x, y, time):

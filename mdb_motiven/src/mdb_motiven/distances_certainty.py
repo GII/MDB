@@ -1,14 +1,24 @@
 """
-The shiny, all new, MDB 3.0.
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+MDB.
+
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
+
+# Library imports
 import numpy as np
 from matplotlib import pyplot as plt
+
+# MDB imports
 from mdb_motiven.traces_memory import TracesMemory
 
 
@@ -56,7 +66,7 @@ class DistancesCertainty(object):
 
     def getMinDistancesMap(self, T):
         """Return the set of the minimum distances for all the points in T.
-         T is the set of trace points (episodes) used to define the certainty map."""
+        T is the set of trace points (episodes) used to define the certainty map."""
         D = [[None] * len(T) for i in range(len(T[0]))]
         N_GR = 99999
         for k in range(len(T)):
@@ -135,7 +145,7 @@ class DistancesCertainty(object):
 
     def getCertaintyValue(self, p):
         """Return the certainty value C for a point p combining the weights of
-         p-traces(w_positive), n-traces(w_negative) and w-traces(w_weak)"""
+        p-traces(w_positive), n-traces(w_negative) and w-traces(w_weak)"""
         TracesTuple = self.TraceListToTuple(self.TracesMemory.getTracesList())
         AntiTracesTuple = self.TraceListToTuple(self.TracesMemory.getAntiTracesList())
         WeakTracesTuple = self.TraceListToTuple(self.TracesMemory.getWeakTracesList())
@@ -148,8 +158,9 @@ class DistancesCertainty(object):
         if AntiTracesTuple is ():
             w_negative = ()
         else:
-            w_negative = self.getWeight(self.antiTracesMinDistancesMap, self.percentile, AntiTracesTuple,
-                                        self.n_antitraces, p)
+            w_negative = self.getWeight(
+                self.antiTracesMinDistancesMap, self.percentile, AntiTracesTuple, self.n_antitraces, p
+            )
 
         if WeakTracesTuple is ():
             w_weak = ()
@@ -196,7 +207,6 @@ class DistancesCertainty(object):
         # C = max(0, self.sigmoid(self.cp * Sum, 201))
 
         # C = ((math.tanh(self.cp * Sum)+1)/2.0)
-
 
         # C = max(0, np.sign(Sum)*math.pow(abs(math.tanh(self.cp * Sum)), 0.1))
         C = np.sign(Sum) * math.pow(abs(math.tanh(self.cp * Sum)), 0.1)
@@ -257,7 +267,7 @@ class DistancesCertainty(object):
         return self.numberOfGoalsWithoutAntiTraces
 
     def TraceListToTuple(self, TraceList):
-        """ Transform a list into a tuple
+        """Transform a list into a tuple
         :param TraceList: a list of traces containing episodes (tuples)
         :return: a tuple of traces containing episodes (tuples)
         """
@@ -274,9 +284,9 @@ class DistancesCertainty(object):
             # Trace episode
             addToMatrix += Trace[i]
             # Type of trace: positive, negative or weak
-            if type == 'p':
+            if type == "p":
                 addToMatrix += (1, 0, 0)
-            elif type == 'n':
+            elif type == "n":
                 addToMatrix += (0, 1, 0)
             else:
                 addToMatrix += (0, 0, 1)
@@ -316,17 +326,17 @@ class DistancesCertainty(object):
             z.append(Trace[i][2])
 
         # Set the color to differentiate the type of trace
-        if type == 'w':
-            col = 'green'  # 'b'
-        elif type == 'p':
-            col = 'black'  # 'black'
-        elif type == 'n':
-            col = 'grey'  # red'grey'
+        if type == "w":
+            col = "green"  # 'b'
+        elif type == "p":
+            col = "black"  # 'black'
+        elif type == "n":
+            col = "grey"  # red'grey'
 
         if subspace == 1:
-            plt.plot(x, z, marker='.', color=col)  # , linewidth=5) #8
+            plt.plot(x, z, marker=".", color=col)  # , linewidth=5) #8
         elif subspace == 2:
-            plt.plot(y, z, marker='.', color=col)
+            plt.plot(y, z, marker=".", color=col)
 
     def DrawPoints(self):
         """Draws n random (x,y) points and colours them according to they certainty value
@@ -337,8 +347,8 @@ class DistancesCertainty(object):
         ax1 = plt.subplot(241)
         ax1.set_xlim(self.Linf[0], self.Lsup[0])
         ax1.set_ylim(self.Linf[0], self.Lsup[0])
-        ax1.set_xlabel('distance ball-Robobo')
-        ax1.set_ylabel('distance ball-box')
+        ax1.set_xlabel("distance ball-Robobo")
+        ax1.set_ylabel("distance ball-box")
         ax1.set_title("dbB = 0")
         a = np.arange(self.Linf[0], self.Lsup[0], 75)
         a = a.tolist()
@@ -350,16 +360,16 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((x, 0, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax1.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax1.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=1, slice=1)
         # self.MarkTracePoints(subspace=1, slice=1)
         # Subfigure 2
         ax2 = plt.subplot(242)
-        ax2.axis('off')
+        ax2.axis("off")
         ax2.set_xlim(self.Linf[0], self.Lsup[0])
         ax2.set_ylim(self.Linf[0], self.Lsup[0])
         ax2.set_title("dbB = 500")
@@ -375,16 +385,16 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((x, 500, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax2.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax2.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=1, slice=2)
         # self.MarkTracePoints(subspace=1, slice=2)
         # Subfigure 3
         ax3 = plt.subplot(243)
-        ax3.axis('off')
+        ax3.axis("off")
         ax3.set_xlim(self.Linf[0], self.Lsup[0])
         ax3.set_ylim(self.Linf[0], self.Lsup[0])
         ax3.set_title("dbB = 1000")
@@ -400,20 +410,20 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((x, 1000, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax3.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax3.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=1, slice=3)
         # self.MarkTracePoints(subspace=1, slice=3)
         # Subfigure 4
         ax4 = plt.subplot(244)
-        ax4.axis('off')
+        ax4.axis("off")
         ax4.set_xlim(self.Linf[0], self.Lsup[0])
         ax4.set_ylim(self.Linf[0], self.Lsup[0])
         ax4.set_title("dbB = 1373")
-        ax4.set_xlabel('distance ball-Robobo')
+        ax4.set_xlabel("distance ball-Robobo")
         # ax4.set_ylabel('distance ball-box')
         a = np.arange(self.Linf[0], self.Lsup[0], 75)
         a = a.tolist()
@@ -425,11 +435,11 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((x, self.Lsup[1], z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax4.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax4.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=1, slice=4)
         # self.MarkTracePoints(subspace=1, slice=4)
         ################################################################################################################
@@ -438,8 +448,8 @@ class DistancesCertainty(object):
         ax5.set_xlim(self.Linf[1], self.Lsup[1])
         ax5.set_ylim(self.Linf[1], self.Lsup[1])
         ax5.set_title("dbR = 0")
-        ax5.set_xlabel('distance ball-Baxter')
-        ax5.set_ylabel('distance ball-box')
+        ax5.set_xlabel("distance ball-Baxter")
+        ax5.set_ylabel("distance ball-box")
         a = np.arange(self.Linf[1], self.Lsup[1], 75)
         a = a.tolist()
         for i in range(len(a)):  # range(number):
@@ -450,16 +460,16 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((0, x, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax5.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax5.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=2, slice=1)
         # self.MarkTracePoints(subspace=2, slice=1)
         # Subfigure 6
         ax6 = plt.subplot(246)
-        ax6.axis('off')
+        ax6.axis("off")
         ax6.set_xlim(self.Linf[1], self.Lsup[1])
         ax6.set_ylim(self.Linf[1], self.Lsup[1])
         ax6.set_title("dbR = 500")
@@ -475,16 +485,16 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((500, x, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax6.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax6.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=2, slice=2)
         # self.MarkTracePoints(subspace=2, slice=2)
         # Subfigure 7
         ax7 = plt.subplot(247)
-        ax7.axis('off')
+        ax7.axis("off")
         ax7.set_xlim(self.Linf[1], self.Lsup[1])
         ax7.set_ylim(self.Linf[1], self.Lsup[1])
         ax7.set_title("dbR = 1000")
@@ -500,20 +510,20 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((1000, x, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax7.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax7.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=2, slice=3)
         # self.MarkTracePoints(subspace=2, slice=3)
         # Subfigure 8
         ax8 = plt.subplot(248)
-        ax8.axis('off')
+        ax8.axis("off")
         ax8.set_xlim(self.Linf[1], self.Lsup[1])
         ax8.set_ylim(self.Linf[1], self.Lsup[1])
         ax8.set_title("dbR = 1373")
-        ax8.set_xlabel('distance ball-Baxter')
+        ax8.set_xlabel("distance ball-Baxter")
         # ax8.set_ylabel('distance ball-box')
         a = np.arange(self.Linf[1], self.Lsup[1], 75)
         a = a.tolist()
@@ -525,11 +535,11 @@ class DistancesCertainty(object):
                 certainty = self.getCertaintyValue((self.Lsup[0], x, z))
                 # Establezco el color del punto en funcion del valor de certeza
                 if certainty < 0:
-                    color = 'yellow'
+                    color = "yellow"
                 else:
                     color = (math.pow(1 - certainty, 0.5), math.pow(certainty, 0.5), 0)
                 # Dibujo el punto
-                ax8.scatter(x, z, c=color, marker='o', s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
+                ax8.scatter(x, z, c=color, marker="o", s=30, linewidth=0)  # para mapa continuo sin s y sin linewidth
         # self.DrawTracesSubSpace(subspace=2, slice=4)
         # self.MarkTracePoints(subspace=2, slice=4)
         plt.draw()
@@ -540,15 +550,15 @@ class DistancesCertainty(object):
         # DrawTraces
         for i in range(len(self.TracesMemory.getTracesList())):
             T = self.TracesMemory.getTracesList()[i]
-            self.DrawTrace('p', T, subspace)
+            self.DrawTrace("p", T, subspace)
         # DrawWeakTraces
         for i in range(len(self.TracesMemory.getWeakTracesList())):
             T = self.TracesMemory.getWeakTracesList()[i]
-            self.DrawTrace('w', T, subspace)
+            self.DrawTrace("w", T, subspace)
         # DrawAntiTraces
         for i in range(len(self.TracesMemory.getAntiTracesList())):
             T = self.TracesMemory.getAntiTracesList()[i]
-            self.DrawTrace('n', T, subspace)
+            self.DrawTrace("n", T, subspace)
 
     def MarkTracePoints(self, subspace, slice):
         """Highlight the points of the trace that belong to a determinate subspace and slice"""
@@ -557,27 +567,27 @@ class DistancesCertainty(object):
             x, y, z = self.plotMatrix[i][0:3]  # Porque no incluye el ultimo elemento del rango
             # Color depending on the trace type
             if self.plotMatrix[i][3]:  # Positive trace
-                color = 'black'
+                color = "black"
             elif self.plotMatrix[i][4]:  # Negative trace
-                color = 'grey'
+                color = "grey"
             elif self.plotMatrix[i][5]:  # Weak trace
-                color = 'green'
+                color = "green"
 
             if subspace == 1:
                 if slice == 1 and self.plotMatrix[i][6]:
-                    plt.scatter(x, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(x, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 2 and self.plotMatrix[i][7]:
-                    plt.scatter(x, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(x, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 3 and self.plotMatrix[i][8]:
-                    plt.scatter(x, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(x, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 4 and self.plotMatrix[i][9]:
-                    plt.scatter(x, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(x, z, c=color, marker="o", s=50, linewidth=0.2)
             else:  # subspace == 2
                 if slice == 1 and self.plotMatrix[i][10]:
-                    plt.scatter(y, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(y, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 2 and self.plotMatrix[i][11]:
-                    plt.scatter(y, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(y, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 3 and self.plotMatrix[i][12]:
-                    plt.scatter(y, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(y, z, c=color, marker="o", s=50, linewidth=0.2)
                 elif slice == 4 and self.plotMatrix[i][13]:
-                    plt.scatter(y, z, c=color, marker='o', s=50, linewidth=.2)
+                    plt.scatter(y, z, c=color, marker="o", s=50, linewidth=0.2)

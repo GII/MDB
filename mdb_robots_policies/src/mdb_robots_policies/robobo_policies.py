@@ -4,25 +4,26 @@ MDB.
 https://github.com/GII/MDB
 """
 
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import str
-from builtins import *
-from builtins import object
-from past.utils import old_div
-import rospy
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
+
+# Library imports
+import rospy
 import rospkg
 import yaml
 import numpy as np
 from std_msgs.msg import Bool, Int32, Int16, Int8
-from mdb_common.srv import BaxChange, BaxMC
 from robobo_msgs.srv import MoveWheels, SetSensorFrequency
+
+# MDB imports
+from mdb_common.srv import BaxChange, BaxMC
 
 
 class robobo_policies(object):
@@ -61,16 +62,16 @@ class robobo_policies(object):
             if k == "angle_time":
                 for angle_time in config[k]:
                     self.angle_time_l.append(angle_time)
-            if k == "angle":
+            elif k == "angle":
                 for angle in config[k]:
                     self.angle_l.append(angle)
-            if k == "distance":
+            elif k == "distance":
                 for distance in config[k]:
                     self.distance_l.append(distance)
-            if k == "distance_time":
+            elif k == "distance_time":
                 for distance_time in config[k]:
                     self.distance_time_l.append(distance_time)
-            if k == "area_limit":
+            elif k == "area_limit":
                 for area_limit in config[k]:
                     self.area_limit_l.append(area_limit)
 
@@ -149,7 +150,7 @@ class robobo_policies(object):
                 fy = robdy + 0.05 * math.sin(predicted_angle)
 
                 self.global_policies.exp_senses.rob_sense.dist.data = np.sqrt((fy ** 2) + (fx ** 2))
-                self.global_policies.exp_senses.rob_sense.angle.data = np.arctan(old_div(fy, fx))
+                self.global_policies.exp_senses.rob_sense.angle.data = np.arctan(fy / fx)
                 self.global_policies.exp_senses.rob_ori.data = predicted_angle
 
         return Bool(True)
@@ -230,10 +231,8 @@ class robobo_policies(object):
         max_module = m
         ##############
         beta = alpha + 0.785
-        epsilon = 0.00001
-        left_speed = (old_div(max_velocity, max_module)) * m * math.cos(beta)
-        right_speed = (old_div(max_velocity, max_module)) * m * math.sin(beta)
-
+        left_speed = (max_velocity / max_module) * m * math.cos(beta)
+        right_speed = (max_velocity / max_module) * m * math.sin(beta)
         return left_speed, right_speed
 
     def joystick_rob_move(self, x, y, time):

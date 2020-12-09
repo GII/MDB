@@ -1,13 +1,20 @@
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from builtins import * #noqa
+# Python 2 compatibility imports
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+
+# Standard imports
 import math
+
+# Library imports
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches
@@ -15,6 +22,7 @@ from matplotlib import patches
 
 # Para el primer ejemplo debo cambiar cosas o tener en cuenta que, por ejemplo, en el vector de sensorizacion solo
 # debo considerar la distancia del baxter a la pelota y de la pelota a la caja
+
 
 class Sim(object):
     """
@@ -31,15 +39,15 @@ class Sim(object):
 
     def __init__(self):
         """Create the different objects present in the Simulator and place them in it"""
-        self.ball = plt.Circle((1800, 300), 30, fc='r', label='ball')
-        self.box1 = plt.Rectangle((1800, 450), 67, 67, fc='y', linewidth=3.5, label='box1')
-        self.box2 = plt.Rectangle((2000, 900), 67, 67, fc='grey', linewidth=3.5, label='box2')
-        self.robobo = patches.Rectangle((700, 300), 75, 60, angle=0.0, fc='cyan', label='robobo')
-        self.robobo_act = patches.Rectangle((775, 300), 20, 60, angle=0.0, fc='blue', label='robobo_actuator')
-        self.baxter_rarm = patches.Rectangle((2000, 50), 75, 60, angle=0.0, fc=(0.8, 0, 0.2), label='baxter_rarm')
-        self.baxter_rarm_act = patches.Rectangle((2075, 50), 20, 60, angle=0.0, fc='black', label='baxter_rarm_act')
-        self.baxter_larm = patches.Rectangle((1600, 50), 75, 60, angle=0.0, fc=(0.8, 0, 0.2), label='baxter_larm')
-        self.baxter_larm_act = patches.Rectangle((1675, 50), 20, 60, angle=0.0, fc='black', label='baxter_larm_act')
+        self.ball = plt.Circle((1800, 300), 30, fc="r", label="ball")
+        self.box1 = plt.Rectangle((1800, 450), 67, 67, fc="y", linewidth=3.5, label="box1")
+        self.box2 = plt.Rectangle((2000, 900), 67, 67, fc="grey", linewidth=3.5, label="box2")
+        self.robobo = patches.Rectangle((700, 300), 75, 60, angle=0.0, fc="cyan", label="robobo")
+        self.robobo_act = patches.Rectangle((775, 300), 20, 60, angle=0.0, fc="blue", label="robobo_actuator")
+        self.baxter_rarm = patches.Rectangle((2000, 50), 75, 60, angle=0.0, fc=(0.8, 0, 0.2), label="baxter_rarm")
+        self.baxter_rarm_act = patches.Rectangle((2075, 50), 20, 60, angle=0.0, fc="black", label="baxter_rarm_act")
+        self.baxter_larm = patches.Rectangle((1600, 50), 75, 60, angle=0.0, fc=(0.8, 0, 0.2), label="baxter_larm")
+        self.baxter_larm_act = patches.Rectangle((1675, 50), 20, 60, angle=0.0, fc="black", label="baxter_larm_act")
 
         self.baxter_figure = patches.Circle((2700, 264), 12, fc=(0.8, 0, 0, 1))
         self.baxter_figure_1 = patches.Circle((2700, 264), 12, fc=(0.8, 0, 0, 0.8))
@@ -49,20 +57,20 @@ class Sim(object):
         self.baxter_figure_5 = patches.Circle((2700, 264), 12, fc=(0.8, 0, 0, 0.0))
 
         self.fig = plt.figure()
-        self.fig.canvas.set_window_title('Simulator')
+        self.fig.canvas.set_window_title("Simulator")
         self.ax = plt.axes(xlim=(0, 3500), ylim=(0, 1000))
         self.ax.axes.get_xaxis().set_visible(False)
         self.ax.axes.get_yaxis().set_visible(False)
 
         # Movement boundaries
         plt.axvline(x=1250)  # draw a default vline at x=1 that spans the yrange
-        plt.axhline(y=800, xmin=0.357, xmax=0.686, linestyle='--', color='grey')
-        plt.axhline(y=50, xmin=0.0286, xmax=0.686, linestyle='--', color='grey')
+        plt.axhline(y=800, xmin=0.357, xmax=0.686, linestyle="--", color="grey")
+        plt.axhline(y=50, xmin=0.0286, xmax=0.686, linestyle="--", color="grey")
         # plt.axhline(y=950, xmin=0.0286, xmax=0.357, linestyle='--', color='grey')
-        plt.axhline(y=800, xmin=0.0286, xmax=0.357, linestyle='--', color='grey')
+        plt.axhline(y=800, xmin=0.0286, xmax=0.357, linestyle="--", color="grey")
         # plt.axvline(x=100, ymin=0.05, ymax=0.95, linestyle='--', color='grey')
-        plt.axvline(x=100, ymin=0.05, ymax=0.80, linestyle='--', color='grey')
-        plt.axvline(x=2400, ymin=0.05, ymax=0.80, linestyle='--', color='grey')
+        plt.axvline(x=100, ymin=0.05, ymax=0.80, linestyle="--", color="grey")
+        plt.axvline(x=2400, ymin=0.05, ymax=0.80, linestyle="--", color="grey")
         self.ball_position = None  # Indicates where is the ball: robobo, baxter_larm, bater_rarm, box1, box2 or None
 
         # Show figure and patches
@@ -77,25 +85,25 @@ class Sim(object):
         self.ax.add_patch(self.baxter_larm_act)
         self.ax.add_patch(self.ball)
 
-        #plt.text(2700, 970, 'State Space')
+        # plt.text(2700, 970, 'State Space')
 
         # Prueba espacio estados
-        plt.axhline(y=950, xmin=0.771, xmax=0.967, linestyle='-', color='black', linewidth=1.3)
-        plt.axhline(y=264, xmin=0.771, xmax=0.967, linestyle='-', color='black', linewidth=1.3)
-        plt.axhline(y=364, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axhline(y=464, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axhline(y=564, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axhline(y=664, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axhline(y=764, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axhline(y=864, xmin=0.771, xmax=0.967, linestyle='--', color='grey')
-        plt.axvline(x=2700, ymin=0.264, ymax=0.950, linestyle='-', color='black', linewidth=1.3)
-        plt.axvline(x=3386, ymin=0.264, ymax=0.950, linestyle='-', color='black', linewidth=1.3)
-        plt.axvline(x=2800, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
-        plt.axvline(x=2900, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
-        plt.axvline(x=3000, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
-        plt.axvline(x=3100, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
-        plt.axvline(x=3200, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
-        plt.axvline(x=3300, ymin=0.264, ymax=0.950, linestyle='--', color='grey')
+        plt.axhline(y=950, xmin=0.771, xmax=0.967, linestyle="-", color="black", linewidth=1.3)
+        plt.axhline(y=264, xmin=0.771, xmax=0.967, linestyle="-", color="black", linewidth=1.3)
+        plt.axhline(y=364, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axhline(y=464, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axhline(y=564, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axhline(y=664, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axhline(y=764, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axhline(y=864, xmin=0.771, xmax=0.967, linestyle="--", color="grey")
+        plt.axvline(x=2700, ymin=0.264, ymax=0.950, linestyle="-", color="black", linewidth=1.3)
+        plt.axvline(x=3386, ymin=0.264, ymax=0.950, linestyle="-", color="black", linewidth=1.3)
+        plt.axvline(x=2800, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
+        plt.axvline(x=2900, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
+        plt.axvline(x=3000, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
+        plt.axvline(x=3100, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
+        plt.axvline(x=3200, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
+        plt.axvline(x=3300, ymin=0.264, ymax=0.950, linestyle="--", color="grey")
         plt.axvline(x=2500)
         self.ax.add_patch(self.baxter_figure)
         self.ax.add_patch(self.baxter_figure_1)
@@ -128,16 +136,24 @@ class Sim(object):
         w = self.robobo.get_width()
         h = self.robobo.get_height()
         # New x, y position
-        new_x = x - w / 2 * math.cos(self.robobo._angle * math.pi / 180) + h / 2 * math.sin(
-            self.robobo._angle * math.pi / 180)
-        new_y = y - w / 2 * math.sin(self.robobo._angle * math.pi / 180) - h / 2 * math.cos(
-            self.robobo._angle * math.pi / 180)
+        new_x = (
+            x
+            - w / 2 * math.cos(self.robobo._angle * math.pi / 180)
+            + h / 2 * math.sin(self.robobo._angle * math.pi / 180)
+        )
+        new_y = (
+            y
+            - w / 2 * math.sin(self.robobo._angle * math.pi / 180)
+            - h / 2 * math.cos(self.robobo._angle * math.pi / 180)
+        )
 
         # Check if the new robobo position is inside its movement limits
-        if self.check_limits((x, y), 'robobo'):
+        if self.check_limits((x, y), "robobo"):
             self.robobo.xy = (new_x, new_y)
-            self.robobo_act.xy = (new_x + w * math.cos(self.robobo_act._angle * math.pi / 180),
-                                  new_y + w * math.sin(self.robobo_act._angle * math.pi / 180))
+            self.robobo_act.xy = (
+                new_x + w * math.cos(self.robobo_act._angle * math.pi / 180),
+                new_y + w * math.sin(self.robobo_act._angle * math.pi / 180),
+            )
         # self.fig.canvas.draw()
 
     def robobo_set_angle(self, angle):
@@ -147,9 +163,11 @@ class Sim(object):
         self.robobo_act._angle = angle
         self.robobo_set_pos(centre)
         w = self.robobo.get_width()
-        self.robobo_act.xy = (self.robobo.get_x() + w * math.cos(self.robobo_act._angle * math.pi / 180),
-                              self.robobo.get_y() + w * math.sin(self.robobo_act._angle * math.pi / 180))
-        if self.ball_position == 'robobo':
+        self.robobo_act.xy = (
+            self.robobo.get_x() + w * math.cos(self.robobo_act._angle * math.pi / 180),
+            self.robobo.get_y() + w * math.sin(self.robobo_act._angle * math.pi / 180),
+        )
+        if self.ball_position == "robobo":
             self.ball_set_pos(self.robobo_act_get_pos())
         # self.fig.canvas.draw()
 
@@ -193,16 +211,24 @@ class Sim(object):
         w = self.baxter_larm.get_width()
         h = self.baxter_larm.get_height()
         # New x, y position
-        new_x = x - w / 2 * math.cos(self.baxter_larm._angle * math.pi / 180) + h / 2 * math.sin(
-            self.baxter_larm._angle * math.pi / 180)
-        new_y = y - w / 2 * math.sin(self.baxter_larm._angle * math.pi / 180) - h / 2 * math.cos(
-            self.baxter_larm._angle * math.pi / 180)
+        new_x = (
+            x
+            - w / 2 * math.cos(self.baxter_larm._angle * math.pi / 180)
+            + h / 2 * math.sin(self.baxter_larm._angle * math.pi / 180)
+        )
+        new_y = (
+            y
+            - w / 2 * math.sin(self.baxter_larm._angle * math.pi / 180)
+            - h / 2 * math.cos(self.baxter_larm._angle * math.pi / 180)
+        )
 
         # Check if the new baxter left arm position is inside its movement limits
-        if self.check_limits((x, y), 'baxter'):
+        if self.check_limits((x, y), "baxter"):
             self.baxter_larm.xy = (new_x, new_y)
-            self.baxter_larm_act.xy = (new_x + w * math.cos(self.baxter_larm_act._angle * math.pi / 180),
-                                       new_y + w * math.sin(self.baxter_larm_act._angle * math.pi / 180))
+            self.baxter_larm_act.xy = (
+                new_x + w * math.cos(self.baxter_larm_act._angle * math.pi / 180),
+                new_y + w * math.sin(self.baxter_larm_act._angle * math.pi / 180),
+            )
         # self.fig.canvas.draw()
 
     def baxter_larm_set_angle(self, angle):
@@ -212,9 +238,11 @@ class Sim(object):
         self.baxter_larm_act._angle = angle
         self.baxter_larm_set_pos(centre)
         w = self.baxter_larm.get_width()
-        self.baxter_larm_act.xy = (self.baxter_larm.get_x() + w * math.cos(self.baxter_larm_act._angle * math.pi / 180),
-                                   self.baxter_larm.get_y() + w * math.sin(self.baxter_larm_act._angle * math.pi / 180))
-        if self.ball_position == 'baxter_larm':
+        self.baxter_larm_act.xy = (
+            self.baxter_larm.get_x() + w * math.cos(self.baxter_larm_act._angle * math.pi / 180),
+            self.baxter_larm.get_y() + w * math.sin(self.baxter_larm_act._angle * math.pi / 180),
+        )
+        if self.ball_position == "baxter_larm":
             self.ball_set_pos(self.baxter_larm_act_get_pos())
         # self.fig.canvas.draw()
 
@@ -235,10 +263,16 @@ class Sim(object):
         w = self.robobo.get_width()
         h = self.robobo.get_height()
         x, y = self.robobo.xy
-        x_c = x + w / 2 * math.cos(self.robobo._angle * math.pi / 180) - h / 2 * math.sin(
-            self.robobo._angle * math.pi / 180)
-        y_c = y + w / 2 * math.sin(self.robobo._angle * math.pi / 180) + h / 2 * math.cos(
-            self.robobo._angle * math.pi / 180)
+        x_c = (
+            x
+            + w / 2 * math.cos(self.robobo._angle * math.pi / 180)
+            - h / 2 * math.sin(self.robobo._angle * math.pi / 180)
+        )
+        y_c = (
+            y
+            + w / 2 * math.sin(self.robobo._angle * math.pi / 180)
+            + h / 2 * math.cos(self.robobo._angle * math.pi / 180)
+        )
         return x_c, y_c
 
     def robobo_act_get_pos(self):
@@ -246,15 +280,22 @@ class Sim(object):
         w = self.robobo_act.get_width()
         h = self.robobo_act.get_height()
         x, y = self.robobo_act.xy
-        x_c = x + w / 2 * math.cos(self.robobo_act._angle * math.pi / 180) - h / 2 * math.sin(
-            self.robobo_act._angle * math.pi / 180)
-        y_c = y + w / 2 * math.sin(self.robobo_act._angle * math.pi / 180) + h / 2 * math.cos(
-            self.robobo_act._angle * math.pi / 180)
+        x_c = (
+            x
+            + w / 2 * math.cos(self.robobo_act._angle * math.pi / 180)
+            - h / 2 * math.sin(self.robobo_act._angle * math.pi / 180)
+        )
+        y_c = (
+            y
+            + w / 2 * math.sin(self.robobo_act._angle * math.pi / 180)
+            + h / 2 * math.cos(self.robobo_act._angle * math.pi / 180)
+        )
         return x_c, y_c
 
     def robobo_get_angle(self):
         """Return the angle of the Robobo!"""
         return self.robobo._angle
+
     #
     # def baxter_rarm_get_pos(self):
     #     """Return the position of the center of the Baxter's right arm"""
@@ -283,10 +324,16 @@ class Sim(object):
         w = self.baxter_larm.get_width()
         h = self.baxter_larm.get_height()
         x, y = self.baxter_larm.xy
-        x_c = x + w / 2 * math.cos(self.baxter_larm._angle * math.pi / 180) - h / 2 * math.sin(
-            self.baxter_larm._angle * math.pi / 180)
-        y_c = y + w / 2 * math.sin(self.baxter_larm._angle * math.pi / 180) + h / 2 * math.cos(
-            self.baxter_larm._angle * math.pi / 180)
+        x_c = (
+            x
+            + w / 2 * math.cos(self.baxter_larm._angle * math.pi / 180)
+            - h / 2 * math.sin(self.baxter_larm._angle * math.pi / 180)
+        )
+        y_c = (
+            y
+            + w / 2 * math.sin(self.baxter_larm._angle * math.pi / 180)
+            + h / 2 * math.cos(self.baxter_larm._angle * math.pi / 180)
+        )
         return x_c, y_c
 
     def baxter_larm_act_get_pos(self):
@@ -294,10 +341,16 @@ class Sim(object):
         w = self.baxter_larm_act.get_width()
         h = self.baxter_larm_act.get_height()
         x, y = self.baxter_larm_act.xy
-        x_c = x + w / 2 * math.cos(self.baxter_larm_act._angle * math.pi / 180) - h / 2 * math.sin(
-            self.baxter_larm_act._angle * math.pi / 180)
-        y_c = y + w / 2 * math.sin(self.baxter_larm_act._angle * math.pi / 180) + h / 2 * math.cos(
-            self.baxter_larm_act._angle * math.pi / 180)
+        x_c = (
+            x
+            + w / 2 * math.cos(self.baxter_larm_act._angle * math.pi / 180)
+            - h / 2 * math.sin(self.baxter_larm_act._angle * math.pi / 180)
+        )
+        y_c = (
+            y
+            + w / 2 * math.sin(self.baxter_larm_act._angle * math.pi / 180)
+            + h / 2 * math.cos(self.baxter_larm_act._angle * math.pi / 180)
+        )
         return x_c, y_c
 
     # def baxter_rarm_get_angle(self):
@@ -331,9 +384,13 @@ class Sim(object):
     def move_baxter_larm(self, vel=20):
         """Move Baxter's left arm wih a specific velocity (default 20)"""
         x, y = self.baxter_larm_get_pos()
-        self.baxter_larm_set_pos((x + vel * math.cos(self.baxter_larm._angle * math.pi / 180),
-                                  y + vel * math.sin(self.baxter_larm._angle * math.pi / 180)))
-        if self.ball_position == 'baxter_larm':
+        self.baxter_larm_set_pos(
+            (
+                x + vel * math.cos(self.baxter_larm._angle * math.pi / 180),
+                y + vel * math.sin(self.baxter_larm._angle * math.pi / 180),
+            )
+        )
+        if self.ball_position == "baxter_larm":
             self.ball_set_pos(self.baxter_larm_act_get_pos())
 
     def baxter_larm_action(self, relative_angle, vel=20):
@@ -347,9 +404,13 @@ class Sim(object):
     def move_robobo(self, vel=20):
         """Move Robobo! wih a specific velocity (default 20)"""
         x, y = self.robobo_get_pos()
-        self.robobo_set_pos((x + vel * math.cos(self.robobo._angle * math.pi / 180),
-                             y + vel * math.sin(self.robobo._angle * math.pi / 180)))
-        if self.ball_position == 'robobo':
+        self.robobo_set_pos(
+            (
+                x + vel * math.cos(self.robobo._angle * math.pi / 180),
+                y + vel * math.sin(self.robobo._angle * math.pi / 180),
+            )
+        )
+        if self.ball_position == "robobo":
             self.ball_set_pos(self.robobo_act_get_pos())
 
     def robobo_action(self, relative_angle, vel=20):
@@ -364,7 +425,6 @@ class Sim(object):
         """Move robobo and baxter left arm with a specific angle and velocity (default 20)"""
         self.robobo_action(relative_angles[0], vel_rob)
         self.baxter_larm_action(relative_angles[1], vel_baxt)
-
 
     # def move_baxter_rarm_ball(self, vel=10):
     #     x, y = self.baxter_rarm_get_pos()
@@ -386,7 +446,7 @@ class Sim(object):
 
     def get_reward(self):
         """Return the reward checking if the ball is inside one of the boxes"""
-        if self.ball_position == 'box1':  # or self.ball_position == 'box2':
+        if self.ball_position == "box1":  # or self.ball_position == 'box2':
             reward = 1
         else:
             reward = 0
@@ -411,16 +471,16 @@ class Sim(object):
         min_dist_robot = 50
         # Ball position: Check where the ball has to be (check distances)
         sens = self.get_sensorization()
-        if sens[2] < min_dist_box and self.ball_position == 'baxter_larm':  # distance ball-box1
+        if sens[2] < min_dist_box and self.ball_position == "baxter_larm":  # distance ball-box1
             # if self.ball_position == 'baxter_larm':
             #     self.baxter_larm_set_pos(self.box1_get_pos())
-            self.ball_position = 'box1'
+            self.ball_position = "box1"
             # self.ball_set_pos(self.box1_get_pos())
         elif sens[1] < min_dist_robot:  # distance ball-baxter_larm
-            self.ball_position = 'baxter_larm'
+            self.ball_position = "baxter_larm"
             self.ball_set_pos(self.baxter_larm_act_get_pos())
         elif sens[0] < min_dist_robot:  # distance ball-robobo
-            self.ball_position = 'robobo'
+            self.ball_position = "robobo"
             self.ball_set_pos(self.robobo_act_get_pos())
         else:
             self.ball_position = None
@@ -429,16 +489,16 @@ class Sim(object):
         """Check if the next position of one of the robots is inside its movement limits"""
         (x, y) = pos
         # Set limits for robots movements
-        lim_robobo_x = (100, 2400)#(100, 1250)  # (x_min,x_max)
-        lim_robobo_y = (50, 800)#(50, 950)
+        lim_robobo_x = (100, 2400)  # (100, 1250)  # (x_min,x_max)
+        lim_robobo_y = (50, 800)  # (50, 950)
         lim_baxter_x = (1250, 2400)
         lim_baxter_y = (50, 800)
         # Movement boundaries
         result = 1
-        if robot_type == 'robobo':
+        if robot_type == "robobo":
             if x < lim_robobo_x[0] or x > lim_robobo_x[1] or y < lim_robobo_y[0] or y > lim_robobo_y[1]:
                 result = 0  # Do not move: it may crash
-        elif robot_type == 'baxter':
+        elif robot_type == "baxter":
             if x < lim_baxter_x[0] or x > lim_baxter_x[1] or y < lim_baxter_y[0] or y > lim_baxter_y[1]:
                 result = 0  # Do not move: exceed movement boundaries
 
@@ -451,21 +511,22 @@ class Sim(object):
 
     # def baxter_state_space(self):
 
-        # x5, y5 = self.baxter_figure_4.center
-        # x4, y4 = self.baxter_figure_3.center
-        # x3, y3 = self.baxter_figure_2.center
-        # x2, y2 = self.baxter_figure_1.center
-        # x1, y1 = self.baxter_figure.center
-        #
-        # x, y = 2700 + self.get_sensorization()[0] / 2, 264 + self.get_sensorization()[1] / 2
-        #
-        # self.baxter_figure.center = (x, y)
-        # self.baxter_figure_1.center = (x1, y1)
-        # self.baxter_figure_2.center = (x2, y2)
-        # self.baxter_figure_3.center = (x3, y3)
-        # self.baxter_figure_4.center = (x4, y4)
-        # self.baxter_figure_5.center = (x5, y5)
-        # self.fig.canvas.draw()
+    # x5, y5 = self.baxter_figure_4.center
+    # x4, y4 = self.baxter_figure_3.center
+    # x3, y3 = self.baxter_figure_2.center
+    # x2, y2 = self.baxter_figure_1.center
+    # x1, y1 = self.baxter_figure.center
+    #
+    # x, y = 2700 + self.get_sensorization()[0] / 2, 264 + self.get_sensorization()[1] / 2
+    #
+    # self.baxter_figure.center = (x, y)
+    # self.baxter_figure_1.center = (x1, y1)
+    # self.baxter_figure_2.center = (x2, y2)
+    # self.baxter_figure_3.center = (x3, y3)
+    # self.baxter_figure_4.center = (x4, y4)
+    # self.baxter_figure_5.center = (x5, y5)
+    # self.fig.canvas.draw()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     a = Sim()
