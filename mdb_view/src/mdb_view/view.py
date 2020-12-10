@@ -45,10 +45,12 @@ class VIEW(object):
         self.save_dir = ""
         self.default_class = OrderedDict()
         self.default_ros_node_prefix = OrderedDict()
+        self.default_ros_data_prefix = OrderedDict()
         
         #VISUALIZATION CONTAINERS AND STYLES
         self.pnode_temp_trace = go.Scatter()
         self.app = dash.Dash(__name__, suppress_callback_exceptions=True)
+        self.sens_names = []
         self.stylesheet=[
             {
                 'selector': 'node',
@@ -344,6 +346,7 @@ class VIEW(object):
                             name = '',
                             activation = 0,
                             position =  {'x': 5*75, 'y': -0.5*75})
+        self.set_title()
     
     def set_title(self):
         rospy.loginfo('Updating title')
@@ -378,7 +381,6 @@ class VIEW(object):
                 )
             trace.r = df[xaxis]
             trace.theta = df[yaxis]*180/math.pi
-            trace.marker.color = df['color']
         else:
             trace = go.Scatter(
             x=[], y=[],
@@ -395,12 +397,12 @@ class VIEW(object):
             )
             trace.x = df[xaxis]
             trace.y = df[yaxis]
-            trace.marker.color = df['color']
+        trace.marker.color =['blue' if confidence == 1 else 'red' for confidence in df['confidence']]
         return trace
     
     def update_fig_nodes(self, n_intervals, value1, value2, value3, value4, value5):        
         options = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'PNode']
-        options2 = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'Perception']
+        options2 = [{'label': column, 'value': column} for column in self.sens_names]
         try:
             trace1 = self.update_pnode_figure(value1, value3, value4, value5)
             trace2 = self.update_pnode_figure(value2, value3, value4, value5)
@@ -580,6 +582,7 @@ class VIEW(object):
         for connector in connectors:
             self.default_class[connector["data"]] = connector.get("default_class")
             self.default_ros_node_prefix[connector["data"]] = connector.get("ros_node_prefix")
+            self.default_ros_data_prefix[connector["data"]] = connector.get("ros_data_prefix")
             if self.default_ros_node_prefix[connector["data"]] is not None:
                 topic = rospy.get_param(connector["ros_node_prefix"] + "_topic")
                 message = self.class_from_classname(rospy.get_param(connector["ros_node_prefix"] + "_msg"))
@@ -587,6 +590,11 @@ class VIEW(object):
                 callback_args = connector["data"]
                 rospy.logdebug("Subscribing to %s...", topic)
                 rospy.Subscriber(topic, message, callback=callback, callback_args=callback_args)
+        topic = '/mdb/ltm/p_node_update'
+        message = self.class_from_classname(rospy.get_param('/mdb/p_node_update_msg'))
+        callback = self.add_point_callback
+        rospy.logdebug("Subscribing to %s...", topic)
+        rospy.Subscriber(topic, message, callback=callback)
     
     def setup(self, log_level, file_name):
         """Init VIEW: read ROS parameters, init ROS subscribers and load initial nodes."""
@@ -633,6 +641,10 @@ class VIEW(object):
                 posx = idx // 3
                 posy = idx % 3
                 posx = 1 + posx + posy / 3.0
+                columns = data.names
+                self.sens_names = data.names
+                columns.append("confidence")
+                self.pnode_dict[ident] = pd.DataFrame(columns = columns)
             elif(node_type == "Goal"):
                 posx, posy = 3*idx, 4
             elif(node_type == "ForwardModel"):
@@ -676,6 +688,11 @@ class VIEW(object):
             rospy.loginfo("Updated {} activation to {}".format(data.id, data.activation))
             self.graph.nodes()[ident]["activation"] = data.activation
     
+    def add_point_callback(self, data):
+        new_data = list(data.point)
+        new_data.append(data.confidence)
+        self.pnode_dict[data.id].loc[len(self.pnode_dict[data.id])] = new_data
+
     def info_callback(self, data):
         rospy.loginfo('Updating information from LTM')
         self.iteration = data.iteration
