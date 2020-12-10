@@ -21,30 +21,41 @@ from dash.dependencies import Input, Output, State
 
 class VIEW(object):
     def __init__(self):
+        #INFO VARIABLES
         self.iteration = 0
-        self.graph = nx.Graph()
-        self.paused = True
-        self.pnode_temp_trace = go.Scatter()
-        self.pnode_dict = {}
-        self.nodes_config = {'PNode': {'history': 0},
-                             'CNode': {'history': 0},
-                             'Goal':  {'history': 0},
-                             'ForwardModel': {'history': 0},
-                             'Goal': {'history': 0},
-                             'Perception': {'history': 0},
-                             'Policy': {'history': 0}}
+        self.current_world = ""
+        self.current_policy = ""
+        self.current_reward = 0
+        self.current_goal = ""
 
+        #GRAPH CONSTRUCTION VARIABLES
+        self.graph = nx.Graph()
+        self.pnode_dict = {}
+        self.nodes_config = {'PNode': 0,
+                             'CNode': 0,
+                             'Goal':  0,
+                             'ForwardModel': 0,
+                             'Goal': 0,
+                             'Perception': 0,
+                             'Policy': 0}
+        self.init_graph()
+
+        #CONTROL VARIABLES
+        self.paused = True
+        self.save_dir = ""
         self.default_class = OrderedDict()
         self.default_ros_node_prefix = OrderedDict()
-        self.save_dir = ""
-
-        self.app = dash.Dash(__name__, suppress_callback_exceptions=True)
         
+        #VISUALIZATION CONTAINERS AND STYLES
+        self.pnode_temp_trace = go.Scatter()
+        self.app = dash.Dash(__name__, suppress_callback_exceptions=True)
         self.stylesheet=[
             {
                 'selector': 'node',
                 'style': {
                     'label': 'data(name)',
+                    'size' : '25%',
+                    'font-size' : '19', 
                     'position': 'data(position)',
                     'background-opacity' : 'data(activation)'
                 }
@@ -52,7 +63,7 @@ class VIEW(object):
             {
                 'selector': 'edge',
                 'style': {
-                    'width' : '1%',
+                    'width' : 'data(width)',
                     'curve-style' : 'bezier',
                     'line-color' : 'data(color)'
                 }
@@ -92,149 +103,181 @@ class VIEW(object):
                 'style': {
                     'background-color': 'green'
                 }
-            }
+            },
+            {
+                'selector': '[node_type *= "title"]',
+                'style': {
+                    'size' : '1%',
+                    'text-wrap' : 'wrap',
+                    'font-weight': 'bold'
+                }
+            },
         ]
-        
+
         self.index_page = html.Div(
-            className = 'twelve columns',
-            style = {'width': '100%', 'display': 'flex', 'align-items': 'center', 'justify-content': 'center', 'textAlign': 'center'},
-            children = [
+                className = 'twelve columns',
+                style = {
+                    'width': '100%', 
+                    'display': 'flex', 
+                    'align-items': 'center', 
+                    'justify-content': 'center', 
+                    'textAlign': 'center'
+                    },
+                children = [
+                    html.Div(
+                        className = 'four columns',
+                        children = [
+                            html.H1('LTM'),
+                            html.H6('Seleccione esta imagen para ver la red de nodos de la LTM'),
+                            html.A([
+                                html.Img(
+                                    src= self.app.get_asset_url('ltm.jpg'),
+                                    )
+                                ], href='/ltm'),
+                            ]
+                    ),
+                    html.Div(
+                        className = 'four columns',
+                        children = [
+                            html.H1('Nodes'),
+                            html.H6('Seleccione esta imagen para ver los puntos y antipuntos de los PNodes'),
+                            html.A([
+                                html.Img(
+                                    src= self.app.get_asset_url('ltm.jpg'),
+                                    )
+                                ], href='/nodes'),
+                            ]
+                    )
+                ])
+        
+        self.ltm_layout = html.Div([
+                html.H1('LTM', style={'textAlign': 'center'}),
                 html.Div(
-                    className = 'four columns',
+                    style = {'width': '100%', 'display': 'flex', 'align-items': 'center', 'justify-content': 'center'},
                     children = [
-                        html.H1('LTM'),
-                        html.H6('Seleccione esta imagen para ver la red de nodos de la LTM'),
-                        html.A([
-                            html.Img(
-                                src= self.app.get_asset_url('ltm.jpg'),
-                                )
-                            ], href='/ltm'),
-                        ]
+                        html.Button(
+                            children = 'Pausa', 
+                            title = 'Inicio', 
+                            id = 'pause', 
+                            n_clicks = 0,
+                            style={'margin':'10px'}
+                        ),
+                        html.Button(
+                            children = 'Guardar', 
+                            title = 'Guardar', 
+                            id = 'save', 
+                            style={'margin':'10px'}
+                        )
+                    ]
                 ),
                 html.Div(
-                    className = 'four columns',
+                    className="eight columns",
+                    style = {'background-color' : 'white'},
                     children = [
-                        html.H1('Nodes'),
-                        html.H6('Seleccione esta imagen para ver los puntos y antipuntos de los PNodes'),
-                        html.A([
-                            html.Img(
-                                src= self.app.get_asset_url('ltm.jpg'),
-                                )
-                            ], href='/nodes'),
-                        ]
-                )
-            ])
-    
-        self.ltm_layout = html.Div([
-            html.H1('LTM', style={'textAlign': 'center'}),
-            html.Div(
-                # className = 'row',
-                style = {'width': '100%', 'display': 'flex', 'align-items': 'center', 'justify-content': 'center'},
-                children = [
-                    html.Button(
-                        # className = 'col-sm-3',
-                        children = 'Pausa', 
-                        title = 'Inicio', 
-                        id = 'pause', 
-                        n_clicks = 0,
-                        style={'margin':'10px'}
-                    ),
-                    html.Button(
-                        # className = 'col-sm-3',
-                        children = 'Guardar', 
-                        title = 'Guardar', 
-                        id = 'save', 
-                        style={'margin':'10px'}
-                    )
-                ]
-            ),
-            html.Div(
-                className="eight columns",
-                style = {'background-color' : 'white'},
-                children = [
-                    cyto.Cytoscape(
-                        id='cytoscape-ltm',
-                        layout={'name': 'preset'},
-                        style={'width': '100%', 'height': '550px'},
-                        elements = [],
-                        stylesheet = self.stylesheet
-                    )
-                ]
-            ),
-            html.Div(
-                style = {'background-color': '#6f8bc0'},
-                className="three columns",
-                children=[
-                    html.Div(
-                        className='twelve columns',
-                        children=[
-                            dcc.Markdown(children = "Información del nodo", id = 'hover_mk', style={'textAlign': 'center'}),
-                            # html.Pre(id='hover-data', style=styles['pre'])
-                            html.Pre(
-                                id='hover-data')
-                        ],
-                        style={'height': '100%'}),
-                    html.Div(
-                        className='twelve columns',
-                        children=[
-                            dcc.Markdown(children = "Información del nodo", id = 'click_mk', style={'textAlign': 'center'}),
-                            # html.Pre(id='click-data', style=styles['pre'])
-                            html.Pre(
-                                id='click-data')
-                        ],
-                        style={'height': '100%'}),
+                        cyto.Cytoscape(
+                            id='cytoscape-ltm',
+                            layout={'name': 'preset'},
+                            style={'width': '100%', 'height': '600px'},
+                            elements = [],
+                            stylesheet = self.stylesheet
+                        )
                     ]
-            ),
-            html.Div(
-                className = 'twelve columns',
-                children = [
-                    dcc.Link('Nodes', href='/nodes'),
-                ]
-            ),
-            dcc.Interval(
-                id = 'interval-ltm',
-                interval = 1*1000,
-                n_intervals = 0)
-            ])
-        
+                ),
+                html.Div(
+                    style = {
+                        'background-color': '#6f8bc0', 
+                        'height': '100%'
+                        },
+                    className="three columns",
+                    children=[
+                        html.Div(
+                            className='twelve columns',
+                            children=[
+                                dcc.Markdown(
+                                    children = "Información del nodo", 
+                                    id = 'hover_mk', 
+                                    style={
+                                        'textAlign': 'center'
+                                        }
+                                    ),
+                                html.Pre(
+                                    id='hover-data'
+                                    ),
+                                dcc.Markdown(
+                                    children = "Información del nodo", 
+                                    id = 'click_mk', 
+                                    style={
+                                        'textAlign': 'center'
+                                        }
+                                    ),
+                                html.Pre(
+                                    id='click-data'
+                                    )
+                            ]
+                        )
+                    ]
+                ),
+                html.Div(
+                    className = 'twelve columns',
+                    children = [
+                        dcc.Link('Nodes', href='/nodes'),
+                        dcc.Interval(
+                            id = 'interval-ltm',
+                            interval = 1*1000,
+                            n_intervals = 0)
+                            ]
+                        )
+                ])
+            
         self.node_layout = html.Div([
-            html.H1('Nodes', style={'textAlign': 'center'}),
-            html.Div(
-                className = 'five columns',
-                style = {'width': '37%', 'display': 'inline-block', 'align-items': 'center', 'justify-content': 'center'},
-                children = [
-                    dcc.Dropdown(
-                        id='nodes-dropdown1',
-                        options=[],
-                        value='', 
-                        style = {'width': '100%', 'color': 'black'}
-                        ),
-                    dcc.Graph(
-                        id="graph-with-nodes1"
-                        )
-                ]
-            ),
-            html.Div(
-                className = 'five columns',
-                style = {'width': '37%', 'display': 'inline-block', 'align-items': 'center', 'justify-content': 'center'},
-                children = [
-                    dcc.Dropdown(
-                        id='nodes-dropdown2',
-                        options=[],
-                        value='', 
-                        style = {'width': '100%', 'color': 'black'}
-                        ),
-                    dcc.Graph(
-                        id="graph-with-nodes2"
-                        )
-                ]
-            ),
-            html.Div(
-                className="two columns",
-                style = {'align-items': 'center'},
-                children=[
-                    html.Div(
-                        children=[
+                html.H1('Nodes', style={'textAlign': 'center'}),
+                html.Div(
+                    className = 'five columns',
+                    style = {
+                        'width': '37%', 
+                        'display': 'inline-block', 
+                        'align-items': 'center', 
+                        'justify-content': 'center'
+                        },
+                    children = [
+                        dcc.Dropdown(
+                            id='nodes-dropdown1',
+                            options=[],
+                            value='', 
+                            style = {'width': '100%', 'color': 'black'}
+                            ),
+                        dcc.Graph(
+                            id="graph-with-nodes1"
+                            )
+                    ]
+                ),
+                html.Div(
+                    className = 'five columns',
+                    style = {
+                        'width': '37%', 
+                        'display': 'inline-block', 
+                        'align-items': 'center', 
+                        'justify-content': 'center'
+                        },
+                    children = [
+                        dcc.Dropdown(
+                            id='nodes-dropdown2',
+                            options=[],
+                            value='', 
+                            style = {'width': '100%', 'color': 'black'}
+                            ),
+                        dcc.Graph(
+                            id="graph-with-nodes2"
+                            )
+                    ]
+                ),
+                html.Div(
+                    className="two columns",
+                    style = {
+                        'align-items': 'center', 
+                        'height': '100%'
+                        },
+                    children=[
                             dcc.Markdown(
                                 children = "Configuración", 
                                 id = 'config', 
@@ -273,21 +316,19 @@ class VIEW(object):
                                 style = {'width': '100%', 'color': 'black'}
                             )
                         ],
-                        style={'height': '100%'}),
+                ),
+                html.Div(
+                    className = 'twelve columns',
+                    children = [
+                        dcc.Link('LTM', href='/ltm'),
+                        dcc.Interval(
+                            id = 'interval-nodes',
+                            interval = 1*1000,
+                            n_intervals = 0
+                        )
                     ]
-            ),
-            html.Div(
-                className = 'twelve columns',
-                children = [
-                    dcc.Link('LTM', href='/ltm'),
-                ]
-            ),
-            dcc.Interval(
-                id = 'interval-nodes',
-                interval = 1*1000,
-                n_intervals = 0
-            )
-            ]) 
+                ),
+                ]) 
 
     ########CALLBACK FUNCTIONS##########
     '''Functions used to add interactivity to the web app. Here
@@ -296,6 +337,17 @@ class VIEW(object):
     functions to pause the simulation, to save the graphs, display 
     info when hovering or clicking over a node and to update the
     web page layout'''
+
+    def init_graph(self):
+        self.graph.add_node('title',
+                            node_type = 'title',
+                            name = '',
+                            activation = 0,
+                            position =  {'x': 5*75, 'y': -0.5*75})
+    
+    def set_title(self):
+        rospy.loginfo('Updating title')
+        self.graph.nodes()['title']['name'] = "GOAL: {} WORLD: {} \nITERATION: {} REWARD: {}\nPOLICY: ".format(self.current_goal, self.current_world, self.iteration, self.current_reward, self.current_policy)    
 
     # Functions to update the LTM figure
     def update_fig_ltm(self, n_intervals):
@@ -347,14 +399,15 @@ class VIEW(object):
         return trace
     
     def update_fig_nodes(self, n_intervals, value1, value2, value3, value4, value5):        
-        options = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'pnode']
-        options2 = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'perception']
+        options = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'PNode']
+        options2 = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'Perception']
         try:
             trace1 = self.update_pnode_figure(value1, value3, value4, value5)
             trace2 = self.update_pnode_figure(value2, value3, value4, value5)
         except:
             trace1 = self.pnode_temp_trace
             trace2 = self.pnode_temp_trace
+        
         fig1 = go.Figure(
                 data = [trace1],
                 layout = go.Layout(
@@ -385,6 +438,7 @@ class VIEW(object):
                 )
 
         return options, options, fig1, fig2, options2, options2
+    
     # Function to display info on hover or click
     def display_info(self, data):
         display = ''
@@ -400,8 +454,8 @@ class VIEW(object):
             display += 'Conectado con: \n'
             for node in adj_nodes:
                 display += ' '*5 + self.graph.nodes()[node]['name'] + '\n'
-                display += ' '*7 + 'Tipo de nodo: {}\n'.format(self.graph.nodes()[node]['node_type']) + '\n'
-                display += ' '*7 + 'Activación: {}\n'.format(self.graph.nodes()[node]['activation']) + '\n'
+                display += ' '*7 + 'Tipo de nodo: {}\n'.format(self.graph.nodes()[node]['node_type'])
+                display += ' '*7 + 'Activación: {}\n'.format(self.graph.nodes()[node]['activation'])
             title = 'Información de ' + node_name
         except:
             pass
@@ -463,10 +517,13 @@ class VIEW(object):
     def update_pause(self, n_clicks):
         self.paused = not(self.paused)
         if(self.paused):
+            self.control_publisher.publish(command = "pause", world = "", reward = False)
             rospy.loginfo('Se ha pausado el proceso')
             return 'Reanudar', 1*1000*60*60
-        rospy.loginfo('Se ha reanudado el proceso')
-        return 'Pausar', 1000
+        else:
+            rospy.loginfo('Se ha reanudado el proceso')
+            self.control_publisher.publish(command = "continue", world = "", reward = False)
+            return 'Pausar', 1000
 
     def save_graph(self, n_clicks2):
         ftype = 'png'
@@ -514,7 +571,9 @@ class VIEW(object):
         topic = rospy.get_param(control_channel["control_prefix"] + "_topic")
         self.control_message = self.class_from_classname(rospy.get_param(control_channel["control_prefix"] + "_msg"))
         self.control_publisher = rospy.Publisher(topic, self.control_message, latch=True, queue_size=0)
-        rospy.logdebug("Subscribing to %s...", topic)
+        topic = rospy.get_param(control_channel["info_prefix"] + "_topic")
+        message = self.class_from_classname(rospy.get_param(control_channel["info_prefix"] + "_msg"))
+        rospy.Subscriber(topic, message, callback=self.info_callback)
     
     def setup_topics(self, connectors):
         """Load topic configuration for adding nodes."""
@@ -540,13 +599,9 @@ class VIEW(object):
                 rospy.init_node("mdb_view", log_level = getattr(rospy, log_level))
                 rospy.loginfo("Loading configuration from %s...", file_name)
                 configuration = yaml.load(open(file_name, "r"), Loader=yamlloader.ordereddict.CLoader)
-                # configuration =s yaml.load(open(file_name, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
                 self.setup_topics(configuration["LTM"]["Connectors"])
                 self.setup_control_channel(configuration["Control"])
                 rospy.on_shutdown(self.shutdown)
-                # rospy.loginfo('setup function gets here 3')
-                # rospy.on_shutdown(self.shutdown)
-                # rospy.loginfo('setup function gets here 3')
     
     def run(self, seed = None, log_level = "INFO", save_dir = None):
         """Start the visualization part"""
@@ -555,7 +610,7 @@ class VIEW(object):
             self.setup(log_level, seed)
             self.save_dir = save_dir
             self.ask_for_ltm()
-            self.app.run_server()
+            self.app.run_server(use_reloader = False, debug = True)
             rospy.spin()
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
@@ -570,10 +625,10 @@ class VIEW(object):
     and for sending commands to the control topic'''
 
     def add_node_callback(self, data, node_type):
-        rospy.loginfo('Received node')
+        rospy.loginfo('Received node {}'.format(data.id))
         ident = data.id
-        if(not(self.graph.has_node(ident))):
-            idx = self.nodes_config[node_type]['history']
+        if (data.command == "new"):
+            idx = self.nodes_config[node_type]
             if(node_type == "PNode"):
                 posx = idx // 3
                 posy = idx % 3
@@ -596,14 +651,42 @@ class VIEW(object):
                                 position =  {'x': posx*75, 'y': posy*75},
                                 node_type = node_type,
                                 name = ident,
-                                activation = 0.5
+                                activation = data.activation
                                 )
-            self.nodes_config[node_type]['history'] += 1
-        else:
-            rospy.logwarn('Node {} already created'.format(ident))
+            self.nodes_config[node_type] += 1
+
+            for neighbor, neighbor_node_type in zip(data.neighbor_ids, data.neighbor_types):
+                if neighbor_node_type == "CNode" or node_type == "CNode":
+                    width = 1
+                    if neighbor_node_type == "PNode" or node_type == "PNode":
+                        color = "purple"
+                    elif neighbor_node_type == "Goal" or node_type == "Goal":
+                        color = "green"
+                    elif neighbor_node_type == "ForwardModel" or node_type == "ForwardModel":
+                        color = "blue"
+                    elif neighbor_node_type == "Policy" or node_type == "Policy":
+                        color = "red"
+                else:
+                    color = "black"
+                    width = 0.2
+                rospy.loginfo('Adding connection between {} and {}'.format(ident, neighbor))
+                self.graph.add_edge(ident, neighbor, color = color, width = width)
+
+        elif(data.command == "update"):
+            rospy.loginfo("Updated {} activation to {}".format(data.id, data.activation))
+            self.graph.nodes()[ident]["activation"] = data.activation
+    
+    def info_callback(self, data):
+        rospy.loginfo('Updating information from LTM')
+        self.iteration = data.iteration
+        self.current_world = data.current_world
+        self.current_policy = data.current_policy
+        self.current_reward = data.current_reward
+        self.current_goal = data.current_goal
+        self.set_title()
 
     def ask_for_ltm(self):
         rospy.logdebug('Asking for current nodes in LTM')
-        self.control_publisher.publish(command = "publish_ltm", world = "not", reward = False)
+        self.control_publisher.publish(command = "publish_ltm", world = "", reward = False)
 
 

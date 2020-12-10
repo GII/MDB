@@ -309,8 +309,13 @@ class LTM(object):
     def control_callback(self, message):
         """Read a command published in the control topic and find out if something must be done."""
         if message.command == "publish_ltm":
-            for node in self.nodes:
-                node.publish(first_time=True)
+            for nodes in self.nodes.values():
+                if isinstance(nodes, OrderedDict):
+                    for node in nodes.values():
+                        node.publish(first_time = True)
+                elif isinstance(nodes, list):
+                    for node in nodes:
+                        node.publish(first_time = True)
         elif message.command == "pause":
             self.paused = True
         elif message.command == "continue":
