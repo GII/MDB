@@ -7,6 +7,7 @@ https://github.com/GII/MDB
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
+from future.utils import bytes_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -163,10 +164,7 @@ class LTM(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        if sys.version_info < (3, 0):
-            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
-        else:
-            node_module = __import__(module_string, fromlist=[class_string])
+        node_module = __import__(module_string, fromlist=[bytes_to_native_str(bytes(class_string, "utf-8"))])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
@@ -312,10 +310,10 @@ class LTM(object):
             for nodes in self.nodes.values():
                 if isinstance(nodes, OrderedDict):
                     for node in nodes.values():
-                        node.publish(first_time = True)
+                        node.publish(first_time=True)
                 elif isinstance(nodes, list):
                     for node in nodes:
-                        node.publish(first_time = True)
+                        node.publish(first_time=True)
         elif message.command == "pause":
             self.paused = True
         elif message.command == "continue":
