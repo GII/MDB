@@ -111,4 +111,4 @@ if __name__ == "__main__":
     try:
         main(sys.argv)
     except RuntimeError as e:
-        rospy.logerr(f"Something went wrong: {e}")
+        rospy.logerr("Something went wrong: " + e)

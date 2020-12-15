@@ -157,7 +157,15 @@ class Baxter(Robot):
                     if kullback_leibler_symmetrised_divergence < score
                     else (recognized_object, score)
                 )
-            print(f"{recognized_object}\t{int(detected_object[0]):3}\t{int(detected_object[1]):3}\t{score:3.2}")
+            print(
+                recognized_object
+                + "\t"
+                + str(int(detected_object[0]))
+                + "\t"
+                + str(int(detected_object[1]))
+                + "\t"
+                + str(score)
+            )
         return image
 
     def update_objects(self, blobs):
