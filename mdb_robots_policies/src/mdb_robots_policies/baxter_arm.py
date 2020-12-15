@@ -7,6 +7,7 @@ https://github.com/GII/MDB
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
+from future.utils import bytes_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -50,9 +51,9 @@ class baxter_arm(object):
             print("Service call failed: ", str(e))
             exit(1)
 
-        self.both_group = moveit_commander.MoveGroupCommander("both_arms")
-        self.larm_group = moveit_commander.MoveGroupCommander("left_arm")
-        self.rarm_group = moveit_commander.MoveGroupCommander("right_arm")
+        self.both_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"both_arms"))
+        self.larm_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"left_arm"))
+        self.rarm_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"right_arm"))
 
         self.lgripper = Gripper("left")
         self.lgripper_state = False

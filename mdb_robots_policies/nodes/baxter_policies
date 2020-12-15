@@ -25,6 +25,7 @@ from dynamic_reconfigure import client
 from std_msgs.msg import Bool, Float64, Int32
 from geometry_msgs.msg import PointStamped
 from gazebo_msgs.srv import GetModelState
+import moveit_commander
 
 # MDB imports
 from mdb_robots_policies.baxter_arm import baxter_arm
