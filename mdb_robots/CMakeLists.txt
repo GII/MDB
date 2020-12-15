@@ -171,6 +171,7 @@ include_directories(
 # )
 catkin_install_python(PROGRAMS
   nodes/mdb_baxter
+  nodes/mdb_robobo
   scripts/calculate_object_descriptors
   scripts/classify_objects
   scripts/extract_features
@@ -197,6 +198,12 @@ catkin_install_python(PROGRAMS
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
 
 #############
 ## Testing ##
