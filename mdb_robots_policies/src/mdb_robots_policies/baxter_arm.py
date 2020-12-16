@@ -411,7 +411,8 @@ class baxter_arm(object):
             if resp.error_code.val == 1:
                 # self.change_velocity(resp.solution, scale)
                 pet = self.choose_arm_group(side).execute(resp.solution, True)
-                if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
+                # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
+                if pet and pick:
                     self.gripper_manager(side)
                     rospy.sleep(0.5)
                 self.update_data()
@@ -499,7 +500,8 @@ class baxter_arm(object):
         if b_plan:
             try:
                 pet = self.choose_arm_group("both").execute(b_plan, True)
-                if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
+                # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
+                if pet and pick:
                     self.gripper_manager(self.lgripper)
                     self.gripper_manager(self.rgripper)
                 return True
