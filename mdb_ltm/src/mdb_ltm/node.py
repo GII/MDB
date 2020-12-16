@@ -87,10 +87,10 @@ class Node(object):
             message.activation = max(self.activation)
         else:
             message.activation = self.activation
-        message.execute_service = ""
-        message.get_service = ""
-        message.class_name = ""
-        message.language = ""
+        message.execute_service = bytes_to_native_str(b"")
+        message.get_service = bytes_to_native_str(b"")
+        message.class_name = bytes_to_native_str(b"")
+        message.language = bytes_to_native_str(b"")
         self.node_publisher.publish(message)
 
     def calc_activation(self, perception=None):
