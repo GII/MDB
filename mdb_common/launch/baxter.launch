@@ -35,4 +35,8 @@
   </include> -->
 
   <include file="$(find baxter_moveit_config)/launch/default_warehouse_db.launch" />
+
+  <!-- RELAY of /robot/joint_states into /joint_states so the state of the robot can be accesed through the moveit api -->
+  <node name="relay_node" pkg="topic_tools" type="relay" args="/robot/joint_states /joint_states"/>
+
 </launch>
