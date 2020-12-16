@@ -7,6 +7,7 @@ https://github.com/GII/MDB
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
+from future.utils import bytes_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -76,9 +77,9 @@ class Node(object):
         if not message:
             message = self.node_message()
         if first_time:
-            message.command = "new"
+            message.command = bytes_to_native_str(b"new")
         else:
-            message.command = "update"
+            message.command = bytes_to_native_str(b"update")
         message.id = self.ident
         message.neighbor_ids = [node.ident for node in self.neighbors]
         message.neighbor_types = [node.type for node in self.neighbors]
