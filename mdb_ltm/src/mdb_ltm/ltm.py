@@ -173,7 +173,7 @@ class LTM(object):
         """Add a new node."""
         # Set the name
         if ident is None:
-            ident = node_type + str(len(self.nodes[node_type]))
+            ident = text_to_native_str(node_type + str(len(self.nodes[node_type])))
         # Create the object
         node = self.class_from_classname(class_name)(ident=ident, node_type=node_type, ltm=self, **kwargs)
         # Add the object to the appropriate list (the perceptions are in a dictionary, not a list)
