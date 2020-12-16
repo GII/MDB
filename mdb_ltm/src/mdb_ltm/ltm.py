@@ -164,7 +164,7 @@ class LTM(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        node_module = __import__(module_string, fromlist=[text_to_native_str(ytes(class_string, "utf-8"))])
+        node_module = __import__(module_string, fromlist=[text_to_native_str(class_string)])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
