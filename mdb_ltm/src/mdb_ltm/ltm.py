@@ -7,7 +7,7 @@ https://github.com/GII/MDB
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
-from future.utils import bytes_to_native_str
+from future.utils import text_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -164,7 +164,7 @@ class LTM(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        node_module = __import__(module_string, fromlist=[bytes_to_native_str(bytes(class_string, "utf-8"))])
+        node_module = __import__(module_string, fromlist=[text_to_native_str(ytes(class_string, "utf-8"))])
         # node_module = importlib.import_module('.' + class_string, package=module_string)
         node_class = getattr(node_module, class_string)
         return node_class
@@ -226,7 +226,7 @@ class LTM(object):
 
     def add_node_callback(self, data, node_type):
         """Add a new node without worrying about its class."""
-        if data._connection_header["callerid"] != rospy.get_name() and data.command == "new":
+        if data._connection_header["callerid"] != rospy.get_name() and data.command == text_to_native_str("new"):
             node_class = None
             if data.execute_service != "" or data.get_service != "":
                 node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
@@ -290,7 +290,7 @@ class LTM(object):
             rospy.logdebug("Loading %s...", node_type)
             for element in node_list:
                 class_name = element["class"]
-                ident = element["id"]
+                ident = text_to_native_str(element["id"])
                 data = element.get("data")
                 ros_data_prefix = element.get("ros_data_prefix")
                 if not ros_data_prefix:
@@ -306,7 +306,7 @@ class LTM(object):
 
     def control_callback(self, message):
         """Read a command published in the control topic and find out if something must be done."""
-        if message.command == "publish_ltm":
+        if message.command == text_to_native_str("publish_ltm"):
             for nodes in self.nodes.values():
                 if isinstance(nodes, OrderedDict):
                     for node in nodes.values():
@@ -314,9 +314,9 @@ class LTM(object):
                 elif isinstance(nodes, list):
                     for node in nodes:
                         node.publish(first_time=True)
-        elif message.command == "pause":
+        elif message.command == text_to_native_str("pause"):
             self.paused = True
-        elif message.command == "continue":
+        elif message.command == text_to_native_str("continue"):
             self.paused = False
 
     def reward_callback(self, reward):
@@ -698,7 +698,7 @@ class LTM(object):
         """
         space = candidate_cnode.p_node.space.specialize() if candidate_cnode else None
         p_node = self.add_node(
-            node_type=bytes_to_native_str(b"PNode"),
+            node_type=text_to_native_str("PNode"),
             class_name=self.default_class["PNode"],
             ros_node_prefix=self.default_ros_node_prefix["PNode"],
             ros_data_prefix=self.default_ros_data_prefix["PNode"],
@@ -709,7 +709,7 @@ class LTM(object):
         forward_model = max(self.forward_models, key=attrgetter("max_activation"))
         neighbors = [p_node, forward_model, goal, policy]
         c_node = self.add_node(
-            node_type=bytes_to_native_str(b"CNode"),
+            node_type=text_to_native_str("CNode"),
             class_name="mdb_ltm.cnode.CNode",
             ros_node_prefix=self.default_ros_node_prefix["CNode"],
             ros_data_prefix=self.default_ros_data_prefix["CNode"],
@@ -876,7 +876,7 @@ class LTM(object):
                         if cnode.goal.space.contains(space):
                             space = cnode.goal.space.specialize(self.create_perception(sensing))
                             perfect_goal = self.add_node(
-                                node_type=bytes_to_native_str(b"Goal"),
+                                node_type=text_to_native_str("Goal"),
                                 class_name="mdb_ltm.goal.Goal",
                                 ros_node_prefix=self.default_ros_node_prefix["Goal"],
                                 ros_data_prefix=self.default_ros_data_prefix["Goal"],
@@ -888,7 +888,7 @@ class LTM(object):
             # 1.5
             if not perfect_goal:
                 perfect_goal = self.add_node(
-                    node_type=bytes_to_native_str(b"Goal"),
+                    node_type=text_to_native_str("Goal"),
                     class_name="mdb_ltm.goal.Goal",
                     ros_node_prefix=self.default_ros_node_prefix["Goal"],
                     ros_data_prefix=self.default_ros_data_prefix["Goal"],
@@ -975,7 +975,9 @@ class LTM(object):
         if changed:
             rospy.loginfo("Asking for a world reset...")
             self.control_publisher.publish(
-                command="reset_world", world=self.current_world, reward=(self.current_reward >= 0.9)
+                command=text_to_native_str("reset_world"),
+                world=self.current_world,
+                reward=(self.current_reward >= 0.9),
             )
         return changed
 

@@ -7,7 +7,7 @@ https://github.com/GII/MDB
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
-from future.utils import bytes_to_native_str
+from future.utils import text_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -44,16 +44,15 @@ class baxter_arm(object):
 
         try:
             self.compute_cp = rospy.ServiceProxy("/compute_cartesian_path", GetCartesianPath)
-            self.execute_kp = rospy.ServiceProxy("/execute_kinematic_path", ExecuteKnownTrajectory)
             self.get_es = rospy.ServiceProxy("/get_end_state", GetEndState)
             self.get_js = rospy.ServiceProxy("/get_joints_state", GetJointsState)
         except rospy.ServiceException as e:
             print("Service call failed: ", str(e))
             exit(1)
 
-        self.both_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"both_arms"))
-        self.larm_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"left_arm"))
-        self.rarm_group = moveit_commander.MoveGroupCommander(bytes_to_native_str(b"right_arm"))
+        self.both_group = moveit_commander.MoveGroupCommander(text_to_native_str("both_arms"))
+        self.larm_group = moveit_commander.MoveGroupCommander(text_to_native_str("left_arm"))
+        self.rarm_group = moveit_commander.MoveGroupCommander(text_to_native_str("right_arm"))
 
         self.lgripper = Gripper("left")
         self.lgripper_state = False
@@ -142,15 +141,14 @@ class baxter_arm(object):
     ##########################
 
     def move_to_pose_goal(self, pose, side, wait, scale):
-        self.wait_to_move()
         self.update_data()
         self.choose_arm_group(side).clear_pose_targets()
         self.choose_arm_group(side).set_pose_target(pose)
 
-        plan = self.choose_arm_group(side).plan()
+        success, plan, time, error = self.choose_arm_group(side).plan()
 
-        self.change_velocity(plan, scale)
-        self.execute_kp(plan, wait)
+        # self.change_velocity(plan, scale)
+        self.choose_arm_group(side).execute(plan, wait)
         self.update_data()
         return True
 
@@ -158,7 +156,6 @@ class baxter_arm(object):
     ###	   Position Goal   ###
     ##########################
     def move_to_position_goal_both(self, pos, wait, scale):
-        self.wait_to_move()
         self.update_data()
         self.choose_arm_group("both").clear_pose_targets()
 
@@ -180,10 +177,10 @@ class baxter_arm(object):
         self.choose_arm_group("both").set_pose_target(r_pose_target, "right_gripper")
 
         self.choose_arm_group("both").set_goal_tolerance(0.01)
-        plan = self.choose_arm_group("both").plan()
-        self.change_velocity(plan, scale)
+        success, plan, time, error = self.choose_arm_group("both").plan()
+        # self.change_velocity(plan, scale)
         try:
-            self.execute_kp(plan, wait)
+            self.choose_arm_group("both").execute(plan, wait)
             return True
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
@@ -194,7 +191,6 @@ class baxter_arm(object):
     ##########################
 
     def move_to_ori_goal_both(self, ori, wait, scale):
-        self.wait_to_move()
         self.update_data()
         self.choose_arm_group("both").clear_pose_targets()
 
@@ -217,10 +213,10 @@ class baxter_arm(object):
         r_pose_target.orientation.w = ori[7]
         self.choose_arm_group("both").set_pose_target(r_pose_target, "right_gripper")
 
-        plan = self.choose_arm_group("both").plan()
-        self.change_velocity(plan, scale)
+        success, plan, time, error = self.choose_arm_group("both").plan()
+        # self.change_velocity(plan, scale)
         try:
-            self.execute_kp(plan, wait)
+            self.choose_arm_group("both").execute(plan, wait)
             return True
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
@@ -241,13 +237,13 @@ class baxter_arm(object):
                 group_variable_values[ite] = angles[order[ite]]
         return group_variable_values
 
-    def change_velocity(self, plan, scale):
-        for point in plan.joint_trajectory.points:
-            point.time_from_start = point.time_from_start / scale
-            for velocity in point.velocities:
-                velocity = velocity * scale
-            for acceleration in point.accelerations:
-                acceleration = acceleration * scale
+    # def change_velocity(self, plan, scale):
+    #     for point in plan.joint_trajectory.points:
+    #         point.time_from_start = point.time_from_start / scale
+    #         for velocity in point.velocities:
+    #             velocity = velocity * scale
+    #         for acceleration in point.accelerations:
+    #             acceleration = acceleration * scale
 
     # Returns the joints belonging to one specific arm
     def remove_unnecesary_joints(self, joints, side):
@@ -270,14 +266,13 @@ class baxter_arm(object):
 
     # Moves the arm to a specific target of joints angles
     def move_joints_directly(self, angles, way, side, wait, scale):
-        self.wait_to_move()
         self.choose_arm_group(side).clear_pose_targets()
         group_variable_values = self.arrange_angles(angles, side, way)
 
         self.choose_arm_group(side).set_joint_value_target(group_variable_values)
-        plan = self.choose_arm_group(side).plan()
-        self.change_velocity(plan, scale)
-        self.execute_kp(plan, wait)
+        success, plan, time, error = self.choose_arm_group(side).plan()
+        # self.change_velocity(plan, scale)
+        self.choose_arm_group(side).execute(plan, wait)
 
     # Creates a set of target joints angles based of the initial state of the robot
     def create_group_joints(self, side):
@@ -298,14 +293,13 @@ class baxter_arm(object):
 
     # Restores the pose of the arm to its initial state
     def restore_arm_pose(self, side):
-        self.wait_to_move()
         group_joint_values = self.manage_group_joints(side)
         rospy.sleep(1)
         self.choose_arm_group(side).clear_pose_targets()
         self.choose_arm_group(side).set_start_state_to_current_state()
         self.choose_arm_group(side).set_joint_value_target(group_joint_values)
-        plan = self.choose_arm_group(side).plan()
-        self.execute_kp(plan, True)
+        success, plan, time, error = self.choose_arm_group(side).plan()
+        self.choose_arm_group(side).execute(plan, True)
 
     def select_joint_names(self, side):
         options = {
@@ -402,7 +396,6 @@ class baxter_arm(object):
 
     # Moves the arm to a specific waypoint in the robot 3d space and opens/closes the gripper if desired
     def move_xyz(self, x, y, z, pick, code, side, scale, perc):
-        self.wait_to_move()
         self.update_data()
         gcp_req = self.compute_cartesian_req(x, y, z, code, side)
         try:
@@ -416,8 +409,8 @@ class baxter_arm(object):
             if tries == 0:
                 return False
             if resp.error_code.val == 1:
-                self.change_velocity(resp.solution, scale)
-                pet = self.execute_kp(resp.solution, True)
+                # self.change_velocity(resp.solution, scale)
+                pet = self.choose_arm_group(side).execute(resp.solution, True)
                 if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
                     self.gripper_manager(side)
                     rospy.sleep(0.5)
@@ -429,7 +422,6 @@ class baxter_arm(object):
             return False
 
     def move_xyz_plan(self, x, y, z, code, side, perc):
-        self.wait_to_move()
         self.update_data()
         gcp_req = self.compute_cartesian_req(x, y, z, code, side)
         try:
@@ -494,20 +486,19 @@ class baxter_arm(object):
             return l_plan
 
     def move_xyz_execute(self, points, pick, code, scale, perc):
-        self.wait_to_move()
         l_plan = self.move_xyz_plan(points[0], points[1], points[2], code, "left", perc)
         r_plan = self.move_xyz_plan(points[3], points[4], points[5], code, "right", perc)
 
-        if l_plan and r_plan:
-            self.change_velocity(l_plan, scale)
-            self.change_velocity(r_plan, scale)
+        # if l_plan and r_plan:
+        #     self.change_velocity(l_plan, scale)
+        #     self.change_velocity(r_plan, scale)
 
         b_plan = None
         if l_plan and r_plan:
             b_plan = self.move_xyz_concatenate(l_plan, r_plan)
         if b_plan:
             try:
-                pet = self.execute_kp(b_plan, True)
+                pet = self.choose_arm_group("both").execute(b_plan, True)
                 if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
                     self.gripper_manager(self.lgripper)
                     self.gripper_manager(self.rgripper)
@@ -554,14 +545,6 @@ class baxter_arm(object):
             return True
         else:
             return False
-
-    ##################################
-    ### Experiment flow management ###
-    ##################################
-
-    # Waits for the service to be available, as in, there is no movement in progress
-    def wait_to_move(self):
-        self.execute_kp.wait_for_service()
 
     ################
     ### Updaters ###
