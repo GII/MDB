@@ -20,6 +20,7 @@ import rospy
 import tf
 import rospkg
 import yaml
+import yamlloader
 import numpy as np
 from dynamic_reconfigure import client
 from std_msgs.msg import Bool, Float64, Int32
@@ -292,7 +293,7 @@ class baxter_policies(object):
         custom_configuration_file = (
             self.rospack.get_path("mdb_robots_policies") + "/config/" + rospy.get_param("~throw_param_file")
         )
-        config = yaml.load(open(custom_configuration_file))
+        config = yaml.load(open(custom_configuration_file), Loader=yamlloader.ordereddict.CLoader)
         for k in list(config.keys()):
             if k == "speed":
                 for speed in config[k]:
@@ -603,7 +604,7 @@ class baxter_policies(object):
         custom_configuration_file = (
             self.rospack.get_path("mdb_robots_policies") + "/config/" + rospy.get_param("~grab_param_file")
         )
-        config = yaml.load(open(custom_configuration_file))
+        config = yaml.load(open(custom_configuration_file), Loader=yamlloader.ordereddict.CLoader)
         for k in list(config.keys()):
             if k == "angles":
                 for angle in config[k]:
@@ -1535,7 +1536,7 @@ class baxter_policies(object):
         custom_configuration_file = (
             self.rospack.get_path("mdb_robots_policies") + "/config/" + rospy.get_param("~motiven_param_file")
         )
-        config = yaml.load(open(custom_configuration_file))
+        config = yaml.load(open(custom_configuration_file), Loader=yamlloader.ordereddict.CLoader)
         for k in list(config.keys()):
             if k == "right_arm_angle":
                 for angle in config[k]:
