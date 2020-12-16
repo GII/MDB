@@ -698,7 +698,7 @@ class LTM(object):
         """
         space = candidate_cnode.p_node.space.specialize() if candidate_cnode else None
         p_node = self.add_node(
-            node_type="PNode",
+            node_type=bytes_to_native_str(b"PNode"),
             class_name=self.default_class["PNode"],
             ros_node_prefix=self.default_ros_node_prefix["PNode"],
             ros_data_prefix=self.default_ros_data_prefix["PNode"],
@@ -709,7 +709,7 @@ class LTM(object):
         forward_model = max(self.forward_models, key=attrgetter("max_activation"))
         neighbors = [p_node, forward_model, goal, policy]
         c_node = self.add_node(
-            node_type="CNode",
+            node_type=bytes_to_native_str(b"CNode"),
             class_name="mdb_ltm.cnode.CNode",
             ros_node_prefix=self.default_ros_node_prefix["CNode"],
             ros_data_prefix=self.default_ros_data_prefix["CNode"],
@@ -876,7 +876,7 @@ class LTM(object):
                         if cnode.goal.space.contains(space):
                             space = cnode.goal.space.specialize(self.create_perception(sensing))
                             perfect_goal = self.add_node(
-                                node_type="Goal",
+                                node_type=bytes_to_native_str(b"Goal"),
                                 class_name="mdb_ltm.goal.Goal",
                                 ros_node_prefix=self.default_ros_node_prefix["Goal"],
                                 ros_data_prefix=self.default_ros_data_prefix["Goal"],
@@ -888,7 +888,7 @@ class LTM(object):
             # 1.5
             if not perfect_goal:
                 perfect_goal = self.add_node(
-                    node_type="Goal",
+                    node_type=bytes_to_native_str(b"Goal"),
                     class_name="mdb_ltm.goal.Goal",
                     ros_node_prefix=self.default_ros_node_prefix["Goal"],
                     ros_data_prefix=self.default_ros_data_prefix["Goal"],
