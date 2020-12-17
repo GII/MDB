@@ -626,13 +626,13 @@ class LTM(object):
     def add_point(p_node, perception):
         """Add a point to the p-node."""
         p_node.add_perception(perception, 1.0)
-        rospy.loginfo("Added point in p-node " + p_node.ident)
+        rospy.loginfo("Added point in p-node " + p_node.ident + ": " + perception)
 
     @staticmethod
     def add_antipoint(p_node, perception):
         """Add an anti-point to the p-node."""
         p_node.add_perception(perception, -1.0)
-        rospy.loginfo("Added anti-point in p-node " + p_node.ident)
+        rospy.loginfo("Added anti-point in p-node " + p_node.ident + ": " + perception)
 
     def update_pnodes(self, current_state):
         """
