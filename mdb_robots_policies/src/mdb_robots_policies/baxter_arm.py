@@ -231,10 +231,10 @@ class baxter_arm(object):
         if side == "both":
             group_variable_values = angles
         else:
-            group_variable_values = list(range(7))
+            group_variable_values = []
             order = self.choose_joints_order(way)
-            for ite in range(0, len(group_variable_values)):
-                group_variable_values[ite] = angles[order[ite]]
+            for pos in order:
+                group_variable_values.append(angles[pos])
         return group_variable_values
 
     # def change_velocity(self, plan, scale):
@@ -412,7 +412,7 @@ class baxter_arm(object):
                 # self.change_velocity(resp.solution, scale)
                 pet = self.choose_arm_group(side).execute(resp.solution, True)
                 # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
-                if pet and pick:
+                if (not pet) and pick:
                     self.gripper_manager(side)
                     rospy.sleep(0.5)
                 self.update_data()
@@ -501,7 +501,7 @@ class baxter_arm(object):
             try:
                 pet = self.choose_arm_group("both").execute(b_plan, True)
                 # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
-                if pet and pick:
+                if (not pet) and pick:
                     self.gripper_manager(self.lgripper)
                     self.gripper_manager(self.rgripper)
                 return True
