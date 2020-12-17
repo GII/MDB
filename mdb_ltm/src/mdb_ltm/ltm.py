@@ -952,12 +952,16 @@ class LTM(object):
         """Update experiment information, and write / publish it."""
         for file_object in self.files:
             file_object.write()
+        if self.current_goal:
+            goal_name = self.current_goal.ident
+        else:
+            goal_name = ""
         self.info_publisher.publish(
             iteration=self.iteration,
             current_world=self.current_world,
-            current_policy=self.current_policy,
+            current_policy=self.current_policy.ident,
             current_reward=self.current_reward,
-            current_goal=self.current_goal,
+            current_goal=goal_name,
         )
 
     def reset_world(self):

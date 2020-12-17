@@ -4,7 +4,7 @@
     <arg name="debug" default="False"/>
     <arg name="simulator" default="True"/>
     <arg name="motiven" default="False"/>
-    <arg name="view" default="False"/>
+    <arg name="view" default="True"/>
     <arg name="config_file" default="$(find mdb_common)/config/ltm_2020_one_box.yaml" unless="$(arg motiven)"/>
     <arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
     <arg name="save_dir" default="$(find mdb_view)"/>
