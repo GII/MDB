@@ -32,7 +32,7 @@ class PNode(Node):
         self.space = space if space else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
         super().__init__(**kwargs)
 
-    def publish(self, first_time=False, **kwargs):
+    def publish(self, message=None, first_time=False):
         """Publish node information."""
         message = self.node_message()
         if not isinstance(self.space.members, list):
@@ -49,7 +49,7 @@ class PNode(Node):
                 point_message.point = point
                 point_message.confidence = confidence
                 self.data_publisher.publish(point_message)
-        super().publish(message, **kwargs)
+        super().publish(message, first_time)
 
     def add_perception(self, perception, confidence):
         """Add a new point to the p-node."""
