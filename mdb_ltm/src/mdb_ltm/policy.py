@@ -43,6 +43,7 @@ class Policy(Node):
             self.perception = []
             self.activation = 0.0
         rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
+        self.publish()
 
     def execute(self):
         """Run the policy."""

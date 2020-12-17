@@ -53,6 +53,7 @@ class CNode(Node):
             else:
                 self.perception = []
         rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
+        self.publish()
 
     def context_has_reward(self):
         """
