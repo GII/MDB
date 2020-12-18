@@ -60,12 +60,12 @@ class PNode(Node):
         point_message.id = self.ident
         if delete_point:
             point_message.command = text_to_native_str("delete")
-            point_message.point = structured_to_unstructured(delete_point)
+            point_message.point = delete_point
             point_message.confidence = delete_point_confidence
             self.data_publisher.publish(point_message)
         if added_point:
             point_message.command = text_to_native_str("new")
-            point_message.point = structured_to_unstructured(added_point)
+            point_message.point = added_point
             point_message.confidence = added_point_confidence
             self.data_publisher.publish(point_message)
 
