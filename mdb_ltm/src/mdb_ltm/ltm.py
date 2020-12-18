@@ -15,7 +15,6 @@ from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-i
 # Standard imports
 import os.path
 import random
-import sys
 from copy import copy
 from operator import attrgetter
 import threading
@@ -626,13 +625,13 @@ class LTM(object):
     def add_point(p_node, perception):
         """Add a point to the p-node."""
         p_node.add_perception(perception, 1.0)
-        rospy.loginfo("Added point in p-node " + p_node.ident + ": " + perception)
+        rospy.loginfo("Added point in p-node " + p_node.ident + ": " + str(perception))
 
     @staticmethod
     def add_antipoint(p_node, perception):
         """Add an anti-point to the p-node."""
         p_node.add_perception(perception, -1.0)
-        rospy.loginfo("Added anti-point in p-node " + p_node.ident + ": " + perception)
+        rospy.loginfo("Added anti-point in p-node " + p_node.ident + ": " + str(perception))
 
     def update_pnodes(self, current_state):
         """
