@@ -155,7 +155,9 @@ class PointBasedSpace(Space):
                     self.members[pos_closest] = candidate_point
                     self.memberships[pos_closest] = confidence
                     rospy.logdebug(self.ident + " full!")
-        return point[0], confidence, delete_point, delete_point_confidence
+                added_point = point[0]
+                added_point_confidence = confidence
+        return added_point, added_point_confidence, delete_point, delete_point_confidence
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
