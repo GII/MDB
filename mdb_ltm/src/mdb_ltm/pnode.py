@@ -44,7 +44,7 @@ class PNode(Node):
             point_message.command = text_to_native_str("new")
             point_message.id = self.ident
             point_array = structured_to_unstructured(self.space.members)
-            confidence_array = structured_to_unstructured(self.space.memberships)
+            confidence_array = self.space.memberships
             for point, confidence in zip(point_array, confidence_array):
                 point_message.point = point
                 point_message.confidence = confidence
