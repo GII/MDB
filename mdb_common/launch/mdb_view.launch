@@ -1,0 +1,14 @@
+<launch>
+    <arg name="log_level" default="DEBUG"/>
+    <arg name="debug" default="False"/>
+    <arg name="view" default="True"/>
+    <arg name="config_file" default="$(find mdb_common)/config/ltm_2020_one_box.yaml" unless="$(arg motiven)"/>
+    <arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
+    <rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
+    <group ns="mdb" unless="$(arg debug)">
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level)" if="$(arg view)"/>
+    </group>
+    <group ns="mdb" if="$(arg debug)">
+        <node pkg="mdb_view" type="mdb_view" name="view" args="-s $(arg config_file) -l $(arg log_level)" launch-prefix="winpdb" if="$(arg view)"/>
+    </group>
+</launch>
