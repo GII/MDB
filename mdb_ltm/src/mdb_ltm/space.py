@@ -150,12 +150,12 @@ class PointBasedSpace(Space):
                     self.memberships[self.size] = confidence
                     self.size += 1
                 else:
-                    delete_point = self.members[pos_closest]
+                    delete_point = structured_to_unstructured(self.members[pos_closest])[0]
                     delete_point_confidence = self.memberships[pos_closest]
                     self.members[pos_closest] = candidate_point
                     self.memberships[pos_closest] = confidence
                     rospy.logdebug(self.ident + " full!")
-        return point[0], confidence, structured_to_unstructured(delete_point)[0], delete_point_confidence
+        return point[0], confidence, delete_point, delete_point_confidence
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
