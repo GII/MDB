@@ -55,11 +55,11 @@ class VIEW(object):
             {
                 'selector': 'node',
                 'style': {
-                    'label': 'data(name)',
-                    'size' : '25%',
-                    'font-size' : '19', 
-                    'position': 'data(position)',
-                    'background-opacity' : 'data(activation)'
+                    'label': 'data(id)',
+                    'size' : '20%',
+                    'font-size' : '18', 
+                    'background-opacity' : 'data(activation)',
+                    'background-color': 'data(color)'
                 }
             },
             {
@@ -68,42 +68,6 @@ class VIEW(object):
                     'width' : 'data(width)',
                     'curve-style' : 'bezier',
                     'line-color' : 'data(color)'
-                }
-            },
-            {
-                'selector': '[node_type *= "PNode"]',
-                'style': {
-                    'background-color': 'purple'
-                }
-            },
-            {
-                'selector': '[node_type *= "CNode"]',
-                'style': {
-                    'background-color': 'blue'
-                }
-            },
-            {
-                'selector': '[node_type *= "Policy"]',
-                'style': {
-                    'background-color': 'red'
-                }
-            },
-            {
-                'selector': '[node_type *= "Perception"]',
-                'style': {
-                    'background-color': 'grey'
-                }
-            },
-            {
-                'selector': '[node_type *= "ForwardModel"]',
-                'style': {
-                    'background-color': 'orange'
-                }
-            },
-            {
-                'selector': '[node_type *= "Goal"]',
-                'style': {
-                    'background-color': 'green'
                 }
             },
             {
@@ -343,14 +307,13 @@ class VIEW(object):
     def init_graph(self):
         self.graph.add_node('title',
                             node_type = 'title',
-                            name = '',
+                            id = '',
                             activation = 0,
                             position =  {'x': 5*75, 'y': -0.5*75})
         self.set_title()
     
     def set_title(self):
-        rospy.loginfo('Updating title')
-        self.graph.nodes()['title']['name'] = "GOAL: {} WORLD: {} \nITERATION: {} REWARD: {}\nPOLICY: ".format(self.current_goal, self.current_world, self.iteration, self.current_reward, self.current_policy)    
+        self.graph.nodes()['title']['id'] = "GOAL: {} WORLD: {} \nITERATION: {} REWARD: {}\nPOLICY: {}".format(self.current_goal, self.current_world, self.iteration, self.current_reward, self.current_policy)    
 
     # Functions to update the LTM figure
     def update_fig_ltm(self, n_intervals):
@@ -358,7 +321,7 @@ class VIEW(object):
         nodes = cyto_data['elements']['nodes']
         for node in nodes:
             node['position'] = node.get('data').get('position')
-            del node['data']['position']
+            # del node['data']['position']
         edges = cyto_data['elements']['edges']
         elements = nodes + edges
         return elements
@@ -401,7 +364,7 @@ class VIEW(object):
         return trace
     
     def update_fig_nodes(self, n_intervals, value1, value2, value3, value4, value5):        
-        options = [{'label': self.graph.nodes()[node]['name'], 'value': self.graph.nodes()[node]['name']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'PNode']
+        options = [{'label': self.graph.nodes()[node]['id'], 'value': self.graph.nodes()[node]['id']} for node in self.graph.nodes() if self.graph.nodes()[node]['node_type'] == 'PNode']
         options2 = [{'label': column, 'value': column} for column in self.sens_names]
         try:
             trace1 = self.update_pnode_figure(value1, value3, value4, value5)
@@ -455,7 +418,7 @@ class VIEW(object):
             adj_nodes = [n for n in self.graph.adj[node].keys()]
             display += 'Conectado con: \n'
             for node in adj_nodes:
-                display += ' '*5 + self.graph.nodes()[node]['name'] + '\n'
+                display += ' '*5 + self.graph.nodes()[node]['id'] + '\n'
                 display += ' '*7 + 'Tipo de nodo: {}\n'.format(self.graph.nodes()[node]['node_type'])
                 display += ' '*7 + 'Activación: {}\n'.format(self.graph.nodes()[node]['activation'])
             title = 'Información de ' + node_name
@@ -618,7 +581,7 @@ class VIEW(object):
             self.setup(log_level, seed)
             self.save_dir = save_dir
             self.ask_for_ltm()
-            self.app.run_server(use_reloader = False, debug = True)
+            self.app.run_server(use_reloader = False, debug = False)
             rospy.spin()
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
@@ -631,43 +594,9 @@ class VIEW(object):
     '''These functions are executed when a new message is 
     published in a topic to which the node is subscribed 
     and for sending commands to the control topic'''
-
-    def add_node_callback(self, data, node_type):
-        rospy.loginfo('Received node {}'.format(data.id))
-        ident = data.id
-        if (data.command == "new"):
-            idx = self.nodes_config[node_type]
-            if(node_type == "PNode"):
-                posx = idx // 3
-                posy = idx % 3
-                posx = 1 + posx + posy / 3.0
-                columns = data.names
-                self.sens_names = data.names
-                columns.append("confidence")
-                self.pnode_dict[ident] = pd.DataFrame(columns = columns)
-            elif(node_type == "Goal"):
-                posx, posy = 3*idx, 4
-            elif(node_type == "ForwardModel"):
-                posx, posy = 3 * idx, 6
-            elif(node_type == "Policy"):
-                posx, posy = 13, idx + 3
-            elif(node_type == "CNode"):
-                posx = idx // 3
-                posy = idx % 3
-                posx, posy = 1 + posx + posy / 3.0, posy + 8
-            elif(node_type == "Perception"):
-                posx, posy = -3, idx + 3
-            
-            self.graph.add_node(ident,
-                                id = ident,
-                                position =  {'x': posx*75, 'y': posy*75},
-                                node_type = node_type,
-                                name = ident,
-                                activation = data.activation
-                                )
-            self.nodes_config[node_type] += 1
-
-            for neighbor, neighbor_node_type in zip(data.neighbor_ids, data.neighbor_types):
+    def graph_set_edge_properties(self, node, node_type, neighbor_ids, neighbor_types):
+        for neighbor, neighbor_node_type in zip(neighbor_ids, neighbor_types):
+            if not self.graph.has_edge(node, neighbor):
                 if neighbor_node_type == "CNode" or node_type == "CNode":
                     width = 1
                     if neighbor_node_type == "PNode" or node_type == "PNode":
@@ -681,26 +610,79 @@ class VIEW(object):
                 else:
                     color = "black"
                     width = 0.2
-                rospy.loginfo('Adding connection between {} and {}'.format(ident, neighbor))
-                self.graph.add_edge(ident, neighbor, color = color, width = width)
+                self.graph.add_edge(node, neighbor, color = color, width = width)
+                # rospy.loginfo('Adding connection between {} and {}'.format(node, neighbor))
+
+    def add_node_callback(self, data, node_type):
+        ident = data.id
+        if (data.command == "new"):
+            idx = self.nodes_config[node_type]
+            if(node_type == "PNode"):
+                posx = idx // 3
+                posy = idx % 3
+                posx = 1 + posx + posy / 3.0
+                color = 'purple'
+            elif(node_type == "Goal"):
+                posx, posy = 3*idx, 4
+                color = 'green'
+            elif(node_type == "ForwardModel"):
+                posx, posy = 3 * idx, 6
+                color = 'orange'
+            elif(node_type == "Policy"):
+                posx, posy = 13, idx + 3
+                color = 'red'
+            elif(node_type == "CNode"):
+                posx = idx // 3
+                posy = idx % 3
+                posx, posy = 1 + posx + posy / 3.0, posy + 8
+                color = 'blue'
+            elif(node_type == "Perception"):
+                posx, posy = -3, idx + 3
+                color = 'grey'
+            self.graph.add_node(ident,
+                                id = ident,
+                                position =  {'x': posx*75, 'y': posy*75},
+                                node_type = node_type,
+                                color = color, 
+                                activation = data.activation
+                                )
+            self.nodes_config[node_type] += 1
+            self.graph_set_edge_properties(ident, node_type, data.neighbor_ids, data.neighbor_types)
+            rospy.logdebug("MENSAJE: Creating node {}".format(ident))
 
         elif(data.command == "update"):
-            rospy.loginfo("Updated {} activation to {}".format(data.id, data.activation))
+            if node_type == "PNode":
+                columns = data.names
+                columns.append("confidence")
+                self.sens_names = columns
+                if not ident in self.pnode_dict:
+                    self.pnode_dict[ident] = pd.DataFrame(columns = columns)
+                else:
+                    self.pnode_dict[ident].columns = columns              
+                    
             self.graph.nodes()[ident]["activation"] = data.activation
-    
+            self.graph_set_edge_properties(ident, node_type, data.neighbor_ids, data.neighbor_types)
+            rospy.logdebug("MENSAJE: " + node_type + " activation for " + ident + " = " + str(data.activation))
+
     def add_point_callback(self, data):
         new_data = list(data.point)
         new_data.append(data.confidence)
+        if not data.id in self.pnode_dict:
+            self.pnode_dict[data.id] = pd.DataFrame(columns = ['']*len(new_data))        
+        rospy.loginfo(new_data)
         self.pnode_dict[data.id].loc[len(self.pnode_dict[data.id])] = new_data
+        rospy.logdebug("MENSAJE: Updating points of " + data.id)
 
     def info_callback(self, data):
-        rospy.loginfo('Updating information from LTM')
+        # rospy.loginfo('Updating information from LTM')
         self.iteration = data.iteration
         self.current_world = data.current_world
         self.current_policy = data.current_policy
         self.current_reward = data.current_reward
         self.current_goal = data.current_goal
+        rospy.logdebug("MENSAJE: Updated info of iteration: {}".format(self.iteration))
         self.set_title()
+        rospy.loginfo("*** ITERATION: " + str(self.iteration) + " ***")
 
     def ask_for_ltm(self):
         rospy.logdebug('Asking for current nodes in LTM')
