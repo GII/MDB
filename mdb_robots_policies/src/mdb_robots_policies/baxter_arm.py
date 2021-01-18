@@ -142,13 +142,10 @@ class baxter_arm(object):
 
     def move_to_pose_goal(self, pose, side, wait, scale):
         self.update_data()
-        self.choose_arm_group(side).clear_pose_targets()
-        self.choose_arm_group(side).set_pose_target(pose)
-
-        success, plan, time, error = self.choose_arm_group(side).plan()
-
-        # self.change_velocity(plan, scale)
-        self.choose_arm_group(side).execute(plan, wait)
+        move_group = self.choose_arm_group(side)
+        move_group.go(pose, wait)
+        move_group.stop()
+        move_group.clear_pose_targets()
         self.update_data()
         return True
 
@@ -157,7 +154,7 @@ class baxter_arm(object):
     ##########################
     def move_to_position_goal_both(self, pos, wait, scale):
         self.update_data()
-        self.choose_arm_group("both").clear_pose_targets()
+        move_group = self.choose_arm_group("both")
 
         l_ori = self.choose_arm_state("left").current_es.pose.orientation
         r_ori = self.choose_arm_state("right").current_es.pose.orientation
@@ -167,20 +164,20 @@ class baxter_arm(object):
         l_pose_target.position.x = pos[0]
         l_pose_target.position.y = pos[1]
         l_pose_target.position.z = pos[2]
-        self.choose_arm_group("both").set_pose_target(l_pose_target, "left_gripper")
+        move_group.set_pose_target(l_pose_target, "left_gripper")
 
         r_pose_target = Pose()
         r_pose_target.orientation = r_ori
         r_pose_target.position.x = pos[3]
         r_pose_target.position.y = pos[4]
         r_pose_target.position.z = pos[5]
-        self.choose_arm_group("both").set_pose_target(r_pose_target, "right_gripper")
+        move_group.set_pose_target(r_pose_target, "right_gripper")
 
-        self.choose_arm_group("both").set_goal_tolerance(0.01)
-        success, plan, time, error = self.choose_arm_group("both").plan()
-        # self.change_velocity(plan, scale)
+        move_group.set_goal_tolerance(0.01)
         try:
-            self.choose_arm_group("both").execute(plan, wait)
+            move_group.go(wait)
+            move_group.stop()
+            move_group.clear_pose_targets()
             return True
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
@@ -192,7 +189,7 @@ class baxter_arm(object):
 
     def move_to_ori_goal_both(self, ori, wait, scale):
         self.update_data()
-        self.choose_arm_group("both").clear_pose_targets()
+        move_group = self.choose_arm_group("both")
 
         l_pos = self.choose_arm_state("left").current_es.pose.position
         r_pos = self.choose_arm_state("right").current_es.pose.position
@@ -203,7 +200,7 @@ class baxter_arm(object):
         l_pose_target.orientation.y = ori[1]
         l_pose_target.orientation.z = ori[2]
         l_pose_target.orientation.w = ori[3]
-        self.choose_arm_group("both").set_pose_target(l_pose_target, "left_gripper")
+        move_group.set_pose_target(l_pose_target, "left_gripper")
 
         r_pose_target = Pose()
         r_pose_target.position = r_pos
@@ -211,12 +208,12 @@ class baxter_arm(object):
         r_pose_target.orientation.y = ori[5]
         r_pose_target.orientation.z = ori[6]
         r_pose_target.orientation.w = ori[7]
-        self.choose_arm_group("both").set_pose_target(r_pose_target, "right_gripper")
+        move_group.set_pose_target(r_pose_target, "right_gripper")
 
-        success, plan, time, error = self.choose_arm_group("both").plan()
-        # self.change_velocity(plan, scale)
         try:
-            self.choose_arm_group("both").execute(plan, wait)
+            move_group.go(wait)
+            move_group.stop()
+            move_group.clear_pose_targets()
             return True
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
@@ -266,13 +263,9 @@ class baxter_arm(object):
 
     # Moves the arm to a specific target of joints angles
     def move_joints_directly(self, angles, way, side, wait, scale):
-        self.choose_arm_group(side).clear_pose_targets()
-        group_variable_values = self.arrange_angles(angles, side, way)
-
-        self.choose_arm_group(side).set_joint_value_target(group_variable_values)
-        success, plan, time, error = self.choose_arm_group(side).plan()
-        # self.change_velocity(plan, scale)
-        self.choose_arm_group(side).execute(plan, wait)
+        move_group = self.choose_arm_group(side)
+        move_group.go(self.arrange_angles(angles, side, way), wait)
+        move_group.stop()
 
     # Creates a set of target joints angles based of the initial state of the robot
     def create_group_joints(self, side):
@@ -293,13 +286,11 @@ class baxter_arm(object):
 
     # Restores the pose of the arm to its initial state
     def restore_arm_pose(self, side):
-        group_joint_values = self.manage_group_joints(side)
+        move_group = self.choose_arm_group(side)
         rospy.sleep(1)
-        self.choose_arm_group(side).clear_pose_targets()
-        self.choose_arm_group(side).set_start_state_to_current_state()
-        self.choose_arm_group(side).set_joint_value_target(group_joint_values)
-        success, plan, time, error = self.choose_arm_group(side).plan()
-        self.choose_arm_group(side).execute(plan, True)
+        move_group.set_start_state_to_current_state()
+        move_group.go(self.manage_group_joints(side), True)
+        move_group.stop()
 
     def select_joint_names(self, side):
         options = {

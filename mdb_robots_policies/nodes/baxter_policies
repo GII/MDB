@@ -5,6 +5,7 @@ MDB.
 https://github.com/GII/MDB
 """
 
+
 # Python 2 compatibility imports
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
@@ -986,7 +987,6 @@ class baxter_policies(object):
     def dual_grab_first_step(self, x, y, z, size):
         self.baxter_arm.update_data()
         cles = self.baxter_arm.choose_arm_state("left").current_es.pose.position
-        cres = self.baxter_arm.choose_arm_state("right").current_es.pose.position
         points = [x, y + (size / 2.0) + 0.075, cles.z, x, y - (size / 2.0) - 0.075, cles.z]
         if self.baxter_arm.move_to_position_goal_both(points, True, 1.0):
             return True
@@ -1065,14 +1065,14 @@ class baxter_policies(object):
 
         div = 0.05
 
-        initx = old_div((cles.x + cres.x), 2)
-        inity = old_div((cles.y + cres.y), 2)
+        initx = (cles.x + cres.x) / 2
+        inity = (cles.y + cres.y) / 2
 
         distance = self.obtain_dist(dx - initx, dy - inity)
-        iterations = old_div(distance, div)
+        iterations = distance / div
 
-        incx = old_div((dx - initx), iterations)
-        incy = old_div((dy - inity), iterations)
+        incx = (dx - initx) / iterations
+        incy = (dy - inity) / iterations
 
         cposx = initx + incx
         cposy = inity + incy

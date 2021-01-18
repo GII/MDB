@@ -1,6 +1,11 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="exp_rec" default="ltm"/>
+
+  <arg name="debug" default="False"/>
+  <arg name="launch-prefix" default="" unless="$(arg debug)"/>
+  <arg name="launch-prefix" default="winpdb" if="$(arg debug)"/>
+
   <!--ltm/mot-->
   <arg name="super_throw" default="false"/>
   <arg name="joystick" default="false"/>
@@ -34,7 +39,7 @@
     <param name="arm" type="str" value="right" />
   </node>
 
-  <node name="baxter_policies" pkg="mdb_robots_policies" type="baxter_policies" required="true" output="screen">
+  <node name="baxter_policies" pkg="mdb_robots_policies" type="baxter_policies" required="true" output="screen" launch-prefix="$(arg launch-prefix)">
     <param name="exp_rec" type="str" value="$(arg exp_rec)" />
     <param name="super_throw" type="bool" value="$(arg super_throw)"/>
     <param name="use_robobo" type="bool" value="$(arg use_robobo)"/>
