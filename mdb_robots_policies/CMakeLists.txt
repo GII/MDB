@@ -220,7 +220,9 @@ install(DIRECTORY launch/
 install(DIRECTORY config/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
 )
-
+install(DIRECTORY face/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/face
+)
 #############
 ## Testing ##
 #############
