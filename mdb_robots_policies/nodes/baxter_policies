@@ -1098,6 +1098,16 @@ class baxter_policies(object):
         else:
             return False
 
+    def move_object(self, dx, dy, z, size):
+        self.baxter_arm.update_data()
+        cles = self.baxter_arm.choose_arm_state('left').current_es.pose.position
+        cres = self.baxter_arm.choose_arm_state('right').current_es.pose.position
+        d = cles.y - cres.y
+        points_f = [dx, dy+(d/2.0), cles.z, dx, dy-(d/2.0), cres.z]
+        if self.baxter_arm.move_to_position_goal_both(points_f, True, 1.0):
+            return True
+        return False
+
     def dual_drop_first_step(self, dx, dy, z, size):
         self.baxter_arm.update_data()
         cles = self.baxter_arm.choose_arm_state("left").current_es.pose.position
@@ -1403,7 +1413,7 @@ class baxter_policies(object):
                 srv.dest.x.data,
                 srv.dest.y.data,
                 srv.dest.z.data,
-                srv.grip.data,
+                srv.grip_change.data,
                 srv.orientation.data,
                 srv.arm.data,
                 srv.scale.data,
