@@ -5,9 +5,8 @@ https://github.com/GII/MDB
 """
 
 # Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function
 from future import standard_library
-from future.utils import text_to_native_str
 
 standard_library.install_aliases()
 from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
@@ -24,7 +23,7 @@ from baxter_core_msgs.msg import EndpointState, EndEffectorState
 from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
-from moveit_msgs.srv import GetCartesianPath, ExecuteKnownTrajectory, GetCartesianPathRequest
+from moveit_msgs.srv import GetCartesianPath, GetCartesianPathRequest
 from baxter_interface.gripper import Gripper
 
 # MDB imports
@@ -50,9 +49,9 @@ class baxter_arm(object):
             print("Service call failed: ", str(e))
             exit(1)
 
-        self.both_group = moveit_commander.MoveGroupCommander(text_to_native_str("both_arms"))
-        self.larm_group = moveit_commander.MoveGroupCommander(text_to_native_str("left_arm"))
-        self.rarm_group = moveit_commander.MoveGroupCommander(text_to_native_str("right_arm"))
+        self.both_group = moveit_commander.MoveGroupCommander("both_arms")
+        self.larm_group = moveit_commander.MoveGroupCommander("left_arm")
+        self.rarm_group = moveit_commander.MoveGroupCommander("right_arm")
 
         self.lgripper = Gripper("left")
         self.lgripper_state = False

@@ -5,7 +5,7 @@ https://github.com/GII/MDB
 """
 
 # Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function
 from future import standard_library
 
 standard_library.install_aliases()
@@ -23,9 +23,7 @@ class display(object):
     def __init__(self):
         self.bridge = CvBridge()
         self.rospack = rospkg.RosPack()
-
         self.display_pub = rospy.Publisher("/robot/xdisplay", Image, queue_size=1)
-
         self.exp_dict = {}
         self.read_expressions()
 
@@ -38,7 +36,6 @@ class display(object):
 
     def read_expressions(self):
         path_expressions = self.rospack.get_path("mdb_robots_policies") + "/face/"
-
         self.exp_dict["normal"] = cv2.imread(path_expressions + "face_normal_d.png", 1)
         self.exp_dict["focus"] = cv2.imread(path_expressions + "face_focused_d.png", 1)
         self.exp_dict["giveme"] = cv2.imread(path_expressions + "face_giveme_new.png", 1)
