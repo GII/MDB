@@ -9,11 +9,10 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+from builtins import object, open
 
 # Standard imports
 from enum import Enum
-import sys
 import os.path
 import math
 
@@ -52,11 +51,7 @@ class Robot(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        if sys.version_info < (3, 0):
-            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
-        else:
-            node_module = __import__(module_string, fromlist=[class_string])
-        # node_module = importlib.import_module('.' + class_string, package=module_string)
+        node_module = __import__(module_string, fromlist=[class_string])
         node_class = getattr(node_module, class_string)
         return node_class
 
