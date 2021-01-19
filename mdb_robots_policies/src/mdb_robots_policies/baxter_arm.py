@@ -46,7 +46,7 @@ class baxter_arm(object):
             self.get_es = rospy.ServiceProxy("/get_end_state", GetEndState)
             self.get_js = rospy.ServiceProxy("/get_joints_state", GetJointsState)
         except rospy.ServiceException as e:
-            print("Service call failed: ", str(e))
+            print("Service call failed: ", e)
             exit(1)
 
         self.both_group = moveit_commander.MoveGroupCommander("both_arms")
@@ -179,7 +179,7 @@ class baxter_arm(object):
             move_group.clear_pose_targets()
             return True
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
             return False
 
     ##########################
@@ -215,7 +215,7 @@ class baxter_arm(object):
             move_group.clear_pose_targets()
             return True
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
             return False
 
     ###################################
@@ -377,7 +377,7 @@ class baxter_arm(object):
         gcp_req.header = self.create_header("base")
         gcp_req.start_state.joint_state = arm_joints_state
         gcp_req.group_name = self.select_group_name(side)
-        gcp_req.link_name = str(side) + "_gripper"
+        gcp_req.link_name = side + "_gripper"
         gcp_req.waypoints = waypoints
         gcp_req.max_step = 0.01
         gcp_req.avoid_collisions = True
@@ -409,7 +409,7 @@ class baxter_arm(object):
                 return True
 
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
             return False
 
     def move_xyz_plan(self, x, y, z, code, side, perc):
@@ -428,7 +428,7 @@ class baxter_arm(object):
             if resp.error_code.val == 1:
                 return resp.solution
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
             return False
 
     def move_xyz_concatenate(self, l_plan, r_plan):
@@ -496,7 +496,7 @@ class baxter_arm(object):
                     self.gripper_manager(self.rgripper)
                 return True
             except rospy.ServiceException as exc:
-                print("Service did not process request: " + str(exc))
+                print("Service did not process request: " + exc)
                 return False
         else:
             return False
@@ -549,7 +549,7 @@ class baxter_arm(object):
             self.rarm_state = self.get_es(String("right"))
             self.joint_states = self.get_js(Bool(True))
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
 
     # Updates the initial state of the end effectors and joints
     def update_init_data(self):
@@ -558,7 +558,7 @@ class baxter_arm(object):
             self.rarm_init_state = self.get_es(String("right"))
             self.joint_init_states = self.get_js(Bool(True))
         except rospy.ServiceException as exc:
-            print("Service did not process request: " + str(exc))
+            print("Service did not process request: " + exc)
 
     ###############
     ### Helpers ###
