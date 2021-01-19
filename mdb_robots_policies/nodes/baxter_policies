@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+from builtins import list, object, range, open, zip
 
 # Standard imports
 import math
@@ -168,7 +168,7 @@ class baxter_policies(object):
                 "/mdb3/baxter/modify_planning_scene", ManagePlanScene
             )  ###Used in calibration_policies
         except rospy.ServiceException as e:
-            print("Service exception", str(e))
+            print("Service exception", e)
             exit(1)
 
         # Dynamic reconfigure client instance

@@ -9,14 +9,13 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+from builtins import int, object, range, input
 
 # Standard imports
 import math
 
 # Library imports
 import rospy
-import tf
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PointStamped
 from baxter_core_msgs.msg import HeadPanCommand, HeadState

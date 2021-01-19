@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from future import standard_library
 
 standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+from builtins import list, object, open
 
 # Standard imports
 import math
@@ -50,7 +50,7 @@ class robobo_policies(object):
             self.robobo_mW_proxy = rospy.ServiceProxy("/robot/moveWheels", MoveWheels)
             self.robobo_sSF_proxy = rospy.ServiceProxy("/robot/setSensorFrequency", SetSensorFrequency)
         except rospy.ServiceException as e:
-            print("Service exception", str(e))
+            print("Service exception", e)
             exit(1)
 
     def readtcfile(self):
