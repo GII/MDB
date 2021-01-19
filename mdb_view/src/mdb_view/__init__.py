@@ -1,2 +1,7 @@
-#!/usr/bin/env python3
+"""
+MDB.
+
+https://github.com/GII/MDB
+"""
+
 __all__ = ["view"]
