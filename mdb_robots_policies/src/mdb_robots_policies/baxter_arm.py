@@ -54,11 +54,9 @@ class baxter_arm(object):
         self.rarm_group = moveit_commander.MoveGroupCommander("right_arm")
 
         self.lgripper = Gripper("left")
-        self.lgripper_state = False
         self.lgripper.calibrate()
 
         self.rgripper = Gripper("right")
-        self.rgripper_state = False
         self.rgripper.calibrate()
 
         self.lgripper_instate = EndEffectorState()
@@ -125,13 +123,6 @@ class baxter_arm(object):
         options = {
             "right": self.rgripper,
             "left": self.lgripper,
-        }
-        return options[arg]
-
-    def choose_gripper_state(self, arg):
-        options = {
-            "right": self.rgripper_state,
-            "left": self.lgripper_state,
         }
         return options[arg]
 
@@ -403,7 +394,7 @@ class baxter_arm(object):
                 pet = self.choose_arm_group(side).execute(resp.solution, True)
                 # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
                 if (not pet) and pick:
-                    self.gripper_manager(side)
+                    self.change_gripper_state(side)
                     rospy.sleep(0.5)
                 self.update_data()
                 return True
@@ -492,8 +483,8 @@ class baxter_arm(object):
                 pet = self.choose_arm_group("both").execute(b_plan, True)
                 # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
                 if (not pet) and pick:
-                    self.gripper_manager(self.lgripper)
-                    self.gripper_manager(self.rgripper)
+                    self.change_gripper_state(self.lgripper)
+                    self.change_gripper_state(self.rgripper)
                 return True
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + exc)
@@ -506,37 +497,29 @@ class baxter_arm(object):
     ### Grippers ###
     ################
 
-    def gripper_state_update(self, side, value):
-        if side == "right":
-            self.rgripper_state = value
-        elif side == "left":
-            self.lgripper_state = value
+    def change_gripper_state(self, side):
+        if self.gripper_is_closed(side):
+            self.gripper_open(side)
+        else:
+            self.gripper_close(side)
 
-    def gripper_manager(self, side):
-        if self.choose_gripper_state(side):
+    def gripper_open(self, side):
+        if self.gripper_is_closed(side):
             self.choose_gripper(side).open()
-            self.gripper_state_update(side, False)
-        else:
+
+    def gripper_close(self, side):
+        if not self.gripper_is_closed(side):
             self.choose_gripper(side).close()
-            self.gripper_state_update(side, True)
 
-    def gripper_instate_open(self, side):
-        if self.choose_gripper_instate(side).position > 90.0:
-            return True
-        else:
-            return False
-
-    def gripper_instate_close(self, side):
+    def gripper_is_closed(self, side):
         if self.choose_gripper_instate(side).position < 90.0:
             return True
-        else:
-            return False
+        return False
 
     def gripper_is_grip(self, side):
         if self.choose_gripper_instate(side).gripping > 0.0:
             return True
-        else:
-            return False
+        return False
 
     ################
     ### Updaters ###
