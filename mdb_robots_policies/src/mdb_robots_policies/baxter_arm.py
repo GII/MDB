@@ -12,6 +12,7 @@ standard_library.install_aliases()
 from builtins import object, range
 
 # Standard imports
+import sys
 import copy
 
 # Library imports
@@ -19,11 +20,10 @@ import rospy
 import moveit_commander
 import rospkg
 import tf
-from baxter_core_msgs.msg import EndpointState, EndEffectorState
+from std_msgs.msg import Bool, String
 from geometry_msgs.msg import Pose, Point, Quaternion
-from std_msgs.msg import Bool, String, Header
 from sensor_msgs.msg import JointState
-from moveit_msgs.srv import GetCartesianPath, GetCartesianPathRequest
+from baxter_core_msgs.msg import EndpointState
 from baxter_interface.gripper import Gripper
 
 # MDB imports
@@ -42,12 +42,11 @@ class baxter_arm(object):
         self.joint_init_states = JointState()
 
         try:
-            self.compute_cp = rospy.ServiceProxy("/compute_cartesian_path", GetCartesianPath)
             self.get_es = rospy.ServiceProxy("/get_end_state", GetEndState)
             self.get_js = rospy.ServiceProxy("/get_joints_state", GetJointsState)
         except rospy.ServiceException as e:
             print("Service call failed: ", e)
-            exit(1)
+            sys.exit(1)
 
         self.both_group = moveit_commander.MoveGroupCommander("both_arms")
         self.larm_group = moveit_commander.MoveGroupCommander("left_arm")
@@ -59,35 +58,9 @@ class baxter_arm(object):
         self.rgripper = Gripper("right")
         self.rgripper.calibrate()
 
-        self.lgripper_instate = EndEffectorState()
-        self.rgripper_instate = EndEffectorState()
-        self.lgripper_instate_sub = rospy.Subscriber(
-            "/robot/end_effector/left_gripper/state", EndEffectorState, self.lgripper_in_cb
-        )
-        self.rgripper_instate_sub = rospy.Subscriber(
-            "/robot/end_effector/right_gripper/state", EndEffectorState, self.rgripper_in_cb
-        )
-
-    ####################
-    ###   Callbacks  ###
-    ####################
-
-    def lgripper_in_cb(self, instate):
-        self.lgripper_instate = instate
-
-    def rgripper_in_cb(self, instate):
-        self.rgripper_instate = instate
-
     ####################
     ### Dictionaries ###
     ####################
-
-    def choose_gripper_instate(self, arg):
-        options = {
-            "left": self.lgripper_instate,
-            "right": self.rgripper_instate,
-        }
-        return options[arg]
 
     # Choose between baxter's natural arm joints order and the moveit one.
     def choose_joints_order(self, arg):
@@ -224,14 +197,6 @@ class baxter_arm(object):
                 group_variable_values.append(angles[pos])
         return group_variable_values
 
-    # def change_velocity(self, plan, scale):
-    #     for point in plan.joint_trajectory.points:
-    #         point.time_from_start = point.time_from_start / scale
-    #         for velocity in point.velocities:
-    #             velocity = velocity * scale
-    #         for acceleration in point.accelerations:
-    #             acceleration = acceleration * scale
-
     # Returns the joints belonging to one specific arm
     def remove_unnecesary_joints(self, joints, side):
         clean_joint_states = JointState()
@@ -277,7 +242,6 @@ class baxter_arm(object):
     # Restores the pose of the arm to its initial state
     def restore_arm_pose(self, side):
         move_group = self.choose_arm_group(side)
-        rospy.sleep(1)
         move_group.set_start_state_to_current_state()
         move_group.go(self.manage_group_joints(side), True)
         move_group.stop()
@@ -358,66 +322,43 @@ class baxter_arm(object):
         }
         return options[code]
 
-    # Computes the request for the cartesian moveit service
-    def compute_cartesian_req(self, x, y, z, code, side):
-        self.update_data()
-        arm_joints_state = self.remove_unnecesary_joints(self.joint_states, side)
-        waypoints = self.generate_wp_xyz(x, y, z, code, side)
-
-        gcp_req = GetCartesianPathRequest()
-        gcp_req.header = self.create_header("base")
-        gcp_req.start_state.joint_state = arm_joints_state
-        gcp_req.group_name = self.select_group_name(side)
-        gcp_req.link_name = side + "_gripper"
-        gcp_req.waypoints = waypoints
-        gcp_req.max_step = 0.01
-        gcp_req.avoid_collisions = True
-
-        return gcp_req
-
     # Moves the arm to a specific waypoint in the robot 3d space and opens/closes the gripper if desired
     def move_xyz(self, x, y, z, pick, code, side, scale, perc):
         self.update_data()
-        gcp_req = self.compute_cartesian_req(x, y, z, code, side)
+        waypoints = self.generate_wp_xyz(x, y, z, code, side)
         try:
-            fract = 0.0
-            resp = None
+            move_group = self.choose_arm_group(side)
+            fraction = 0.0
             tries = 6
-            while fract < perc and tries > 0:
-                resp = self.compute_cp(gcp_req)
-                fract = resp.fraction
+            while fraction < perc and tries > 0:
+                plan, fraction = move_group.compute_cartesian_path(waypoints, 0.01, 0.0)
                 tries -= 1
             if tries == 0:
                 return False
-            if resp.error_code.val == 1:
-                # self.change_velocity(resp.solution, scale)
-                pet = self.choose_arm_group(side).execute(resp.solution, True)
-                # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
-                if (not pet) and pick:
-                    self.change_gripper_state(side)
-                    rospy.sleep(0.5)
-                self.update_data()
-                return True
-
+            pet = move_group.execute(plan, wait=True)
+            move_group.stop()
+            move_group.clear_pose_targets()
+            if (not pet) and pick:
+                self.change_gripper_state(side)
+            self.update_data()
+            return True
         except rospy.ServiceException as exc:
             print("Service did not process request: " + exc)
             return False
 
     def move_xyz_plan(self, x, y, z, code, side, perc):
         self.update_data()
-        gcp_req = self.compute_cartesian_req(x, y, z, code, side)
+        waypoints = self.generate_wp_xyz(x, y, z, code, side)
         try:
-            fract = 0.0
-            resp = None
+            move_group = self.choose_arm_group(side)
+            fraction = 0.0
             tries = 5
-            while fract < perc and tries > 0:
-                resp = self.compute_cp(gcp_req)
-                fract = resp.fraction
+            while fraction < perc and tries > 0:
+                plan, fraction = move_group.compute_cartesian_path(waypoints, 0.01, 0.0)
                 tries -= 1
             if tries == 0:
                 return False
-            if resp.error_code.val == 1:
-                return resp.solution
+            return plan
         except rospy.ServiceException as exc:
             print("Service did not process request: " + exc)
             return False
@@ -471,17 +412,15 @@ class baxter_arm(object):
         l_plan = self.move_xyz_plan(points[0], points[1], points[2], code, "left", perc)
         r_plan = self.move_xyz_plan(points[3], points[4], points[5], code, "right", perc)
 
-        # if l_plan and r_plan:
-        #     self.change_velocity(l_plan, scale)
-        #     self.change_velocity(r_plan, scale)
-
         b_plan = None
         if l_plan and r_plan:
             b_plan = self.move_xyz_concatenate(l_plan, r_plan)
         if b_plan:
             try:
-                pet = self.choose_arm_group("both").execute(b_plan, True)
-                # if (pet.error_code.val == 1 or pet.error_code.val == -4) and pick:
+                move_group = self.choose_arm_group("both")
+                pet = move_group.execute(b_plan, wait=True)
+                move_group.stop()
+                move_group.clear_pose_targets()
                 if (not pet) and pick:
                     self.change_gripper_state(self.lgripper)
                     self.change_gripper_state(self.rgripper)
@@ -491,7 +430,6 @@ class baxter_arm(object):
                 return False
         else:
             return False
-        rospy.sleep(1)
 
     ################
     ### Grippers ###
@@ -505,19 +443,19 @@ class baxter_arm(object):
 
     def gripper_open(self, side):
         if self.gripper_is_closed(side):
-            self.choose_gripper(side).open()
+            self.choose_gripper(side).open(block=True)
 
     def gripper_close(self, side):
         if not self.gripper_is_closed(side):
-            self.choose_gripper(side).close()
+            self.choose_gripper(side).close(block=True)
 
     def gripper_is_closed(self, side):
-        if self.choose_gripper_instate(side).position < 90.0:
+        if self.choose_gripper(side).position() < 90.0:
             return True
         return False
 
     def gripper_is_grip(self, side):
-        if self.choose_gripper_instate(side).gripping > 0.0:
+        if self.choose_gripper(side).gripping():
             return True
         return False
 
@@ -542,17 +480,6 @@ class baxter_arm(object):
             self.joint_init_states = self.get_js(Bool(True))
         except rospy.ServiceException as exc:
             print("Service did not process request: " + exc)
-
-    ###############
-    ### Helpers ###
-    ###############
-
-    # Creates a header for a ROS msg/srv
-    def create_header(self, frame_id):
-        header = Header()
-        header.stamp = rospy.Time.now()
-        header.frame_id = "base"
-        return header
 
     ########################
     ###   Joints bounds   ##
