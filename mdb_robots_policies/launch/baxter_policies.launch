@@ -6,7 +6,6 @@
   <arg name="launch-prefix" default="" unless="$(arg debug)"/>
   <arg name="launch-prefix" default="winpdb" if="$(arg debug)"/>
 
-  <!--ltm/mot-->
   <arg name="super_throw" default="false"/>
   <arg name="joystick" default="false"/>
   <arg name="use_robobo" default="false"/>
