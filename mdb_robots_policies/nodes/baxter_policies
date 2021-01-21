@@ -15,6 +15,7 @@ from builtins import list, object, range, open, zip
 
 # Standard imports
 import math
+import sys
 
 # Library imports
 import rospy
@@ -169,7 +170,7 @@ class baxter_policies(object):
             )  ###Used in calibration_policies
         except rospy.ServiceException as e:
             print("Service exception", e)
-            exit(1)
+            sys.exit(1)
 
         # Dynamic reconfigure client instance
         self.client = client.Client("rsdk_position_w_id_joint_trajectory_action_server")
@@ -1274,23 +1275,21 @@ class baxter_policies(object):
     ##########################
 
     def handle_baxter_reset_grippers(self, srv):
-        if srv.request.data == True:
-            self.baxter_arm.lgripper.open()
-            self.baxter_arm.rgripper.open()
-            self.baxter_arm.lgripper_state = False
-            self.baxter_arm.rgripper_state = False
+        if srv.request.data:
+            self.baxter_arm.gripper_open("left")
+            self.baxter_arm.gripper_open("right")
             self.exp_senses.assign_gripper_sense("both", 0.0)
             return Bool(True)
         return Bool(False)
 
     def handle_change_l_gripper_state(self, srv):
-        if srv.request.data == True:
+        if srv.request.data:
             self.baxter_arm.change_gripper_state("left")
             return Bool(True)
         return Bool(False)
 
     def handle_change_r_gripper_state(self, srv):
-        if srv.request.data == True:
+        if srv.request.data:
             self.baxter_arm.change_gripper_state("right")
             return Bool(True)
         return Bool(False)
@@ -1551,8 +1550,7 @@ class baxter_policies(object):
             srv.scale.data,
             1.0,
         ):
-            self.baxter_arm.rgripper.open()
-            self.baxter_arm.rgripper_state = False
+            self.baxter_arm.gripper_open(srv.arm.data)
             self.exp_senses.assign_gripper_sense(srv.arm.data, 0.0)
             result = True
         return result
