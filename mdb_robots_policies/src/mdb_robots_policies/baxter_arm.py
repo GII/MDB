@@ -335,10 +335,10 @@ class baxter_arm(object):
                 tries -= 1
             if tries == 0:
                 return False
-            pet = move_group.execute(plan, wait=True)
+            success = move_group.execute(plan, wait=True)
             move_group.stop()
             move_group.clear_pose_targets()
-            if (not pet) and pick:
+            if success and pick:
                 self.change_gripper_state(side)
             self.update_data()
             return True
@@ -418,10 +418,10 @@ class baxter_arm(object):
         if b_plan:
             try:
                 move_group = self.choose_arm_group("both")
-                pet = move_group.execute(b_plan, wait=True)
+                success = move_group.execute(b_plan, wait=True)
                 move_group.stop()
                 move_group.clear_pose_targets()
-                if (not pet) and pick:
+                if success and pick:
                     self.change_gripper_state(self.lgripper)
                     self.change_gripper_state(self.rgripper)
                 return True
