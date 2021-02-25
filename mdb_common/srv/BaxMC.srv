@@ -1,7 +1,7 @@
-mdb_common/CMReq dest
-std_msgs/String orientation
-std_msgs/String arm
-std_msgs/Float64 scale
-std_msgs/Bool valid
+CMReq dest
+string orientation
+string arm
+float64 scale
+bool valid
 ---
-std_msgs/Bool result 
+bool result 

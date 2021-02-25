@@ -84,35 +84,35 @@ class exp_senses(object):
             do_sense = rospy.get_param("/baxter_sense")
             if do_sense:
                 (angle, dist) = self.global_policies.cartesian_to_polar(sense.pose.position.y, sense.pose.position.x)
-                self.box_sense.dist.data = dist - 0.08
-                self.box_sense.angle.data = angle
-                self.box_sense.height.data = -0.04
-                self.box_sense.radius.data = 0.0
+                self.box_sense.dist = dist - 0.08
+                self.box_sense.angle = angle
+                self.box_sense.height = -0.04
+                self.box_sense.radius = 0.0
 
     def mixed_ball_cb(self, sense):
         if rospy.has_param("/baxter_sense"):
             do_sense = rospy.get_param("/baxter_sense")
             if do_sense:
                 (angle, dist) = self.global_policies.cartesian_to_polar(sense.pose.position.y, sense.pose.position.x)
-                self.obj_sense.dist.data = dist
-                self.obj_sense.angle.data = angle
-                self.obj_sense.height.data = -0.04
-                self.obj_sense.radius.data = 0.0
+                self.obj_sense.dist = dist
+                self.obj_sense.angle = angle
+                self.obj_sense.height = -0.04
+                self.obj_sense.radius = 0.0
 
     def obj_sense_cb(self, sens):
-        if sens.height.data > -0.10:
+        if sens.height > -0.10:
             self.obj_sense = sens
 
     def box_sense_cb(self, sens):
-        if sens.height.data > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box_sense"):
+        if sens.height > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box_sense"):
             self.box_sense = sens
 
     def box2_sense_cb(self, sens):
-        if sens.height.data > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box2_sense"):
+        if sens.height > -0.10 and not rospy.has_param("/check_reward"):  # and rospy.has_param("/box2_sense"):
             self.box2_sense = sens
 
     def rob_sense_cb(self, sens):
-        if sens.height.data > -0.10:
+        if sens.height > -0.10:
             self.rob_sense = sens
 
     def rob_ori_cb(self, ori):
@@ -130,23 +130,17 @@ class exp_senses(object):
     ### Services ###
 
     def handle_gs_motiv(self, srv):
-        if srv.request.data == True:
-            (box_dx, box_dy) = self.global_policies.polar_to_cartesian(
-                self.box_sense.angle.data, self.box_sense.dist.data
-            )
-            (obj_dx, obj_dy) = self.global_policies.polar_to_cartesian(
-                self.obj_sense.angle.data, self.obj_sense.dist.data
-            )
-            (rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(
-                self.rob_sense.angle.data, self.rob_sense.dist.data
-            )
+        if srv.request == True:
+            (box_dx, box_dy) = self.global_policies.polar_to_cartesian(self.box_sense.angle, self.box_sense.dist)
+            (obj_dx, obj_dy) = self.global_policies.polar_to_cartesian(self.obj_sense.angle, self.obj_sense.dist)
+            (rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(self.rob_sense.angle, self.rob_sense.dist)
 
-            inc_x = 0.1 * np.cos(self.rob_ori.data)
-            inc_y = 0.1 * np.sin(self.rob_ori.data)
+            inc_x = 0.1 * np.cos(self.rob_ori)
+            inc_y = 0.1 * np.sin(self.rob_ori)
             robg_x = rob_dx + inc_x
             robg_y = rob_dy + inc_y
 
-            if self.grip_state_conversion(self.rgrip_sense.data):
+            if self.grip_state_conversion(self.rgrip_sense):
                 box_ball_dist = self.global_policies.obtain_dist(
                     box_dx - self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x,
                     box_dy - self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y,
@@ -172,7 +166,7 @@ class exp_senses(object):
                         self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y - obj_dy,
                     )
 
-            if self.grip_state_conversion(self.rgrip_sense.data):
+            if self.grip_state_conversion(self.rgrip_sense):
                 obj_dx = self.global_policies.baxter_arm.rarm_state.current_es.pose.position.x
                 obj_dy = self.global_policies.baxter_arm.rarm_state.current_es.pose.position.y
             elif self.rob_grip > 0.0:
@@ -192,16 +186,16 @@ class exp_senses(object):
                 Float64(rob_dx),
                 Float64(rob_dy),
                 Float64(self.rgrip_ori),
-                Float64(self.rob_ori.data),
+                Float64(self.rob_ori),
             )
 
     def handle_gs(self, srv):
-        if srv.request.data == True:
+        if srv.request == True:
             return self.obj_sense, self.box_sense, self.lgrip_sense, self.rgrip_sense
 
     def handle_gs_rob_data(self, srv):
-        (box_dx, box_dy) = self.global_policies.polar_to_cartesian(self.box_sense.angle.data, self.box_sense.dist.data)
-        (rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(self.rob_sense.angle.data, self.rob_sense.dist.data)
+        (box_dx, box_dy) = self.global_policies.polar_to_cartesian(self.box_sense.angle, self.box_sense.dist)
+        (rob_dx, rob_dy) = self.global_policies.polar_to_cartesian(self.rob_sense.angle, self.rob_sense.dist)
         rob_box_dist = self.global_policies.obtain_dist(box_dx - rob_dx, box_dy - rob_dy)
 
         return (
@@ -209,22 +203,22 @@ class exp_senses(object):
             Float64(box_dy),
             Float64(rob_dx),
             Float64(rob_dy),
-            Float64(self.rob_ori.data),
+            Float64(self.rob_ori),
             Float64(rob_box_dist),
         )
 
     def choose_gripper_state(self, side):
-        options = {"left": self.lgrip_sense.data, "right": self.rgrip_sense.data}
+        options = {"left": self.lgrip_sense, "right": self.rgrip_sense}
         return options[side]
 
     def assign_gripper_sense(self, side, value):
         if side == "left":
-            self.lgrip_sense.data = value
+            self.lgrip_sense = value
         elif side == "right":
-            self.rgrip_sense.data = value
+            self.rgrip_sense = value
         elif side == "both":
-            self.lgrip_sense.data = value
-            self.rgrip_sense.data = value
+            self.lgrip_sense = value
+            self.rgrip_sense = value
 
     def grip_state_conversion(self, state):
         if state > 0.5:
@@ -243,8 +237,8 @@ class exp_senses(object):
         return dist > cls.outer(abs(ang))
 
     def is_human_happy(self):
-        for cylinder in self.box.data:
-            for box in self.obj.data:
+        for cylinder in self.box:
+            for box in self.obj:
                 if (
                     (abs(cylinder.distance - box.distance) < 0.18)
                     and (abs(cylinder.angle - box.angle) < 0.18)
@@ -256,21 +250,21 @@ class exp_senses(object):
     def publish_current_senses(self, box_rad, obj_rad):
         rospy.loginfo("Publishing sensorization")
 
-        self.obj.data[0].distance = self.obj_sense.dist.data
-        self.obj.data[0].angle = self.obj_sense.angle.data
+        self.obj.data[0].distance = self.obj_sense.dist
+        self.obj.data[0].angle = self.obj_sense.angle
         self.obj.data[0].diameter = obj_rad
         self.obj_pb.publish(self.obj)
 
-        self.box.data[0].distance = self.box_sense.dist.data
-        self.box.data[0].angle = self.box_sense.angle.data
+        self.box.data[0].distance = self.box_sense.dist
+        self.box.data[0].angle = self.box_sense.angle
         self.box.data[0].diameter = box_rad
-        self.box.data[1].distance = self.box2_sense.dist.data
-        self.box.data[1].angle = self.box2_sense.angle.data
+        self.box.data[1].distance = self.box2_sense.dist
+        self.box.data[1].angle = self.box2_sense.angle
         self.box.data[1].diameter = box_rad
         self.box_pb.publish(self.box)
 
-        self.lgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.lgrip_sense.data)))
-        self.rgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.rgrip_sense.data)))
+        self.lgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.lgrip_sense)))
+        self.rgrip_sense_pb.publish(Bool(self.grip_state_conversion(self.rgrip_sense)))
 
         self.reward.data = self.is_human_happy()
         self.reward_pb.publish(self.reward)

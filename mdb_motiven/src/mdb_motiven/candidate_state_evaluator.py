@@ -71,7 +71,7 @@ class CandidateStateEvaluator(object):
         """
         # Obtengo valoracion aplicando la accion candidata en el modelo de mundo
         sens_t1 = self.ForwModel.predictedState(candidate, SimData)
-        # print "Predicted state Valuation: ", sens_t1, "Candidate action: ", candidate.baxter_action.data
+        # print "Predicted state Valuation: ", sens_t1, "Candidate action: ", candidate.baxter_action
         if tipo == "pos":  # Tengo que alejarme, aumentar la distancia
             valuation = sens_t1[sensor - 1] - sens_t[sensor - 1]
         elif tipo == "neg":  # Tengo que acercarme, disminuir la distancia

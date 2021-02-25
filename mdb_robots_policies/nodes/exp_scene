@@ -32,7 +32,7 @@ class exp_scene(object):
         self.mod_ps_srver = rospy.Service("/mdb3/baxter/modify_planning_scene", ManagePlanScene, self.handle_mod_ps)
 
     def handle_mod_ps(self, req):
-        if self.manage_element(req.element.data, req.action.data, [req.x.data, req.y.data, req.z.data]):
+        if self.manage_element(req.element, req.action, [req.x, req.y, req.z]):
             return Bool(True)
         else:
             return Bool(False)

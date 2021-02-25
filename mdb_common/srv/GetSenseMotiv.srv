@@ -1,16 +1,16 @@
-std_msgs/Bool request
+bool request
 ---
-std_msgs/Float64 obj_box_dist
-std_msgs/Float64 obj_grip_dist
-std_msgs/Float64 obj_rob_dist
-std_msgs/Float64 obj_x
-std_msgs/Float64 obj_y
-std_msgs/Float64 box_x
-std_msgs/Float64 box_y
-std_msgs/Float64 grip_x
-std_msgs/Float64 grip_y
-std_msgs/Float64 rob_x
-std_msgs/Float64 rob_y
-std_msgs/Float64 grip_angle
-std_msgs/Float64 rob_angle
+float64 obj_box_dist
+float64 obj_grip_dist
+float64 obj_rob_dist
+float64 obj_x
+float64 obj_y
+float64 box_x
+float64 box_y
+float64 grip_x
+float64 grip_y
+float64 rob_x
+float64 rob_y
+float64 grip_angle
+float64 rob_angle
 

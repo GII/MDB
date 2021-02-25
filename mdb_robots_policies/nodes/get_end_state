@@ -38,10 +38,10 @@ class get_end_state(object):
         self.right_current_state = state
 
     def handle_getes(self, req):
-        if req.request.data == "left":
+        if req.request == "left":
             print("Sending current larm endstate")
             return self.left_current_state
-        elif req.request.data == "right":
+        elif req.request == "right":
             print("Sending current rarm endstate")
             return self.right_current_state
         else:

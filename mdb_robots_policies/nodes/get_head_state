@@ -33,7 +33,7 @@ class get_head_state(object):
         self.current_state = state
 
     def handle_geths(self, req):
-        if req.request.data:
+        if req.request:
             print("Sending current joint states")
             # while len(self.current_state.position)==1:
             # pass

@@ -1,3 +1,3 @@
-std_msgs/Float64 const_dist
-std_msgs/Float64 angle
-std_msgs/Float64 height
+float64 const_dist
+float64 angle
+float64 height

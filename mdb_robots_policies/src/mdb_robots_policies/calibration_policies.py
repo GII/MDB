@@ -52,7 +52,7 @@ class calibration_policies(object):
     #################
 
     def show_calib_data_cb(self, do_show):
-        if do_show.data == True:
+        if do_show.data:
             rospy.loginfo(self.calibration_data)
 
     def calib_obj_flag_cb(self, flag):
@@ -63,7 +63,7 @@ class calibration_policies(object):
 
     def ball_track_cb(self, objsens):
         if self.calib_obj_flag:
-            self.calib_obj_cent = [objsens.u.data, objsens.v.data]
+            self.calib_obj_cent = [objsens.u, objsens.v]
 
     def tag_cent_cb(self, Pose):
         if self.global_policies.robobo_status:
@@ -213,17 +213,17 @@ class calibration_policies(object):
         return options[flag]
 
     def calibration_cycle(self, dist, far, pan_angles, req, calibration_data, dx, dy, arm, non_reach):
-        if req.use_arm.data:
+        if req.use_arm:
             if non_reach:
                 calibration_data.append([[dx, dy], "non_reachable"])
                 return True
             else:
                 real_position = self.select_calibration_move(self.translate_move_flag(dist, far))(
-                    req.height.data, arm, dx, dy
+                    req.height, arm, dx, dy
                 )
                 if real_position != False:
                     rospy.sleep(1)
-                    pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
+                    pos_data = self.pan_data_adquisition(pan_angles, req.use_tag)
                     calibration_data.append([real_position, pos_data])
                     return True
                 else:
@@ -234,17 +234,17 @@ class calibration_policies(object):
 
         else:
             rospy.sleep(1)
-            pos_data = self.pan_data_adquisition(pan_angles, req.use_tag.data)
+            pos_data = self.pan_data_adquisition(pan_angles, req.use_tag)
             calibration_data.append([[dx, dy], pos_data])
             self.global_policies.baxter_arm.restore_arm_pose("both")
             return True
 
     def obtain_calibration_limits(self, req):
-        if req.row_to_calibrate.data == -1 and req.pos_to_start.data < req.point_num.data:
-            return req.pos_to_start.data, req.point_num.data
+        if req.row_to_calibrate == -1 and req.pos_to_start < req.point_num:
+            return req.pos_to_start, req.point_num
         else:
-            side = int(math.sqrt(req.point_num.data))
-            return side * req.row_to_calibrate.data, (side * req.row_to_calibrate.data) + side
+            side = int(math.sqrt(req.point_num))
+            return side * req.row_to_calibrate, (side * req.row_to_calibrate) + side
 
     def interpolation_calibration(self, req):
         x_min = rospy.get_param("~cal_xmin")
@@ -254,18 +254,18 @@ class calibration_policies(object):
 
         seed_angle = rospy.get_param("~cal_ang")
 
-        height_data = req.height.data
+        height_data = req.height
         table_vertex = [[x_min, y_max], [x_min, y_min], [x_max, y_min], [x_max, y_max]]
-        pan_angles = self.angle_generator(req.angle_num.data, seed_angle)
+        pan_angles = self.angle_generator(req.angle_num, seed_angle)
 
         self.global_policies.adopt_oap()
-        grid_points = self.lineal_quadrilateral_grid_points(table_vertex, req.point_num.data)
+        grid_points = self.lineal_quadrilateral_grid_points(table_vertex, req.point_num)
 
         self.calibration_data = []
 
         (init, end) = self.obtain_calibration_limits(req)
 
-        row_point_num = int(math.sqrt(req.point_num.data))
+        row_point_num = int(math.sqrt(req.point_num))
         rospy.set_param("baxter_sense", True)
 
         fail = True

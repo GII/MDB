@@ -54,7 +54,7 @@ class open_grip(object):
 
     def open_grip_cb(self, msg):
         self.angle = msg.angle
-        self.arm_check = msg.arm.data
+        self.arm_check = msg.arm
 
 
 def open_grip_server():

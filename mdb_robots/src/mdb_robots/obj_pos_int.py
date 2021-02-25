@@ -79,7 +79,7 @@ class obj_pos_int(object):
         return fx, fy
 
     def track_cb(self, coor):
-        self.manage_depth(coor.u.data, coor.v.data)
+        self.manage_depth(coor.u, coor.v)
 
     def sensorization_conversion(self, x, y, z):
         dist = np.sqrt((x ** 2) + (y ** 2))
@@ -94,10 +94,10 @@ class obj_pos_int(object):
         z_p = -0.04
 
         (dist, angle, height) = self.sensorization_conversion(x_p, y_p, z_p)
-        msg.dist.data = dist
-        msg.angle.data = angle
-        msg.height.data = height
-        msg.radius.data = 0.0
+        msg.dist = dist
+        msg.angle = angle
+        msg.height = height
+        msg.radius = 0.0
 
         self.obj_sensor_pub.publish(msg)
 

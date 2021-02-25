@@ -89,7 +89,7 @@ class exp_core(object):
             self.reward_sound()
         else:
             self.bax_restore_arm_pose_clnt(String("both"))
-            self.bax_reset_grippers_clnt(Bool(True))
+            self.bax_reset_grippers_clnt(True)
         self.refresh()
         try:
             self.policies_manager.bax_get_complete_sense_clnt(
@@ -140,7 +140,7 @@ class exp_core(object):
             rospy.delete_param("/check_reward")
         if self.exp_rec == "mot" and rospy.has_param("/box_sense"):
             rospy.delete_param("/box_sense")
-        self.bax_reset_grippers_clnt(Bool(True))
+        self.bax_reset_grippers_clnt(True)
         self.obj_type = self.randomize_obj()
         self.choose_world_image()
         input("Press Key after configuring the experiment")
@@ -152,7 +152,7 @@ class exp_core(object):
             self.adopt_open_pose()
 
     def handle_new_exp(self, req):
-        self.world = req.world.data
+        self.world = req.world
         self.refresh()
         try:
             self.policies_manager.bax_get_complete_sense_clnt(
@@ -166,13 +166,13 @@ class exp_core(object):
             return Bool(False)
 
     def handle_ref_world(self, req):
-        self.world = req.world.data
+        self.world = req.world
         self.pan_to("front", 0.1)
-        if req.reward.data:
+        if req.reward:
             self.reward_sound()
         else:
             self.bax_restore_arm_pose_clnt(String("both"))
-            self.bax_reset_grippers_clnt(Bool(True))
+            self.bax_reset_grippers_clnt(True)
         self.refresh()
         try:
             self.policies_manager.bax_get_complete_sense_clnt(
@@ -186,7 +186,7 @@ class exp_core(object):
             return Bool(False)
 
     def handle_exec_pol(self, req):
-        resp = self.policies_manager.execute_policy(req.policy_code.data)
+        resp = self.policies_manager.execute_policy(req.policy_code)
         return Bool(resp)
 
     def head_state_cb(self, state):
@@ -212,12 +212,12 @@ class exp_core(object):
 
     def adopt_open_pose(self):
         req = BaxChangeRequest()
-        req.request.data = True
+        req.request = True
         self.bax_open_arms_pose_clnt(req)
 
     def adopt_expression(self, expr):
         req = BaxChangeFaceRequest()
-        req.expression.data = expr
+        req.expression = expr
         self.bax_change_face_clnt(req)
 
     def pan_selection(self, arg):

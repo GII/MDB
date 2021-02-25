@@ -140,20 +140,20 @@ class policies_manager(object):
     def control_orientation(self, global_s, policy_code):
         if policy_code == "change_hands":
             self.global_exp.pan_to("front", 0.1)
-        elif policy_code == "ask_nicely" or (global_s.left_grip.data > 0.0 and global_s.right_grip.data > 0.0):
+        elif policy_code == "ask_nicely" or (global_s.left_grip > 0.0 and global_s.right_grip > 0.0):
             self.global_exp.pan_to("front", 0.1)
-        elif global_s.left_grip.data > 0.0 or global_s.right_grip.data > 0.0:  # Look to the box
-            self.global_exp.pan_to_pos(global_s.box_sens.angle.data, 0.1)
+        elif global_s.left_grip > 0.0 or global_s.right_grip > 0.0:  # Look to the box
+            self.global_exp.pan_to_pos(global_s.box_sens.angle, 0.1)
         elif (
-            policy_code != "change_hands" and not global_s.left_grip.data > 0.0 and not global_s.right_grip.data > 0.0
+            policy_code != "change_hands" and not global_s.left_grip > 0.0 and not global_s.right_grip > 0.0
         ):  # Look to the ball
-            self.global_exp.pan_to_pos(global_s.obj_sens.angle.data, 0.1)
+            self.global_exp.pan_to_pos(global_s.obj_sens.angle, 0.1)
 
     def gripper_sense_data(self, global_s, arm):
         if arm == "left":
-            return global_s.left_grip.data
+            return global_s.left_grip
         elif arm == "right":
-            return global_s.right_grip.data
+            return global_s.right_grip
 
     def choose_sweep_height(self, obj):
         options = {"exp_small_obj": 0.03, "exp_big_obj": 0.1}
@@ -163,50 +163,50 @@ class policies_manager(object):
         if self.global_exp.obj_type == "exp_small_obj" and ("gripper_and_low_friction" in self.global_exp.world):
             srv.object_position.const_dist = global_s.obj_sens.dist
             srv.object_position.angle = global_s.obj_sens.angle
-            srv.object_position.height.data = self.fixed_height
-            srv.orientation.data = "current"
-            srv.arm.data = arm
-            srv.scale.data = self.velocity
+            srv.object_position.height = self.fixed_height
+            srv.orientation = "current"
+            srv.arm = arm
+            srv.scale = self.velocity
             self.global_exp.adopt_expression("focus")
             if not self.gripper_sense_data(global_s, arm) > 0.0:
-                resp = self.choose_policy_srv(policy_code)(srv).result.data
+                resp = self.choose_policy_srv(policy_code)(srv).result
                 return resp
         return False
 
     def policy_grasp_with_two_hands(self, policy_code, global_s, arm, srv):
         resp = False
         if (
-            (global_s.obj_sens.angle.data < 0.3925)
-            and (global_s.obj_sens.angle.data > -0.3925)
-            and (global_s.obj_sens.dist.data > 0.47)
-            and (global_s.obj_sens.dist.data < 0.75)
-            and (global_s.left_grip.data < 1.0 and global_s.right_grip.data < 1.0)
+            (global_s.obj_sens.angle < 0.3925)
+            and (global_s.obj_sens.angle > -0.3925)
+            and (global_s.obj_sens.dist > 0.47)
+            and (global_s.obj_sens.dist < 0.75)
+            and (global_s.left_grip < 1.0 and global_s.right_grip < 1.0)
         ):
             if self.global_exp.obj_type == "exp_big_obj" and ("gripper_and_low_friction" in self.global_exp.world):
                 srv.sensorization.const_dist = global_s.obj_sens.dist
                 srv.sensorization.angle = global_s.obj_sens.angle
-                srv.sensorization.height.data = self.fixed_height
-                srv.size.data = 0.08
+                srv.sensorization.height = self.fixed_height
+                srv.size = 0.08
                 self.global_exp.adopt_expression("focus")
-                resp = self.choose_policy_srv(policy_code)(srv).result.data
+                resp = self.choose_policy_srv(policy_code)(srv).result
             elif self.global_exp.world == "no_gripper_and_high_friction":
                 srv.sensorization.const_dist = global_s.obj_sens.dist
                 srv.sensorization.angle = global_s.obj_sens.angle
-                srv.sensorization.height.data = self.fixed_height
+                srv.sensorization.height = self.fixed_height
                 if self.global_exp.obj_type == "exp_big_obj":
-                    srv.size.data = 0.08
+                    srv.size = 0.08
                 else:
-                    srv.size.data = 0.06
+                    srv.size = 0.06
                 self.global_exp.adopt_expression("focus")
-                resp = self.choose_policy_srv(policy_code)(srv).result.data
+                resp = self.choose_policy_srv(policy_code)(srv).result
         return resp
 
     def policy_change_hands(self, policy_code, global_s, arm, srv):
         if "gripper_and_low_friction" in self.global_exp.world:
             self.global_exp.pan_to("front", 0.1)
-            srv.request.data = True
+            srv.request = True
             self.global_exp.adopt_expression("focus")
-            resp = self.choose_policy_srv(policy_code)(srv).result.data
+            resp = self.choose_policy_srv(policy_code)(srv).result
             return resp
         return False
 
@@ -214,21 +214,21 @@ class policies_manager(object):
         resp = False
         srv.obj_sens.const_dist = global_s.obj_sens.dist
         srv.obj_sens.angle = global_s.obj_sens.angle
-        srv.obj_sens.height.data = self.fixed_height + 0.005 + self.choose_sweep_height(self.global_exp.obj_type)
-        srv.dest_sens.const_dist.data = 0.70
+        srv.obj_sens.height = self.fixed_height + 0.005 + self.choose_sweep_height(self.global_exp.obj_type)
+        srv.dest_sens.const_dist = 0.70
         if self.global_exp.obj_type == "exp_small_obj" and ("gripper_and_low_friction" in self.global_exp.world):
-            srv.dest_sens.angle.data = self.select_sweep_angle(arm)
+            srv.dest_sens.angle = self.select_sweep_angle(arm)
         else:
-            srv.dest_sens.angle.data = 0.0
-        srv.dest_sens.height.data = self.fixed_height + 0.005 + self.choose_sweep_height(self.global_exp.obj_type)
-        srv.radius.data = self.choose_push_dist(self.global_exp.obj_type) + 0.02
-        srv.arm.data = arm
-        srv.scale.data = self.velocity
+            srv.dest_sens.angle = 0.0
+        srv.dest_sens.height = self.fixed_height + 0.005 + self.choose_sweep_height(self.global_exp.obj_type)
+        srv.radius = self.choose_push_dist(self.global_exp.obj_type) + 0.02
+        srv.arm = arm
+        srv.scale = self.velocity
         if "gripper_and_low_friction" in self.global_exp.world:
-            srv.grip.data = True
+            srv.grip = True
         self.global_exp.adopt_expression("focus")
         if not arm == "both":
-            resp = self.choose_policy_srv(policy_code)(srv).result.data
+            resp = self.choose_policy_srv(policy_code)(srv).result
         if resp:
             rospy.set_param("/check_reward", True)
             self.global_exp.complete_pan_static()
@@ -238,36 +238,36 @@ class policies_manager(object):
     def policy_put_object_in(self, policy_code, global_s, arm, srv):
         resp = False
         if (
-            global_s.left_grip.data < 1.0 or global_s.right_grip.data < 1.0
+            global_s.left_grip < 1.0 or global_s.right_grip < 1.0
         ) and "gripper_and_low_friction" in self.global_exp.world:
             if policy_code == "put_object_in_box":  # Destination = Box
                 srv.object_position.const_dist = global_s.box_sens.dist
                 srv.object_position.angle = global_s.box_sens.angle
             else:  # Destination = Robot (predefined)
-                srv.object_position.const_dist.data = 0.47 + 0.03
-                srv.object_position.angle.data = 0.0
-            srv.object_position.height.data = self.fixed_height + self.choose_sweep_height(self.global_exp.obj_type)
-            srv.orientation.data = "current"
-            srv.arm.data = arm
-            srv.scale.data = self.velocity
+                srv.object_position.const_dist = 0.47 + 0.03
+                srv.object_position.angle = 0.0
+            srv.object_position.height = self.fixed_height + self.choose_sweep_height(self.global_exp.obj_type)
+            srv.orientation = "current"
+            srv.arm = arm
+            srv.scale = self.velocity
             self.global_exp.adopt_expression("focus")
             if not (
                 self.gripper_sense_data(global_s, arm) < 1.0
-                or (not self.is_same_side(arm, global_s.box_sens.angle.data) and policy_code == "put_object_in_box")
+                or (not self.is_same_side(arm, global_s.box_sens.angle) and policy_code == "put_object_in_box")
             ):
-                resp = self.choose_policy_srv(policy_code)(srv).result.data
-        elif global_s.left_grip.data > 0.0 and global_s.right_grip.data > 0.0:
+                resp = self.choose_policy_srv(policy_code)(srv).result
+        elif global_s.left_grip > 0.0 and global_s.right_grip > 0.0:
             srv = BaxDropBothRequest()
             if policy_code == "put_object_in_box":  # Destination = Box
                 srv.destination.const_dist = global_s.box_sens.dist
                 srv.destination.angle = global_s.box_sens.angle
             else:  # Destination = Robot (predefined)
-                srv.destination.const_dist.data = 0.47 + 0.08
-                srv.destination.angle.data = 0.0
-            srv.destination.height.data = self.fixed_height + self.choose_sweep_height("exp_big_obj")
-            srv.size.data = 0.15
+                srv.destination.const_dist = 0.47 + 0.08
+                srv.destination.angle = 0.0
+            srv.destination.height = self.fixed_height + self.choose_sweep_height("exp_big_obj")
+            srv.size = 0.15
             self.global_exp.adopt_expression("focus")
-            resp = self.bax_drop_both_clnt(srv).result.data
+            resp = self.bax_drop_both_clnt(srv).result
         if resp:
             rospy.set_param("/check_reward", True)
             self.global_exp.complete_pan_static()
@@ -277,24 +277,24 @@ class policies_manager(object):
     def policy_throw(self, policy_code, global_s, arm, srv):
         resp = False
         if self.super_throw:
-            srv.arm.data = "right"
+            srv.arm = "right"
             self.global_exp.adopt_expression("focus")
             self.super_throwing_pub.publish(4)
             rospy.sleep(10)
             self.super_throwing_pub.publish(5)
             rospy.sleep(20)
-            resp = self.choose_policy_srv(policy_code)(srv).result.data
+            resp = self.choose_policy_srv(policy_code)(srv).result
             rospy.set_param("/check_reward", True)
             self.global_exp.complete_pan_static()
             rospy.delete_param("/check_reward")
         elif self.global_exp.obj_type == "exp_small_obj" and ("gripper_and_low_friction" in self.global_exp.world):
-            srv.sensorization.const_dist.data = self.choose_throw_distance(
-                arm, global_s.box_sens.angle.data, global_s.box_sens.dist.data
+            srv.sensorization.const_dist = self.choose_throw_distance(
+                arm, global_s.box_sens.angle, global_s.box_sens.dist
             )
-            srv.sensorization.angle.data = self.choose_throw_angle(arm, global_s.box_sens.angle.data)
-            srv.arm.data = arm
+            srv.sensorization.angle = self.choose_throw_angle(arm, global_s.box_sens.angle)
+            srv.arm = arm
             self.global_exp.adopt_expression("focus")
-            resp = self.choose_policy_srv(policy_code)(srv).result.data
+            resp = self.choose_policy_srv(policy_code)(srv).result
             if resp:
                 rospy.set_param("/check_reward", True)
                 self.global_exp.complete_pan_static()
@@ -305,7 +305,7 @@ class policies_manager(object):
         resp = False
         self.global_exp.pan_to("front", 0.1)
         if not (self.gripper_sense_data(global_s, "left") > 0.0 or self.gripper_sense_data(global_s, "right") > 0.0):
-            srv.request.data = True
+            srv.request = True
             self.choose_policy_srv(policy_code)(srv)
             rospy.sleep(1)
             self.global_exp.adopt_expression("normal")
@@ -316,14 +316,14 @@ class policies_manager(object):
     def policy_joystick(self, policy_code, global_s, arm, srv):
         srv.joystick_pos.const_dist = 0.6
         srv.joystick_pos.angle = 0.785
-        srv.joystick_pos.height.data = 0.09
-        srv.joystick_angle.data = 0.0
-        srv.time_to_control.data = 0.0
-        srv.arm_to_move.data = arm
-        srv.velocity_scale.data = 1.0
+        srv.joystick_pos.height = 0.09
+        srv.joystick_angle = 0.0
+        srv.time_to_control = 0.0
+        srv.arm_to_move = arm
+        srv.velocity_scale = 1.0
         self.global_exp.adopt_expression("focus")
         if not self.gripper_sense_data(global_s, arm) > 0.0:
-            resp = self.choose_policy_srv(policy_code)(srv).result.data
+            resp = self.choose_policy_srv(policy_code)(srv).result
             return resp
         return False
 
@@ -331,13 +331,13 @@ class policies_manager(object):
         resp = False
         srv.object_position.const_dist = global_s.box_sens.dist
         srv.object_position.angle = global_s.box_sens.angle
-        srv.object_position.height.data = self.fixed_height + self.choose_sweep_height(self.global_exp.obj_type)
-        srv.orientation.data = "current"
-        srv.arm.data = arm
-        srv.scale.data = self.velocity
+        srv.object_position.height = self.fixed_height + self.choose_sweep_height(self.global_exp.obj_type)
+        srv.orientation = "current"
+        srv.arm = arm
+        srv.scale = self.velocity
         self.global_exp.adopt_expression("focus")
         if self.gripper_sense_data(global_s, arm) >= 1.0:
-            resp = self.choose_policy(policy_code)(srv).result.data
+            resp = self.choose_policy(policy_code)(srv).result
         if resp:
             rospy.set_param("/check_reward", True)
             self.global_exp.complete_pan()
@@ -362,7 +362,7 @@ class policies_manager(object):
     def execute_policy(self, policy_code):
         global_s = self.bax_get_sense_clnt(Bool(True))
         arm = self.choose_arm(
-            global_s.obj_sens.angle.data,
+            global_s.obj_sens.angle,
             self.gripper_sense_data(global_s, "left") > 0.0,
             self.gripper_sense_data(global_s, "right") > 0.0,
         )

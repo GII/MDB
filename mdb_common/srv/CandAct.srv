@@ -1,5 +1,5 @@
-std_msgs/Int32 action_number
-std_msgs/Int32 limit
-std_msgs/String motivation
+int32 action_number
+int32 limit
+string motivation
 ---
-mdb_common/Candidates[] candidates
+Candidates[] candidates

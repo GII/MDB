@@ -459,9 +459,9 @@ class MOTIVEN(object):
             sensorization = self.get_sens_srv(Bool(True))
             self.episode.setSensorialStateT(
                 (
-                    sensorization.obj_rob_dist.data * 1000,
-                    sensorization.obj_grip_dist.data * 1000,
-                    sensorization.obj_box_dist.data * 1000,
+                    sensorization.obj_rob_dist * 1000,
+                    sensorization.obj_grip_dist * 1000,
+                    sensorization.obj_box_dist * 1000,
                 )
             )
 
@@ -486,32 +486,32 @@ class MOTIVEN(object):
             if self.iterations == 0:
                 self.episode.setAction(10)
             else:
-                self.episode.setAction((action.robobo_action.data, action.baxter_action.data))
+                self.episode.setAction((action.robobo_action, action.baxter_action))
             # Action (Baxter + Robobo)
             movement_req = BaxMCRequest()
-            movement_req.dest.const_dist.data = 0.05
+            movement_req.dest.const_dist = 0.05
             if self.iterations == 0:
-                movement_req.dest.angle.data = 10 * (math.pi / 180.0)
-                movement_req.valid.data = True
+                movement_req.dest.angle = 10 * (math.pi / 180.0)
+                movement_req.valid = True
             else:
-                movement_req.dest.angle.data = action.baxter_action.data * (math.pi / 180.0)  # Conversion to rad
+                movement_req.dest.angle = action.baxter_action * (math.pi / 180.0)  # Conversion to rad
                 movement_req.valid = action.baxter_valid
-            movement_req.dest.height.data = 0.0
-            movement_req.orientation.data = "current"
-            movement_req.arm.data = "right"
-            movement_req.scale.data = 1.0
+            movement_req.dest.height = 0.0
+            movement_req.orientation = "current"
+            movement_req.arm = "right"
+            movement_req.scale = 1.0
             try:
                 self.baxter_mov_srv(movement_req)  # self.simulator.baxter_larm_action(action)
             except rospy.ServiceException as e:
                 rospy.logerr("Movement service call failed: {0}".format(e))
             ######
             movement_req = BaxMCRequest()
-            movement_req.dest.const_dist.data = 0.05
+            movement_req.dest.const_dist = 0.05
             if self.iterations == 0:
-                movement_req.dest.angle.data = 10 * (math.pi / 180.0)
-                movement_req.valid.data = True
+                movement_req.dest.angle = 10 * (math.pi / 180.0)
+                movement_req.valid = True
             else:
-                movement_req.dest.angle.data = action.robobo_action.data * (math.pi / 180.0)  # Conversion to rad
+                movement_req.dest.angle = action.robobo_action * (math.pi / 180.0)  # Conversion to rad
                 movement_req.valid = action.robobo_valid
             try:
                 self.robobo_mov_srv(movement_req)
@@ -522,13 +522,13 @@ class MOTIVEN(object):
             # SENSORIZATION in t+1 (distances and reward)
             sensorization = self.get_sens_srv(Bool(True))
             if self.reward:
-                self.episode.setSensorialStateT1((sensorization.obj_rob_dist.data * 1000, 0.0, 0.0))
+                self.episode.setSensorialStateT1((sensorization.obj_rob_dist * 1000, 0.0, 0.0))
             else:
                 self.episode.setSensorialStateT1(
                     (
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000,
+                        sensorization.obj_rob_dist * 1000,
+                        sensorization.obj_grip_dist * 1000,
+                        sensorization.obj_box_dist * 1000,
                     )
                 )
             self.episode.setReward(self.reward)
@@ -557,27 +557,27 @@ class MOTIVEN(object):
             self.motivation_manager()
             # CANDIDATE STATE EVALUATOR and ACTION CHOOSER
             sensorization = self.get_sens_srv(Bool(True))
-            self.baxter_gripper_angle = sensorization.grip_angle.data * 180.0 / math.pi
-            self.robobo_angle = sensorization.rob_angle.data * 180.0 / math.pi
+            self.baxter_gripper_angle = sensorization.grip_angle * 180.0 / math.pi
+            self.robobo_angle = sensorization.rob_angle * 180.0 / math.pi
             # Generate new action
             sim_data = (
-                (sensorization.grip_x.data * 1000, sensorization.grip_y.data * 1000),
+                (sensorization.grip_x * 1000, sensorization.grip_y * 1000),
                 self.baxter_gripper_angle,
-                (sensorization.rob_x.data * 1000, sensorization.rob_y.data * 1000),
+                (sensorization.rob_x * 1000, sensorization.rob_y * 1000),
                 self.robobo_angle,
-                (sensorization.obj_x.data * 1000, sensorization.obj_y.data * 1000),
-                (sensorization.obj_rob_dist.data * 1000, sensorization.obj_grip_dist.data * 1000),
-                (sensorization.box_x.data * 1000, sensorization.box_y.data * 1000),
-                movement_req.dest.const_dist.data * 1000,
+                (sensorization.obj_x * 1000, sensorization.obj_y * 1000),
+                (sensorization.obj_rob_dist * 1000, sensorization.obj_grip_dist * 1000),
+                (sensorization.box_x * 1000, sensorization.box_y * 1000),
+                movement_req.dest.const_dist * 1000,
             )
             action = self.cse.getAction(
                 self.active_mot,
                 sim_data,
                 tuple(
                     (
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000,
+                        sensorization.obj_rob_dist * 1000,
+                        sensorization.obj_grip_dist * 1000,
+                        sensorization.obj_box_dist * 1000,
                     )
                 ),
                 self.corr_sensor,
@@ -650,9 +650,9 @@ class MOTIVEN(object):
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     tuple(
                         (
-                            sensorization.obj_rob_dist.data * 1000,
-                            sensorization.obj_grip_dist.data * 1000,
-                            sensorization.obj_box_dist.data * 1000,
+                            sensorization.obj_rob_dist * 1000,
+                            sensorization.obj_grip_dist * 1000,
+                            sensorization.obj_box_dist * 1000,
                         )
                     ),
                     self.active_goal,
@@ -660,9 +660,9 @@ class MOTIVEN(object):
             self.corr_sensor, self.corr_type = self.correlations_manager.getActiveCorrelation(
                 tuple(
                     (
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000,
+                        sensorization.obj_rob_dist * 1000,
+                        sensorization.obj_grip_dist * 1000,
+                        sensorization.obj_box_dist * 1000,
                     )
                 ),
                 self.active_corr,
@@ -719,9 +719,9 @@ class MOTIVEN(object):
                 sensorization = self.get_sens_srv(Bool(True))
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     (
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000,
+                        sensorization.obj_rob_dist * 1000,
+                        sensorization.obj_grip_dist * 1000,
+                        sensorization.obj_box_dist * 1000,
                     ),
                     self.active_goal,
                 )
@@ -757,9 +757,9 @@ class MOTIVEN(object):
                 sensorization = self.get_sens_srv(Bool(True))
                 self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                     (
-                        sensorization.obj_rob_dist.data * 1000,
-                        sensorization.obj_grip_dist.data * 1000,
-                        sensorization.obj_box_dist.data * 1000,
+                        sensorization.obj_rob_dist * 1000,
+                        sensorization.obj_grip_dist * 1000,
+                        sensorization.obj_box_dist * 1000,
                     ),
                     self.active_goal,
                 )
@@ -798,9 +798,9 @@ class MOTIVEN(object):
                         sensorization = self.get_sens_srv(Bool(True))
                         self.active_corr = self.correlations_manager.getActiveCorrelationPrueba(
                             (
-                                sensorization.obj_rob_dist.data * 1000,
-                                sensorization.obj_grip_dist.data * 1000,
-                                sensorization.obj_box_dist.data * 1000,
+                                sensorization.obj_rob_dist * 1000,
+                                sensorization.obj_grip_dist * 1000,
+                                sensorization.obj_box_dist * 1000,
                             ),
                             self.active_goal,
                         )
@@ -934,13 +934,13 @@ class MOTIVEN(object):
     def world_rules(self):
         """Return the reward checking if the ball is inside one of the boxes."""
         sens = self.get_sens_srv(Bool(True))
-        if sens.obj_box_dist.data * 1000 < self.min_dist_box and self.ball_gripper:  # distance ball-box1
+        if sens.obj_box_dist * 1000 < self.min_dist_box and self.ball_gripper:  # distance ball-box1
             print("Baxter ACTION Drop")
             self.baxter_policy_srv(String("drop_object"))
             self.reward = 1
-        elif sens.obj_grip_dist.data * 1000 < self.min_dist_robot and not self.ball_gripper:
-            # and (sens.obj_x.data < 0.8 and sens.obj_y.data < 0.05 and sens.obj_y.data > -0.73):  # dist ball-baxter_larm
-            print("\nBAXTER ACTION PICK", sens.obj_grip_dist.data, "\n")
+        elif sens.obj_grip_dist * 1000 < self.min_dist_robot and not self.ball_gripper:
+            # and (sens.obj_x < 0.8 and sens.obj_y < 0.05 and sens.obj_y > -0.73):  # dist ball-baxter_larm
+            print("\nBAXTER ACTION PICK", sens.obj_grip_dist, "\n")
             rospy.loginfo(self.ball_gripper)
             if self.ball_robobo:
                 self.robobo_mov_back_srv(Bool(True), Bool(True))
@@ -948,7 +948,7 @@ class MOTIVEN(object):
             self.baxter_sa_srv(Bool(True), Bool(True))
             self.baxter_policy_srv(String("grasp_object"))
             self.ball_gripper = True
-        elif sens.obj_rob_dist.data * 1000 < self.min_dist_robot and not self.ball_robobo and not self.ball_gripper:
+        elif sens.obj_rob_dist * 1000 < self.min_dist_robot and not self.ball_robobo and not self.ball_gripper:
             print("ROBOBO ACTION PICK")
             self.robobo_pick_srv(Bool(True), Bool(True))
             self.ball_robobo = True

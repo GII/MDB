@@ -1,4 +1,4 @@
-std_msgs/String world
-std_msgs/Bool reward
+string world
+bool reward
 ---
-std_msgs/Bool response
+bool response

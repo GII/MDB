@@ -1,4 +1,4 @@
-std_msgs/Int32 u
-std_msgs/Int32 v
-std_msgs/Int32 radius
+int32 u
+int32 v
+int32 radius
 

@@ -1,3 +1,3 @@
-std_msgs/Float64 x
-std_msgs/Float64 y
-std_msgs/Float64 z
+float64 x
+float64 y
+float64 z

@@ -1,2 +1,2 @@
-std_msgs/String arm
+string arm
 float64 angle

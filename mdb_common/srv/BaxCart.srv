@@ -1,8 +1,8 @@
-mdb_common/CartReq dest
-std_msgs/String orientation
-std_msgs/String arm
-std_msgs/Float64 scale
-std_msgs/Bool grip_change
-std_msgs/Bool valid
+CartReq dest
+string orientation
+string arm
+float64 scale
+bool grip_change
+bool valid
 ---
-std_msgs/Bool result
+bool result

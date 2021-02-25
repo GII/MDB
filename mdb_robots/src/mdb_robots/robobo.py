@@ -359,23 +359,23 @@ class Robobo(Robot):
                                 im_out = self.insert_rectangle(im_out, bbox_centro, perimeter=False, color=obj[1])
 
                                 obj_det = ObjDet()
-                                obj_det.u.data = int(centro_j)
-                                obj_det.v.data = int(centro_i)
-                                obj_det.radius.data = 0
+                                obj_det.u = int(centro_j)
+                                obj_det.v = int(centro_i)
+                                obj_det.radius = 0
                                 self.select_publisher(obj[0]).publish(obj_det)
 
-                                print("Objeto: " + obj[0] + ", " + np.str([int(obj_det.u.data), int(obj_det.v.data)]))
+                                print("Objeto: " + obj[0] + ", " + np.str([int(obj_det.u), int(obj_det.v)]))
 
                                 if obj[0] == "cilindro":
-                                    self.obj_pix = [obj_det.u.data, obj_det.v.data]
+                                    self.obj_pix = [obj_det.u, obj_det.v]
                                     cylinder = True
 
                                 if obj[0] == "cesta":
-                                    self.box_pix = [obj_det.u.data, obj_det.v.data]
+                                    self.box_pix = [obj_det.u, obj_det.v]
                                     box = True
 
                                 if obj[0] == "cesta2":
-                                    self.box2_pix = [obj_det.u.data, obj_det.v.data]
+                                    self.box2_pix = [obj_det.u, obj_det.v]
                                     box2 = True
 
                 ###Robobo detection through tag:
@@ -424,10 +424,10 @@ class Robobo(Robot):
                     print("Objeto: " + "robobo" + ", " + np.str([int(self.cc_val[1]), int(self.cc_val[0])]))
 
                     obj_det = ObjDet()
-                    obj_det.u.data = self.cc_val[0]
-                    obj_det.v.data = self.cc_val[1]
+                    obj_det.u = self.cc_val[0]
+                    obj_det.v = self.cc_val[1]
 
-                    obj_det.radius.data = 0
+                    obj_det.radius = 0
                     self.select_publisher("robobo").publish(obj_det)
                     self.rob_ori_pub.publish(Float64(angle))
 

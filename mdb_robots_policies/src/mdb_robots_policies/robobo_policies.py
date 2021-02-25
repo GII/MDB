@@ -76,22 +76,22 @@ class robobo_policies(object):
                     self.area_limit_l.append(area_limit)
 
     def candidate_actions(self, srv, distance=0.07, threshold=0.30):
-        robobo_l_angle = np.random.uniform(srv.limit.data, -srv.limit.data)
+        robobo_l_angle = np.random.uniform(srv.limit, -srv.limit)
         if self.check_robobo_validity(robobo_l_angle, distance, threshold):
             return Int32(robobo_l_angle), Bool(True)
         else:
             return Int32(robobo_l_angle), Bool(False)
 
     def check_robobo_validity(self, robobo_angle, distance=0.07, threshold=0.30):
-        new_angle = self.global_policies.exp_senses.rob_ori.data + math.radians(robobo_angle)
+        new_angle = self.global_policies.exp_senses.rob_ori + math.radians(robobo_angle)
         rob_dx, rob_dy = self.global_policies.translate_pos(
-            self.global_policies.exp_senses.rob_sense.angle.data, self.global_policies.exp_senses.rob_sense.dist.data
+            self.global_policies.exp_senses.rob_sense.angle, self.global_policies.exp_senses.rob_sense.dist
         )
 
         (inc_x, inc_y) = self.global_policies.polar_to_cartesian(new_angle, distance)
 
         boxdx, boxdy = self.global_policies.translate_pos(
-            self.global_policies.exp_senses.box_sense.angle.data, self.global_policies.exp_senses.box_sense.dist.data
+            self.global_policies.exp_senses.box_sense.angle, self.global_policies.exp_senses.box_sense.dist
         )
         rob_box_dist = self.global_policies.obtain_dist(boxdx - (rob_dx + inc_x), boxdy - (rob_dy + inc_y))
 
@@ -125,17 +125,13 @@ class robobo_policies(object):
         return Bool(True)
 
     def handle_rob_move(self, srv):
-        robdx = self.global_policies.exp_senses.rob_sense.dist.data * np.cos(
-            self.global_policies.exp_senses.rob_sense.angle.data
-        )
-        robdy = self.global_policies.exp_senses.rob_sense.dist.data * np.sin(
-            self.global_policies.exp_senses.rob_sense.angle.data
-        )
+        robdx = self.global_policies.exp_senses.rob_sense.dist * np.cos(self.global_policies.exp_senses.rob_sense.angle)
+        robdy = self.global_policies.exp_senses.rob_sense.dist * np.sin(self.global_policies.exp_senses.rob_sense.angle)
 
-        if srv.valid.data == True:
-            time = self.rob_poly(abs(srv.dest.angle.data))
+        if srv.valid:
+            time = self.rob_poly(abs(srv.dest.angle))
             lspeed = 10
-            if srv.dest.angle.data >= 0.0:
+            if srv.dest.angle >= 0.0:
                 lspeed = -lspeed
 
             self.rotate_robobo(time, lspeed)
@@ -144,40 +140,38 @@ class robobo_policies(object):
             if not self.global_policies.robobo_status:
 
                 predicted_angle = self.global_policies.angle_fix(
-                    self.global_policies.exp_senses.rob_ori.data + srv.dest.angle.data
+                    self.global_policies.exp_senses.rob_ori + srv.dest.angle
                 )
                 fx = robdx + 0.05 * math.cos(predicted_angle)
                 fy = robdy + 0.05 * math.sin(predicted_angle)
 
-                self.global_policies.exp_senses.rob_sense.dist.data = np.sqrt((fy ** 2) + (fx ** 2))
-                self.global_policies.exp_senses.rob_sense.angle.data = np.arctan(fy / fx)
-                self.global_policies.exp_senses.rob_ori.data = predicted_angle
+                self.global_policies.exp_senses.rob_sense.dist = np.sqrt((fy ** 2) + (fx ** 2))
+                self.global_policies.exp_senses.rob_sense.angle = np.arctan(fy / fx)
+                self.global_policies.exp_senses.rob_ori = predicted_angle
 
         return Bool(True)
 
     def handle_rob_pick(self, srv):
         dx, dy = self.global_policies.cartesian_to_push(
-            self.global_policies.exp_senses.obj_sense.angle.data,
-            self.global_policies.exp_senses.obj_sense.dist.data,
-            self.global_policies.exp_senses.rob_sense.angle.data,
-            self.global_policies.exp_senses.rob_sense.dist.data,
+            self.global_policies.exp_senses.obj_sense.angle,
+            self.global_policies.exp_senses.obj_sense.dist,
+            self.global_policies.exp_senses.rob_sense.angle,
+            self.global_policies.exp_senses.rob_sense.dist,
         )
         dist = self.global_policies.obtain_dist(dx, dy)  ###Distance between the object and the robot
 
         print(
             "robobo should rotate ",
-            self.global_policies.exp_senses.rob_obj_ori.data - self.global_policies.exp_senses.rob_ori.data,
+            self.global_policies.exp_senses.rob_obj_ori - self.global_policies.exp_senses.rob_ori,
             " since its current angle is ",
-            self.global_policies.exp_senses.rob_ori.data,
+            self.global_policies.exp_senses.rob_ori,
             " and the object is at ",
-            self.global_policies.exp_senses.rob_obj_ori.data,
+            self.global_policies.exp_senses.rob_obj_ori,
         )
-        time = self.rob_poly(
-            abs(self.global_policies.exp_senses.rob_obj_ori.data - self.global_policies.exp_senses.rob_ori.data)
-        )
+        time = self.rob_poly(abs(self.global_policies.exp_senses.rob_obj_ori - self.global_policies.exp_senses.rob_ori))
 
         lspeed = 10
-        if (self.global_policies.exp_senses.rob_obj_ori.data - self.global_policies.exp_senses.rob_ori.data) >= 0.0:
+        if (self.global_policies.exp_senses.rob_obj_ori - self.global_policies.exp_senses.rob_ori) >= 0.0:
             lspeed = -lspeed
 
         self.rotate_robobo(time + 0.2, lspeed)
@@ -190,27 +184,25 @@ class robobo_policies(object):
 
     def handle_rob_drop(self, srv):
         dx, dy = self.global_policies.cartesian_to_push(
-            self.global_policies.exp_senses.box_sense.angle.data,
-            self.global_policies.exp_senses.box_sense.dist.data,
-            self.global_policies.exp_senses.rob_sense.angle.data,
-            self.global_policies.exp_senses.rob_sense.dist.data,
+            self.global_policies.exp_senses.box_sense.angle,
+            self.global_policies.exp_senses.box_sense.dist,
+            self.global_policies.exp_senses.rob_sense.angle,
+            self.global_policies.exp_senses.rob_sense.dist,
         )
         dist = self.global_policies.obtain_dist(dx, dy)  ###Distance between the object and the robot
 
         print(
             "robobo should rotate ",
-            self.global_policies.exp_senses.rob_box_ori.data - self.global_policies.exp_senses.rob_ori.data,
+            self.global_policies.exp_senses.rob_box_ori - self.global_policies.exp_senses.rob_ori,
             " since its current angle is ",
-            self.global_policies.exp_senses.rob_ori.data,
+            self.global_policies.exp_senses.rob_ori,
             " and the object is at ",
-            self.global_policies.exp_senses.rob_box_ori.data,
+            self.global_policies.exp_senses.rob_box_ori,
         )
-        time = self.rob_poly(
-            abs(self.global_policies.exp_senses.rob_box_ori.data - self.global_policies.exp_senses.rob_ori.data)
-        )
+        time = self.rob_poly(abs(self.global_policies.exp_senses.rob_box_ori - self.global_policies.exp_senses.rob_ori))
 
         lspeed = 10
-        if (self.global_policies.exp_senses.rob_box_ori.data - self.global_policies.exp_senses.rob_ori.data) >= 0.0:
+        if (self.global_policies.exp_senses.rob_box_ori - self.global_policies.exp_senses.rob_ori) >= 0.0:
             lspeed = -lspeed
 
         self.rotate_robobo(time + 0.1, lspeed)

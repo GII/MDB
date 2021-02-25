@@ -103,20 +103,20 @@ class ForwardModel(object):
         """
         (x, y) = pos
         if robot == "baxter":
-            if rel_angle.baxter_valid.data == False:
+            if rel_angle.baxter_valid == False:
                 x_act = x
                 y_act = y
             else:
-                angle += rel_angle.baxter_action.data
+                angle += rel_angle.baxter_action
                 # New center position
                 x_act = x + vel * math.cos(angle * math.pi / 180.0)
                 y_act = y + vel * math.sin(angle * math.pi / 180.0)
         elif robot == "robobo":
-            if rel_angle.robobo_valid.data == False:
+            if rel_angle.robobo_valid == False:
                 x_act = x + 100 * math.cos(angle * math.pi / 180.0)
                 y_act = y + 100 * math.sin(angle * math.pi / 180.0)
             else:
-                angle += rel_angle.robobo_action.data
+                angle += rel_angle.robobo_action
                 # New center position
                 x_act = (
                     x + vel * math.cos(angle * math.pi / 180.0) + 100 * math.cos(angle * math.pi / 180.0)

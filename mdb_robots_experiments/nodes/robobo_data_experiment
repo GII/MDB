@@ -112,17 +112,17 @@ class robobo_data_experiment(object):
     def check_robobo_validity(
         self, exp_data, robobo_angle, distance=0.07, reward_action_threshold=0.05, distance_action_threshold=0.40
     ):
-        new_angle = exp_data.rob_ori.data + math.radians(robobo_angle)
+        new_angle = exp_data.rob_ori + math.radians(robobo_angle)
         (inc_x, inc_y) = self.polar_to_cartesian(new_angle, distance)
         future_rob_box_dist = self.obtain_dist(
-            exp_data.box_dx.data - (exp_data.rob_dx.data + inc_x), exp_data.box_dy.data - (exp_data.rob_dy.data + inc_y)
+            exp_data.box_dx - (exp_data.rob_dx + inc_x), exp_data.box_dy - (exp_data.rob_dy + inc_y)
         )
 
         if (
-            (exp_data.rob_dx.data + inc_x > self.area_limit_l[0])
-            and (exp_data.rob_dx.data + inc_x < self.area_limit_l[1])
-            and (exp_data.rob_dy.data + inc_y < self.area_limit_l[2])
-            and (exp_data.rob_dy.data + inc_y > self.area_limit_l[3])
+            (exp_data.rob_dx + inc_x > self.area_limit_l[0])
+            and (exp_data.rob_dx + inc_x < self.area_limit_l[1])
+            and (exp_data.rob_dy + inc_y < self.area_limit_l[2])
+            and (exp_data.rob_dy + inc_y > self.area_limit_l[3])
             and (future_rob_box_dist > reward_action_threshold)
             and future_rob_box_dist < distance_action_threshold
         ):
@@ -187,7 +187,7 @@ class robobo_data_experiment(object):
             return False
 
     def manage_data(self, sensor_data, action, reward):
-        self.ground_truth_states.append([sensor_data.rob_dx.data, sensor_data.rob_dy.data, sensor_data.rob_ori.data])
+        self.ground_truth_states.append([sensor_data.rob_dx, sensor_data.rob_dy, sensor_data.rob_ori])
         self.images_path.append(
             self.exp_name
             + "/record_"
@@ -208,7 +208,7 @@ class robobo_data_experiment(object):
         self.rewards.append(reward)
 
         if self.first_iteration:
-            self.target_positions.append([sensor_data.box_dx.data, sensor_data.box_dy.data])
+            self.target_positions.append([sensor_data.box_dx, sensor_data.box_dy])
             self.episode_starts.append(True)
             self.first_iteration = False
         else:
@@ -247,18 +247,16 @@ class robobo_data_experiment(object):
             while not reward:
                 sensor_data = self.gs_rob_data_clnt(Bool(True))
                 rob_move_msg = BaxMCRequest()
-                rob_move_msg.dest.angle.data = math.radians(
-                    self.choose_action_selector(self.action_nature)(sensor_data)
-                )
-                rob_move_msg.valid.data = True
+                rob_move_msg.dest.angle = math.radians(self.choose_action_selector(self.action_nature)(sensor_data))
+                rob_move_msg.valid = True
                 self.robobo_mv_clnt(rob_move_msg)
                 self.wait_for_move_completion()
                 sensor_data = self.gs_rob_data_clnt(Bool(True))
-                if not self.check_reward(sensor_data.rob_box_dist.data):
-                    self.manage_data(sensor_data, rob_move_msg.dest.angle.data, -1)
+                if not self.check_reward(sensor_data.rob_box_dist):
+                    self.manage_data(sensor_data, rob_move_msg.dest.angle, -1)
                     self.image_number += 1
                 else:
-                    self.manage_data(sensor_data, rob_move_msg.dest.angle.data, 1)
+                    self.manage_data(sensor_data, rob_move_msg.dest.angle, 1)
                     self.save_data()
                     reward = True
                     input("Press Enter after configuring the next experiment")
