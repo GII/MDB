@@ -10,7 +10,9 @@ from future import standard_library
 from future.utils import text_to_native_str
 
 standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+# https://pypi.org/project/future/
+# from builtins import bytes, dict, int, list, object, range, str, ascii, chr, hex, input, next, oct, open, pow, round, super, filter, map, zip
+from builtins import dict, list, object, str, open, super, zip
 
 # Standard imports
 import os.path
@@ -951,7 +953,7 @@ class LTM(object):
         """Update experiment information, and write / publish it."""
         for file_object in self.files:
             file_object.write()
-        if self.current_goal:
+        if self.current_goal is not None:
             goal_name = self.current_goal.ident
         else:
             goal_name = ""

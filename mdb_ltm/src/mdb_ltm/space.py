@@ -349,7 +349,7 @@ class DNNSpace(Space):
         )
         super(DNNSpace, self).__init__(**kwargs)
 
-    def add_perception(self, perception, confidence):
+    def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
 
     def get_probability(self, perception):
