@@ -31,14 +31,11 @@ def main():
     baxter_moveit = terminal + "roslaunch baxter_moveit_config baxter_grippers.launch"
     mdb = terminal + "roslaunch mdb_common mdb.launch"
     # End needed ROS stuff
-    execute("yes", roscore)
-    answer = input("Do you want to launch the Gazebo simulator? (y/N): ")
-    execute(answer, baxter_gazebo)
-    answer = input("Do you want to launch the Baxter joint trajectory action server? (y/N): ")
-    execute(answer, baxter_action_server)
-    answer = input("Do you want to launch MoveIt interface? (y/N): ")
-    execute(answer, baxter_moveit)
-    execute("yes", mdb)
+    execute(input("Do you want to launch roscore? (y/N): "), roscore)
+    execute(input("Do you want to launch the Gazebo simulator? (y/N): "), baxter_gazebo)
+    execute(input("Do you want to launch the Baxter joint trajectory action server? (y/N): "), baxter_action_server)
+    execute(input("Do you want to launch MoveIt interface? (y/N): "), baxter_moveit)
+    execute(input("Do you want to launch MDB? (y/N): "), mdb)
 
 
 if __name__ == "__main__":
