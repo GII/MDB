@@ -795,15 +795,17 @@ class LTM(object):
         Algorithm:
         ----------
         1 - For each element in STM:
-            1.1 - Check if there is a goal connected to the policy exactly matching the current state.
+            1.1 - Check if there is a goal connected to the policy that activates with the current state. If space
+            states do not match, then we assume that there are redundant sensors and we prune them. There is a problem
+            when the space state changes in dimensionality: are the new sensors irrelevant and the goal is still the
+            same?, are the new sensors relevant for the current goal but they never changed before?, or has a new
+            (specialized) goal appeared? The current (pruning) decision invalidates goal specialization at the moment.
             1.2 - Otherwise, check if there is a goal connected to the policy defined over the same sensors but that
             does not include the current state. In this case, add the current state to the goal and the previous state
             to the P-node. WARNING: this assumes that the same policy cannot be used for two different things that
             need the same sensors and for achieving the same goal.
             1.3 - Otherwise, check if there is a goal NOT connected to the policy matching the current state and, in
             that case, create a new C-node connecting policy and goal.
-            1.4 - Otherwise, check if there is a goal connected to the policy embeded in the current state and, in that
-            case, create a new specialized goal and connect it to the policy.
             1.5 - Otherwise, create a new goal and connect it to the policy.
             1.6 - Add the goal to a candidate VF.
         2 - Assign reward to the matching goal of the latest instant time (the one when reward was obtained).
@@ -851,7 +853,9 @@ class LTM(object):
             # 1.1
             for cnode in (node for node in policy.neighbors if node.type == "CNode"):
                 if cnode.forward_model.max_activation > cnode.forward_model.threshold:
-                    if cnode.goal.space.contains(space) and cnode.goal.space.same_sensors(space):
+                    if cnode.goal.space.contains(space):
+                        if not cnode.goal.space.same_sensors(space):
+                            cnode.goal.space.prune(space)
                         perfect_goal = cnode.goal
                         break
             # 1.2
@@ -870,22 +874,6 @@ class LTM(object):
                         perfect_goal = goal
                         self.new_cnode(old_perception, perfect_goal, policy)
                         break
-            # 1.4
-            if not perfect_goal:
-                for cnode in (node for node in policy.neighbors if node.type == "CNode"):
-                    if cnode.forward_model.max_activation > cnode.forward_model.threshold:
-                        if cnode.goal.space.contains(space):
-                            space = cnode.goal.space.specialize(self.create_perception(sensing))
-                            perfect_goal = self.add_node(
-                                node_type=text_to_native_str("Goal"),
-                                class_name="mdb_ltm.goal.Goal",
-                                ros_node_prefix=self.default_ros_node_prefix["Goal"],
-                                ros_data_prefix=self.default_ros_data_prefix["Goal"],
-                                space_class=self.default_class["Space"],
-                                space=space,
-                            )
-                            self.new_cnode(old_perception, perfect_goal, policy, cnode)
-                            break
             # 1.5
             if not perfect_goal:
                 perfect_goal = self.add_node(

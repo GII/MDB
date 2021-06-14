@@ -13,7 +13,7 @@ from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-i
 
 # Library imports
 import numpy
-from numpy.lib.recfunctions import structured_to_unstructured
+from numpy.lib.recfunctions import structured_to_unstructured, require_fields
 import pandas as pd
 import tensorflow as tf
 import rospy
@@ -187,6 +187,11 @@ class PointBasedSpace(Space):
                 answer = True
         return answer
 
+    def prune(self, space):
+        """Prune sensors that are present only in this space or in the space given for comparison."""
+        common_sensors = [(name, numpy.float) for name in self.members.dtype.names if name in space.members.dtype.names]
+        self.members = require_fields(self.members, common_sensors)
+
 
 class ClosestPointBasedSpace(PointBasedSpace):
     """
@@ -205,7 +210,6 @@ class ClosestPointBasedSpace(PointBasedSpace):
         # Copy the new perception on the structured array
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
-        # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
         members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
