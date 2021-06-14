@@ -181,7 +181,7 @@ class PointBasedSpace(Space):
     def same_sensors(self, space):
         """Check if other space has exactly the same sensors that this one."""
         answer = False
-        if space.size:
+        if self.size and space.size:
             types = [name for name in space.members.dtype.names if name in self.members.dtype.names]
             if len(types) == len(self.members.dtype.names) == len(space.members.dtype.names):
                 answer = True

@@ -38,7 +38,7 @@ class CNode(Node):
         It is assumed that all the neighbors have the same list of perceptions but, probably, it should
         be checked (although this would have a huge performance penalty).
         """
-        pnode = [node for node in self.neighbors if node.type == "PNode"][0]
+        pnode = self.p_node
         activation_list = numpy.prod([node.activation for node in self.neighbors if node.type != "Policy"], axis=0)
         self.activation = numpy.max(activation_list)
         if self.activation > self.threshold:

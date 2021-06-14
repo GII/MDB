@@ -87,13 +87,12 @@ class FilePNodes(File):
         """Write P-nodes."""
         if (self.ltm.iteration % self.data == 0) or force:
             for pnode in self.ltm.p_nodes:
-                for point, confidence in zip(
-                    pnode.space.members[0 : pnode.space.size], pnode.space.memberships[0 : pnode.space.size]
-                ):
-                    self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
-                    for sensor in point:
-                        self.file_object.write(str(sensor) + "\t")
-                    self.file_object.write(str(confidence) + "\n")
+                for space in pnode.spaces:
+                    for point, confidence in zip(space.members[0 : space.size], space.memberships[0 : space.size]):
+                        self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
+                        for sensor in point:
+                            self.file_object.write(str(sensor) + "\t")
+                        self.file_object.write(str(confidence) + "\n")
 
     def close(self):
         """Close de underlying file."""

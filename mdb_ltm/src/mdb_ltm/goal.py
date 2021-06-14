@@ -97,8 +97,9 @@ class Goal(Node):
         """Recalculate the list of P-nodes that embed this goal."""
         self.embedded = set()
         for p_node in p_nodes:
-            if p_node.space.contains(self.space, threshold=0.5):
-                self.embedded.add(p_node)
+            for space in p_node.spaces:
+                if space.contains(self.space, threshold=0.5):
+                    self.embedded.add(p_node)
 
     def update_success(self):
         """
