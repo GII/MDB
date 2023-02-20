@@ -4,14 +4,6 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-from future.utils import text_to_native_str
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Library imports
 from numpy.lib.recfunctions import structured_to_unstructured
 
@@ -43,7 +35,7 @@ class PNode(Node):
             message.names = []
         if first_time and not isinstance(message.names, list):
             point_message = self.data_message()
-            point_message.command = text_to_native_str("new")
+            point_message.command = "new"
             point_message.id = self.ident
             point_array = structured_to_unstructured(space.members)
             confidence_array = space.memberships
@@ -55,25 +47,25 @@ class PNode(Node):
 
     def add_perception(self, perception, confidence):
         """Add a new point to the p-node."""
-        added_point, added_point_confidence, delete_point, delete_point_confidence = self.get_space(
-            perception
-        ).add_point(perception, confidence)
+        space = self.get_space(perception)
+        if not space:
+            space = self.spaces[0].__class__()
+            self.spaces.append(space)
+        added_point_pos = space.add_point(perception, confidence)
         point_message = self.data_message()
         point_message.id = self.ident
-        if delete_point is not None:
-            point_message.command = text_to_native_str("delete")
-            point_message.point = delete_point
-            point_message.confidence = delete_point_confidence
-            self.data_publisher.publish(point_message)
-        if added_point is not None:
-            point_message.command = text_to_native_str("new")
-            point_message.point = added_point
-            point_message.confidence = added_point_confidence
+        if added_point_pos != -1:
+            point_message.command = "new"
+            point_message.point = self.spaces[0].members[added_point_pos]
+            point_message.confidence = self.spaces[0].memberships[added_point_pos]
             self.data_publisher.publish(point_message)
 
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""
-        return self.get_space(perception).get_probability(perception)
+        space = self.get_space(perception)
+        if space:
+            return space.get_probability(perception)
+        return 0
 
     def get_space(self, perception):
         """Return the compatible space with perception."""

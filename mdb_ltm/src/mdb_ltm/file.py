@@ -4,12 +4,8 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+# Standard imports
+from math import isclose
 
 # Library imports
 import yaml
@@ -130,7 +126,10 @@ class FileLTMDump(File):
         self.ltm.iteration += 1
         file_name = self.file_name + "_" + str(self.ltm.iteration) + ".yaml"
         yaml.dump(
-            self.ltm, open(file_name, "w", encoding="utf-8"), Dumper=yamlloader.ordereddict.CDumper, allow_unicode=True
+            self.ltm,
+            open(file_name, "w", encoding="utf-8"),
+            Dumper=yamlloader.ordereddict.CDumper,
+            allow_unicode=True,
         )
         self.ltm.iteration -= 1
 
@@ -145,7 +144,7 @@ class FileLTMDumpWhenReward(FileLTMDump):
 
     def write(self):
         """Do the LTM dump."""
-        if self.ltm.reward == 1.0:
+        if isclose(self.ltm.reward, 1.0):
             super().write()
 
 

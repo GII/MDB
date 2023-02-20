@@ -4,16 +4,8 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Standard imports
 import threading
-from collections import OrderedDict
 
 # Library imports
 import rospy
@@ -74,7 +66,7 @@ class Perception(Node):
     def process_reading(self):
         """Process the new sensor reading."""
         self.value = []
-        self.value.append(OrderedDict(data=self.raw.data))
+        self.value.append(dict(data=self.raw.data))
 
     def read(self):
         """Obtain a new value for the sensor / redescription."""
@@ -104,4 +96,4 @@ class ObjectListPerception(Perception):
             diameter = (perception.diameter - self.normalize_values["diameter_min"]) / (
                 self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
             )
-            self.value.append(OrderedDict(distance=distance, angle=angle, diameter=diameter, id=perception.id))
+            self.value.append(dict(distance=distance, angle=angle, diameter=diameter, id=perception.id))

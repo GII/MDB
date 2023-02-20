@@ -4,13 +4,6 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import object, open
-
 # Standard imports
 from enum import Enum
 import os.path

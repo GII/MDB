@@ -4,13 +4,6 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import int, range, round, zip
-
 # Library imports
 import numpy as np
 from skimage import color, draw, img_as_float, measure, morphology
@@ -439,7 +432,7 @@ class Robobo(Robot):
                 self.track_pub.publish(self.image_cv2ros(im_out))
                 self.iteration_number += 1
 
-                time = ((rospy.get_rostime() - time_before).to_nsec()) / 10 ** 6
+                time = ((rospy.get_rostime() - time_before).to_nsec()) / 10**6
                 print("Time: ", time)
 
         elif self.do_sense:

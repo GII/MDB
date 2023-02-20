@@ -5,7 +5,7 @@
 
     <rosparam file="$(find mdb_common)/config/ros_parameters.yaml"/>
 
-    <arg name="event_sim" default="False"/>
+    <arg name="event_sim" default="True"/>
     <arg name="ltm" default="True"/>
     <arg name="motiven" default="False"/>
     <arg name="view" default="False"/>
@@ -16,8 +16,7 @@
     <node name="relay_node" pkg="topic_tools" type="relay" args="/robot/joint_states /joint_states" unless="$(arg event_sim)"/>
 
     <group ns="mdb">
-        <arg name="config_file" default="$(find mdb_common)/config/ltm_2020_one_box.yaml" unless="$(arg motiven)"/>
-        <arg name="config_file" default="$(find mdb_common)/config/ltm_motiven.yaml" if="$(arg motiven)"/>
+        <arg name="config_file" default="$(find mdb_common)/config/ball_in_box_one_world_adapting_pnodes.yaml"/>
 
         <arg name="backup" default="backup"/>
 
@@ -29,7 +28,7 @@
 
         <node name="ltm" pkg="mdb_ltm" type="mdb_ltm" args="-b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg ltm)"/>
 
-        <arg name="save_dir" default="$(find mdb_view)"/>
+        <arg name="save_dir" default="$(find mdb_view)" if="$(arg view)"/>
         <node name="view" pkg="mdb_view" type="mdb_view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)" launch-prefix="$(arg launch-prefix)" if="$(arg view)"/>
 
         <node name="event_sim" pkg="mdb_simulator" type="mdb_simulator" args="-c $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg event_sim)"/>

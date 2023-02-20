@@ -6,4 +6,4 @@
 .vscode
 *.pckl
 .!*
-
+__pycache__

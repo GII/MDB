@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """
-The shiny, all new, MDB 3.0.
+MDB.
 
-Available from (we are still thinking about this...)
-Copyright 2017 Richard J. Duro, Jose A. Becerra.
-Distributed under the (yes, we are still thinking about this too...).
+https://github.com/GII/MDB
 """
 
+import importlib
 import argparse
 import numpy
 from mdb_ltm.pnode import PNode
@@ -14,23 +13,23 @@ from mdb_ltm.pnode import PNode
 
 def scan_values(pnode, step, perception, n_sensor, idents, line):
     """Recursive function that allows to calculate the P-Node activation for every point in a multidimensional grid."""
-    if idents[n_sensor].endswith('dist'):
+    if idents[n_sensor].endswith("dist"):
         begin = 0.0
         end = 1.000001
         sensor_step = step
-    elif idents[n_sensor].endswith('ang'):
+    elif idents[n_sensor].endswith("ang"):
         begin = 0.0
         end = 1.000001
         sensor_step = step
-    elif idents[n_sensor].endswith('ball_size'):
+    elif idents[n_sensor].endswith("ball_size"):
         begin = 0.2
         end = 0.5
         sensor_step = 0.04 / 0.15
-    elif idents[n_sensor].endswith('box_size'):
+    elif idents[n_sensor].endswith("box_size"):
         begin = 0.8
         end = 0.85
         sensor_step = 0.1
-    elif idents[n_sensor].endswith('hand'):
+    elif idents[n_sensor].endswith("hand"):
         begin = 0.0
         end = 1.1
         sensor_step = 1.0
@@ -38,21 +37,28 @@ def scan_values(pnode, step, perception, n_sensor, idents, line):
         for value in numpy.arange(begin, end, sensor_step):
             perception[n_sensor] = value
             pnode.update_activation(perception)
-            print line + '{:.2f}'.format(value) + '\t' + '{:.2f}'.format(pnode.activation)
+            print(line + "{:.2f}".format(value) + "\t" + "{:.2f}".format(pnode.activation))
     else:
         for value in numpy.arange(begin, end, sensor_step):
             perception[n_sensor] = value
-            scan_values(pnode, step, perception, n_sensor + 1, idents, line + '{:.2f}'.format(value) + '\t')
+            scan_values(
+                pnode,
+                step,
+                perception,
+                n_sensor + 1,
+                idents,
+                line + "{:.2f}".format(value) + "\t",
+            )
 
 
 def load_pnodes_file(file_name, pnode_name, iteration, class_name):
     """Load P-nodes from a file."""
-    pnodes_file = open(file_name, 'r')
+    pnodes_file = open(file_name, "r")
     headers = pnodes_file.readline().split()
-    module_string, _, class_string = class_name.rpartition('.')
-    node_module = __import__(module_string, fromlist=[class_string])
+    module_string, _, class_string = class_name.rpartition(".")
+    node_module = importlib.import_module(module_string)
     node_class = getattr(node_module, class_string)
-    pnode = node_class(ident=pnode_name, node_type='PNode')
+    pnode = node_class(ident=pnode_name, node_type="PNode")
     # Load points from the right P-node at the right iteration into the P-node object
     for line in pnodes_file:
         items = line.split()
@@ -67,29 +73,37 @@ def load_pnodes_file(file_name, pnode_name, iteration, class_name):
 
 def print_headers(headers):
     """Print headers (sensors' names)."""
-    line = ''
+    line = ""
     for header in headers:
-        line += header + '\t'
-    print line
+        line += header + "\t"
+    print(line)
 
 
 def generate_pnode_map():
     """Calculate the activation map for a given pnode."""
     parser = argparse.ArgumentParser(
-        description='This script calculate the activation map for a P-node using the results of an experiment')
+        description="This script calculate the activation map for a P-node using the results of an experiment"
+    )
     parser.add_argument(
-        '-f', '--file', help='File with all the points of all the P-nodes for every iteration of an experiment')
-    parser.add_argument('-p', '--pnode', help='Id of the P-node for which we want to generate the activation map')
-    parser.add_argument('-i', '--iteration', type=int, help='The number of the iteration we want to inspect')
-    parser.add_argument('-s', '--step', type=float, help='Resolution')
-    parser.add_argument('-t', '--pnode_class', help='P-Node class')
+        "-f",
+        "--file",
+        help="File with all the points of all the P-nodes for every iteration of an experiment",
+    )
+    parser.add_argument(
+        "-p",
+        "--pnode",
+        help="Id of the P-node for which we want to generate the activation map",
+    )
+    parser.add_argument("-i", "--iteration", type=int, help="The number of the iteration we want to inspect")
+    parser.add_argument("-s", "--step", type=float, help="Resolution")
+    parser.add_argument("-t", "--pnode_class", help="P-Node class")
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
-    file_name = kwargs['file']
-    pnode_name = kwargs['pnode']
-    iteration = kwargs['iteration']
-    step = kwargs['step']
-    pnode_class =kwargs['pnode_class']
+    file_name = kwargs["file"]
+    pnode_name = kwargs["pnode"]
+    iteration = kwargs["iteration"]
+    step = kwargs["step"]
+    pnode_class = kwargs["pnode_class"]
     if (file_name is None) or (pnode_name is None) or (iteration is None) or (step is None) or (pnode_class is None):
         parser.print_help()
     else:
@@ -97,8 +111,15 @@ def generate_pnode_map():
         # Scan all dimensions to generate activation map
         perception = [0] * pnode.n_perceptions
         print_headers(headers)
-        scan_values(pnode, step, perception, 0, headers[2:len(headers)], str(iteration) + '\t' + pnode_name + '\t')
+        scan_values(
+            pnode,
+            step,
+            perception,
+            0,
+            headers[2 : len(headers)],
+            str(iteration) + "\t" + pnode_name + "\t",
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     generate_pnode_map()
