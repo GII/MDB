@@ -1,8 +1,8 @@
 """
 MDB.
 
-Available from https://github.com/robotsthatdream/MDB
-Distributed under GPLv3.
+https://github.com/GII/MDB
 """
+
 
 __all__ = ["simulator"]

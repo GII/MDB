@@ -4,16 +4,12 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+# Standard imports
+from math import isclose
 
 # Library imports
 import numpy
-from numpy.lib.recfunctions import structured_to_unstructured
+from numpy.lib.recfunctions import structured_to_unstructured, require_fields
 import pandas as pd
 import tensorflow as tf
 import rospy
@@ -52,10 +48,10 @@ class PointBasedSpace(Space):
         """
         if getattr(perception, "dtype", None):
             if base_dtype:
-                types = [(name, numpy.float) for name in perception.dtype.names if name in base_dtype.names]
+                types = [(name, float) for name in perception.dtype.names if name in base_dtype.names]
             elif self.parent_space:
                 types = [
-                    (name, numpy.float)
+                    (name, float)
                     for name in perception.dtype.names
                     if name not in self.parent_space.members.dtype.names
                 ]
@@ -64,21 +60,21 @@ class PointBasedSpace(Space):
         else:
             if base_dtype:
                 types = [
-                    (sensor + "_" + attribute, numpy.float)
+                    (sensor + "_" + attribute, float)
                     for sensor, attributes in perception.items()
                     for attribute in attributes
                     if sensor + "_" + attribute in base_dtype.names
                 ]
             elif self.parent_space:
                 types = [
-                    (sensor + "_" + attribute, numpy.float)
+                    (sensor + "_" + attribute, float)
                     for sensor, attributes in perception.items()
                     for attribute in attributes
                     if sensor + "_" + attribute not in self.parent_space.members.dtype.names
                 ]
             else:
                 types = [
-                    (sensor + "_" + attribute, numpy.float)
+                    (sensor + "_" + attribute, float)
                     for sensor, attributes in perception.items()
                     for attribute in attributes
                 ]
@@ -98,6 +94,24 @@ class PointBasedSpace(Space):
                     if name in space.dtype.names:
                         space[position][name] = value
 
+    @staticmethod
+    def get_closest_point_and_antipoint_info(members, memberships, foreigner):
+        distances = numpy.linalg.norm(members - foreigner, axis=1)
+        closest_point_pos = None
+        closest_point_dist = numpy.finfo(float).max
+        closest_antipoint_pos = None
+        closest_antipoint_dist = numpy.finfo(float).max
+        for pos, _ in enumerate(members):
+            if memberships[pos] > 0.0:
+                if distances[pos] < closest_point_dist:
+                    closest_point_pos = pos
+                    closest_point_dist = distances[pos]
+            else:
+                if distances[pos] < closest_antipoint_dist:
+                    closest_antipoint_pos = pos
+                    closest_antipoint_dist = distances[pos]
+        return closest_point_pos, closest_point_dist, closest_antipoint_pos, closest_antipoint_dist
+
     def specialize(self, space=None):
         """Return a new space with those fields that are in r"space" and not in r"self"."""
         new_space = type(self)()
@@ -108,7 +122,7 @@ class PointBasedSpace(Space):
 
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
-        added_point = added_point_confidence = delete_point = delete_point_confidence = None
+        added_point_pos = -1
         # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
         if (confidence > 0.0) or (self.get_probability(perception) > 0.0):
             if self.parent_space:
@@ -131,33 +145,18 @@ class PointBasedSpace(Space):
             else:
                 # Copy the new perception on the structured array
                 self.copy_perception(candidate_point, 0, perception)
-                # Create views on the structured arrays so they can be used in calculations
-                # This is for Numpy >= 1.16
-                # The old way of doing this would be:
-                # members = self.members[0 : self.size].view(numpy.float).reshape(-1, len(self.members[0]))
-                members = structured_to_unstructured(self.members[0 : self.size])
-                point = structured_to_unstructured(candidate_point)
-                # Sanity check: checking if we are adding twice the same anti-point
-                if self.size > 0:
-                    pos_closest = numpy.argmin(numpy.linalg.norm(members - point, axis=1))
-                    closest = members[pos_closest]
-                    if numpy.linalg.norm(point - closest) == 0.0:
-                        if confidence <= 0.0:
-                            rospy.logwarn("Trying to add twice the same anti-point")
                 # Store the new perception if there is a place for it
                 if self.size < self.real_size:
                     self.members[self.size] = candidate_point
                     self.memberships[self.size] = confidence
+                    added_point_pos = self.size
                     self.size += 1
                 else:
-                    delete_point = structured_to_unstructured(self.members[pos_closest])[0]
-                    delete_point_confidence = self.memberships[pos_closest]
-                    self.members[pos_closest] = candidate_point
-                    self.memberships[pos_closest] = confidence
+                    # Points should be replaced when the P-node is full (may be some metric based on number of times
+                    # involved in get_probability)
                     rospy.logdebug(self.ident + " full!")
-                added_point = point[0]
-                added_point_confidence = confidence
-        return added_point, added_point_confidence, delete_point, delete_point_confidence
+                    raise RuntimeError("LTM operation cannot continue :-(")
+        return added_point_pos
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
@@ -181,11 +180,16 @@ class PointBasedSpace(Space):
     def same_sensors(self, space):
         """Check if other space has exactly the same sensors that this one."""
         answer = False
-        if space.size:
+        if self.size and space.size:
             types = [name for name in space.members.dtype.names if name in self.members.dtype.names]
             if len(types) == len(self.members.dtype.names) == len(space.members.dtype.names):
                 answer = True
         return answer
+
+    def prune(self, space):
+        """Prune sensors that are present only in this space or in the space given for comparison."""
+        common_sensors = [(name, float) for name in self.members.dtype.names if name in space.members.dtype.names]
+        self.members = require_fields(self.members, common_sensors)
 
 
 class ClosestPointBasedSpace(PointBasedSpace):
@@ -205,7 +209,6 @@ class ClosestPointBasedSpace(PointBasedSpace):
         # Copy the new perception on the structured array
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
-        # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
         members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
@@ -323,6 +326,75 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
         return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
 
 
+class DynamicMembershipPointBasedSpace(PointBasedSpace):
+    """
+    Calculate the new activation value.
+
+    This activation value is for a given perception and it is calculated as follows:
+    - Calculate the closest point and antipoint to the new point.
+    - Calculate the activation as the value of the equation of a line passing through (0, closest_point_activation)
+    and (closest_point_distance + closest_antipoint_distance, closest_antipoint_activation) for x = closest_point_distance
+    """
+
+    def add_point(self, perception, confidence):
+        """Add a new point to the p-node."""
+        if self.size > 0:
+            # Create a new structured array for the new point
+            new_point = self.create_structured_array(perception, self.members.dtype, 1)
+            # Copy the new point on the structured array
+            self.copy_perception(new_point, 0, perception)
+            # Create views on the structured arrays so they can be used in calculations
+            # Be ware, if new_point.dtype is not equal to self.members.dtype, members is a new array!!!
+            members = structured_to_unstructured(self.members[0 : self.size][list(new_point.dtype.names)])
+            point = structured_to_unstructured(new_point)
+            memberships = self.memberships[0 : self.size]
+            # Update memberships if necessary
+            (
+                closest_point_pos,
+                closest_point_dist,
+                closest_antipoint_pos,
+                closest_antipoint_dist,
+            ) = self.get_closest_point_and_antipoint_info(members, memberships, point)
+            if closest_antipoint_pos != None:
+                if confidence > 0.0:
+                    if closest_point_dist < closest_antipoint_dist:
+                        memberships[closest_point_pos] = 1.0
+                    else:
+                        memberships[closest_antipoint_pos] *= 0.8
+                elif closest_point_dist < closest_antipoint_dist:
+                    memberships[closest_point_pos] *= 0.8
+                else:
+                    memberships[closest_antipoint_pos] = -0.3
+        return super().add_point(perception, confidence)
+
+    def get_probability(self, perception):
+        """Calculate the new activation value."""
+        # Create a new structured array for the new perception
+        candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+        # Copy the new perception on the structured array
+        self.copy_perception(candidate_point, 0, perception)
+        # Create views on the structured arrays so they can be used in calculations
+        # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
+        members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
+        point = structured_to_unstructured(candidate_point)
+        memberships = self.memberships[0 : self.size]
+        # Calculate the activation value
+        (
+            closest_point_pos,
+            closest_point_dist,
+            closest_antipoint_pos,
+            closest_antipoint_dist,
+        ) = self.get_closest_point_and_antipoint_info(members, memberships, point)
+        if closest_antipoint_pos != None:
+            closest_point_val = memberships[closest_point_pos]
+            closest_antipoint_val = memberships[closest_antipoint_pos]
+            tot_distance = closest_point_dist + closest_antipoint_dist
+            act = (closest_antipoint_val - closest_point_val) * closest_point_dist / tot_distance + closest_point_val
+        else:
+            act = 1.0
+        return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
+
+
 class DNNSpace(Space):
     """Calculate the new activation value using the output of a DNN."""
 
@@ -349,19 +421,23 @@ class DNNSpace(Space):
         )
         super(DNNSpace, self).__init__(**kwargs)
 
-    def add_perception(self, perception, confidence):
+    def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
         predict_data = pd.DataFrame([perception], columns=self.headers)
         predict_input_fn = tf.estimator.inputs.pandas_input_fn(
-            x=predict_data, batch_size=1, num_epochs=1, shuffle=False, target_column="Confidence"
+            x=predict_data,
+            batch_size=1,
+            num_epochs=1,
+            shuffle=False,
+            target_column="Confidence",
         )
         predictions = list(self.net.predict(input_fn=predict_input_fn))
         prediction = predictions[0]
         if prediction["class_ids"] == 1:
             activation = prediction["probabilities"][1]
         else:
-            activation = -1.0
+            activation = -1
         return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation

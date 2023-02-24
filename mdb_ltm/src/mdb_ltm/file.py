@@ -4,12 +4,8 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
+# Standard imports
+from math import isclose
 
 # Library imports
 import yaml
@@ -87,13 +83,12 @@ class FilePNodes(File):
         """Write P-nodes."""
         if (self.ltm.iteration % self.data == 0) or force:
             for pnode in self.ltm.p_nodes:
-                for point, confidence in zip(
-                    pnode.space.members[0 : pnode.space.size], pnode.space.memberships[0 : pnode.space.size]
-                ):
-                    self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
-                    for sensor in point:
-                        self.file_object.write(str(sensor) + "\t")
-                    self.file_object.write(str(confidence) + "\n")
+                for space in pnode.spaces:
+                    for point, confidence in zip(space.members[0 : space.size], space.memberships[0 : space.size]):
+                        self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
+                        for sensor in point:
+                            self.file_object.write(str(sensor) + "\t")
+                        self.file_object.write(str(confidence) + "\n")
 
     def close(self):
         """Close de underlying file."""
@@ -131,7 +126,10 @@ class FileLTMDump(File):
         self.ltm.iteration += 1
         file_name = self.file_name + "_" + str(self.ltm.iteration) + ".yaml"
         yaml.dump(
-            self.ltm, open(file_name, "w", encoding="utf-8"), Dumper=yamlloader.ordereddict.CDumper, allow_unicode=True
+            self.ltm,
+            open(file_name, "w", encoding="utf-8"),
+            Dumper=yamlloader.ordereddict.CDumper,
+            allow_unicode=True,
         )
         self.ltm.iteration -= 1
 
@@ -146,7 +144,7 @@ class FileLTMDumpWhenReward(FileLTMDump):
 
     def write(self):
         """Do the LTM dump."""
-        if self.ltm.reward == 1.0:
+        if isclose(self.ltm.reward, 1.0):
             super().write()
 
 

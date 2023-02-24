@@ -4,13 +4,6 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import list, object, open
-
 # Standard imports
 import sys
 
@@ -82,7 +75,7 @@ class obj_pos_int(object):
         self.manage_depth(coor.u, coor.v)
 
     def sensorization_conversion(self, x, y, z):
-        dist = np.sqrt((x ** 2) + (y ** 2))
+        dist = np.sqrt((x**2) + (y**2))
         angle = np.arctan(y / x)
         return dist, angle, z
 

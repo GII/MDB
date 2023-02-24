@@ -4,14 +4,8 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Standard imports
+from math import isclose
 import threading
 
 # Library imports
@@ -97,10 +91,11 @@ class Goal(Node):
         """Recalculate the list of P-nodes that embed this goal."""
         self.embedded = set()
         for p_node in p_nodes:
-            if p_node.space.contains(self.space, threshold=0.5):
-                self.embedded.add(p_node)
+            for space in p_node.spaces:
+                if space.contains(self.space, threshold=0.5):
+                    self.embedded.add(p_node)
 
-    def update_success(self):
+    def get_reward(self):
         """
         Calculate the reward for the current sensor values.
 
@@ -185,7 +180,7 @@ class Goal(Node):
         same_side = False
         for box in perceptions["boxes"].raw.data:
             same_side = (perceptions["ball_in_left_hand"].raw.data and box.angle > 0) or (
-                perceptions["ball_in_right_hand"].raw.data and box.angle <= 0
+                perceptions["ball_in_right_hand"].raw.data and not (box.angle > 0)
             )
             if same_side:
                 break
@@ -281,7 +276,11 @@ class GoalMotiven(Goal):
         self.ok_topic = rospy.get_param(self.ros_data_prefix + "_ok_topic")
         self.ok_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_ok_msg"))
         rospy.logdebug("Subscribing to %s...", self.activation_topic)
-        rospy.Subscriber(self.activation_topic, self.activation_message, callback=self.update_activation_callback)
+        rospy.Subscriber(
+            self.activation_topic,
+            self.activation_message,
+            callback=self.update_activation_callback,
+        )
         rospy.logdebug("Subscribing to %s...", self.ok_topic)
         rospy.Subscriber(self.ok_topic, self.ok_message, callback=self.update_success_callback)
 
@@ -309,7 +308,7 @@ class GoalMotiven(Goal):
         super().update_activation(**kwargs)
         self.new_activation_event.clear()
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.new_reward_event.wait()
         self.new_reward_event.clear()
@@ -324,7 +323,7 @@ class GoalMotiven(Goal):
 class GoalObjectHeldLeftHand(Goal):
     """Goal representing a grasped object with the left hand."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -343,7 +342,7 @@ class GoalObjectHeldLeftHand(Goal):
 class GoalObjectHeldRightHand(Goal):
     """Goal representing a grasped object with the right hand."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -362,7 +361,7 @@ class GoalObjectHeldRightHand(Goal):
 class GoalObjectHeld(Goal):
     """Goal representing a grasped object with one hand."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -381,7 +380,7 @@ class GoalObjectHeld(Goal):
 class GoalObjectHeldWithTwoHands(Goal):
     """Goal representing a grasped object with two hands."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -398,7 +397,7 @@ class GoalObjectHeldWithTwoHands(Goal):
 class GoalChangedHands(Goal):
     """Goal representing a change of the hand that holds an object."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -415,7 +414,7 @@ class GoalChangedHands(Goal):
 class GoalFrontalObject(Goal):
     """Goal representing an object in front of the robot."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -436,7 +435,7 @@ class GoalFrontalObject(Goal):
 class GoalObjectInCloseBox(Goal):
     """Goal representing an object inside a box (that was reachable)."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -453,7 +452,7 @@ class GoalObjectInCloseBox(Goal):
 class GoalObjectWithRobot(Goal):
     """Goal representing an object as close to the robot as possible."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -470,7 +469,7 @@ class GoalObjectWithRobot(Goal):
 class GoalObjectInFarBox(Goal):
     """Goal representing an object inside a box (that was out of reach)."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -487,7 +486,7 @@ class GoalObjectInFarBox(Goal):
 class GoalApproximatedObject(Goal):
     """Goal representing an reachable object (that was not reachable previously)."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -504,7 +503,7 @@ class GoalApproximatedObject(Goal):
 class GoalVegetablesInSkillet(Goal):
     """Goal representing three different vegetables in a skillet in front of the robot."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         if self.ltm.sensorial_changes():
@@ -521,7 +520,7 @@ class GoalVegetablesInSkillet(Goal):
 class GoalObjectInBoxStandalone(Goal):
     """Goal representing the desire of putting an object in a box."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         perceptions = self.ltm.perceptions
@@ -529,7 +528,7 @@ class GoalObjectInBoxStandalone(Goal):
         # Or self.activation is not a list any longer...
         # or perceptions should be flattened
         for activation in self.activation:
-            if (self.ltm.sensorial_changes()) and (activation == 1.0):
+            if (self.ltm.sensorial_changes()) and isclose(activation, 1.0):
                 if Goal.object_in_close_box(perceptions) or Goal.object_in_far_box(perceptions):
                     self.reward = 1.0
                 elif Goal.object_held(perceptions):
@@ -551,12 +550,12 @@ class GoalObjectInBoxStandalone(Goal):
 class GoalObjectWithRobotStandalone(Goal):
     """Goal representing the desire of bringing an object as close as possible to the robot."""
 
-    def update_success(self):
+    def get_reward(self):
         """Calculate the reward for the current sensor values."""
         self.reward = 0.0
         perceptions = self.ltm.perceptions
         for activation in self.activation:
-            if (self.ltm.sensorial_changes()) and (activation == 1.0):
+            if (self.ltm.sensorial_changes()) and isclose(activation, 1.0):
                 if Goal.object_with_robot(perceptions):
                     self.reward = 1.0
                 elif Goal.object_held(perceptions):

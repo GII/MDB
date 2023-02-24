@@ -4,16 +4,9 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Standard imports
 from enum import Enum
-import sys
+import importlib
 import os.path
 import math
 
@@ -31,6 +24,7 @@ class World(Enum):
     no_gripper_and_high_friction = 2
     gripper_and_low_friction_two_boxes = 3
     kitchen = 4
+    gripper_and_low_friction_large_arm = 5
 
 
 class Item(Enum):
@@ -54,6 +48,7 @@ class Item(Enum):
 class LTMSim(object):
     """A very simple events-based simulator for LTM experiments."""
 
+    # x = angle, y = distance
     inner = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3))
     outer = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3))
 
@@ -70,11 +65,7 @@ class LTMSim(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        if sys.version_info < (3, 0):
-            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
-        else:
-            node_module = __import__(module_string, fromlist=[class_string])
-        # node_module = importlib.import_module('.' + class_string, package=module_string)
+        node_module = importlib.import_module(module_string)
         node_class = getattr(node_module, class_string)
         return node_class
 
@@ -93,7 +84,7 @@ class LTMSim(object):
         """Return True if the object is outside the table. This is used in some scripts..."""
         object_y = numpy.sin(ang) * dist
         object_x = numpy.cos(ang) * dist
-        return not (-1.07 <= object_y <= 1.07 and 0.35 <= object_x <= 1.27)
+        return not (-1.07 <= object_y <= 1.07 and 0.37 <= object_x <= 1.27)
 
     @classmethod
     def object_is_small(cls, rad):
@@ -238,7 +229,7 @@ class LTMSim(object):
         valid = False
         while not valid:
             object_y = numpy.random.uniform(low=-1.07, high=1.07)
-            object_x = numpy.random.uniform(low=0.37, high=1.29)
+            object_x = numpy.random.uniform(low=0.37, high=1.27)
             distance = numpy.linalg.norm([object_y, object_x])
             angle = numpy.arctan2(object_y, object_x)
             valid = not self.object_too_close(distance, angle)
@@ -262,7 +253,23 @@ class LTMSim(object):
         """Randomize the state of the environment."""
         # Objects
         self.catched_object = None
-        if self.world == World.gripper_and_low_friction or self.world == World.no_gripper_and_high_friction:
+        if self.world == World.gripper_and_low_friction:
+            self.outer = numpy.poly1d(
+                numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3)
+            )
+        if self.world == World.gripper_and_low_friction_large_arm:
+            self.outer = numpy.poly1d(
+                numpy.polyfit(
+                    [0.0, 0.3925, 0.785, 1.1775, 1.57],
+                    [1.15 * 1.5, 1.25 * 1.5, 1.325 * 1.5, 1.375 * 1.5, 1.375 * 1.5],
+                    3,
+                )
+            )
+        if self.world in [
+            World.gripper_and_low_friction,
+            World.no_gripper_and_high_friction,
+            World.gripper_and_low_friction_large_arm,
+        ]:
             self.perceptions["boxes"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["boxes"].data.append(self.base_messages["boxes"]())
@@ -411,12 +418,12 @@ class LTMSim(object):
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
                 if not self.object_too_far(cylinder.distance, cylinder.angle):
-                    sign = numpy.sign(cylinder.angle)  # pylint: disable=E1111
+                    sign = numpy.sign(cylinder.angle)
                     cylinder.distance, cylinder.angle = self.send_object_twohandsreachable(cylinder.distance)
                     if (World.gripper_and_low_friction.name in self.world.name) and self.object_is_small(
                         cylinder.diameter
                     ):
-                        cylinder.angle = sign * 0.4
+                        cylinder.angle = -0.4 * sign
                     cylinder.distance = self.avoid_reward_by_chance(cylinder.distance, cylinder.angle)
                     break
 
@@ -438,9 +445,10 @@ class LTMSim(object):
     def put_object_with_robot_policy(self):
         """Put an object as close to the robot as possible."""
         if self.catched_object:
-            self.catched_object.distance, self.catched_object.angle = self.calculate_closest_position(
-                self.catched_object.angle
-            )
+            (
+                self.catched_object.distance,
+                self.catched_object.angle,
+            ) = self.calculate_closest_position(self.catched_object.angle)
             # Box and cylinder collide.
             # This is not realistic, it needs to be improved.
             if self.object_in_close_box(self.catched_object.distance, self.catched_object.angle):
@@ -542,7 +550,10 @@ class LTMSim(object):
                 rospy.logerr(config_file + " does not exist!")
             else:
                 rospy.loginfo("Loading configuration from %s...", config_file)
-                config = yaml.load(open(config_file, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
+                config = yaml.load(
+                    open(config_file, "r", encoding="utf-8"),
+                    Loader=yamlloader.ordereddict.CLoader,
+                )
                 self.setup_perceptions(config["SimulatedBaxter"]["Perceptions"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
                 self.setup_control_channel(config["Control"])

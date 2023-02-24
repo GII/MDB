@@ -4,17 +4,8 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-from future.utils import text_to_native_str
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Standard imports
-import sys
-from collections import OrderedDict
+import importlib
 
 # Library imports
 import rospy
@@ -43,11 +34,7 @@ class Node(object):
     def class_from_classname(class_name):
         """Return a class object from a class name."""
         module_string, _, class_string = class_name.rpartition(".")
-        if sys.version_info < (3, 0):
-            node_module = __import__(module_string, fromlist=[bytes(class_string, "utf-8")])
-        else:
-            node_module = __import__(module_string, fromlist=[class_string])
-        # node_module = importlib.import_module('.' + class_string, package=module_string)
+        node_module = importlib.import_module(module_string)
         node_class = getattr(node_module, class_string)
         return node_class
 
@@ -77,9 +64,9 @@ class Node(object):
         if not message:
             message = self.node_message()
         if first_time:
-            message.command = text_to_native_str("new")
+            message.command = "new"
         else:
-            message.command = text_to_native_str("update")
+            message.command = "update"
         message.id = self.ident
         message.neighbor_ids = [node.ident for node in self.neighbors]
         message.neighbor_types = [node.type for node in self.neighbors]
@@ -87,10 +74,10 @@ class Node(object):
             message.activation = max(self.activation)
         else:
             message.activation = self.activation
-        message.execute_service = text_to_native_str("")
-        message.get_service = text_to_native_str("")
-        message.class_name = text_to_native_str("")
-        message.language = text_to_native_str("")
+        message.execute_service = ""
+        message.get_service = ""
+        message.class_name = ""
+        message.language = ""
         self.node_publisher.publish(message)
 
     def calc_activation(self, perception=None):
@@ -103,7 +90,7 @@ class Node(object):
         self.perception = []
         self.activation = []
         for i in range(max([len(sensor) for sensor in perception.values()])):
-            perception_line = OrderedDict()
+            perception_line = {}
             for sensor, value in perception.items():
                 sid = i % len(value)
                 perception_line[sensor + str(sid)] = value[sid]
