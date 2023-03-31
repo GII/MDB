@@ -6,13 +6,6 @@ Available from https://github.com/robotsthatdream/MDB
 Distributed under GPLv3.
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import *  # noqa pylint: disable=unused-wildcard-import,wildcard-import
-
 # Library imports
 import argparse
 
