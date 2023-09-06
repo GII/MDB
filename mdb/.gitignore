@@ -1,0 +1,9 @@
+*~
+*.pyc
+*.log
+*.idea
+*.DS_Store
+.vscode
+*.pckl
+.!*
+__pycache__

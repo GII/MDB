@@ -1,0 +1,7 @@
+int64 id
+string command
+string name
+int64 destination
+string state
+---
+string msg
