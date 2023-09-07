@@ -5,8 +5,15 @@ from std_msgs.msg import Int64
 
 
 class MinimalPublisher(Node):
+    """
+    This is a sample class made for testing the system functionalities.
+    It publishes messages asking for the first n prime numbers, to be processed by other nodes.
+    """
 
     def __init__(self):
+        """
+        Constructor for the MinimalPublisher class.
+        """
         super().__init__('minimal_publisher')
         self.publisher_ = self.create_publisher(Int64, 'primes', 10)
         timer_period = 0.5  # seconds

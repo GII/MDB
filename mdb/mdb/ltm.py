@@ -12,4 +12,10 @@ class LTM:
         name = node.get_name()
         if node_type == 'a_node':
             self.a_nodes[name] = node
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
     

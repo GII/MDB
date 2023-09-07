@@ -4,8 +4,14 @@ from mdb.cognitive_node import CognitiveNode
 
 from std_msgs.msg import Int64
 
-    
 def is_prime(num):
+    """
+    Check if a number is prime.
+
+    :param int num: The number to check.
+    :return: True if the number is prime, False otherwise.
+    :rtype: bool
+    """
     if num < 2:
         return False
     for n in range(2, int(num/2)+1):
@@ -14,6 +20,13 @@ def is_prime(num):
     return True
 
 def calculate_n_primes(n):
+    """
+    Calculate the first n prime numbers.
+
+    :param int n: The number of prime numbers to be calculated.
+    :return: A list containing the first n prime numbers.
+    :rtype: list[int]
+    """
     primes = []
     num = 2
     while len(primes) < n:
@@ -23,37 +36,42 @@ def calculate_n_primes(n):
     return primes
 
 class ANode(CognitiveNode):
+    """
+    This is a sample class made for testing the system functionalities.
+    It represents a specific type of cognitive node (such as, in the future, the c-nodes or the p-nodes).
+    It has a subscription to the topic 'primes' in which publishers ask for the calculation of the first n prime numbers.
+    This class calculates the first n primes and also counts the total number of messages received.
+
+    :param name: The name of the node.
+    :param msg_count: The initial message count.
+    """
 
     def __init__(self, name='subscriber', msg_count=0):
+        """
+        Initialize the ANode.
+
+        :param name: The name of the node.
+        :param msg_count: The initial message count.
+        """
         super().__init__(name)
         self.msg_count = msg_count
-
-        # cuidado, referencia!
         self.subscription = self.create_subscription(
             Int64,
             'primes',
             self.calculate_next_callback,
             10
         )
-    
-    def get_state(self):
-        # state = self.__dict__.copy() 
-        # del state['_Node__executor_weakref']
-        # del state['_Node__node']
-        state = {}
-        state['msg_count'] = self.msg_count
-        # state = {'msg_count': self.msg_count}
-        return state
-    
-    def set_state(self, new_state):
-        self.msg_count = new_state['msg_count']
 
     def calculate_next_callback(self, msg):
+        """
+        Calculates the the first n prime numbers.
+
+        :param msg: The message containing n (number of primes to be calculated)
+        """        
         n = msg.data
         primes = calculate_n_primes(n)
         self.msg_count += 1
         self.get_logger().info('Node ' + str(self.get_name()) + ' calculated ' + str(n) + ' primes: ' + str(primes) + '. Total msgs received: ' + str(self.msg_count))
-
 
 def main(args=None):
     rclpy.init(args=args)
