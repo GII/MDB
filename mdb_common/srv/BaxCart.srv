@@ -1,8 +1,0 @@
-CartReq dest
-string orientation
-string arm
-float64 scale
-bool grip_change
-bool valid
----
-bool result

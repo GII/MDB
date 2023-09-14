@@ -1,5 +1,0 @@
-int32 iteration
-string current_world
-string current_policy
-float64 current_reward
-string current_goal

@@ -1,6 +1,0 @@
-std_msgs/Bool request
----
-mdb_common/SensData obj_sens
-mdb_common/SensData box_sens
-std_msgs/Float64 left_grip
-std_msgs/Float64 right_grip

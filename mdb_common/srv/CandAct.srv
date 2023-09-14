@@ -1,5 +1,0 @@
-int32 action_number
-int32 limit
-string motivation
----
-Candidates[] candidates

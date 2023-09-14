@@ -1,7 +1,0 @@
-mdb_common/CMReq joystick_pos
-std_msgs/Float64 joystick_angle
-std_msgs/Float64 time_to_control
-std_msgs/String arm_to_move
-std_msgs/Float64 velocity_scale
----
-std_msgs/Bool result 

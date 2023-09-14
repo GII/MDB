@@ -7,3 +7,8 @@
 *.pckl
 .!*
 __pycache__
+
+docs/build/
+mdb/build/
+mdb/install/
+mdb/log/

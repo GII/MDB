@@ -1,7 +1,0 @@
-CMReq dest
-string orientation
-string arm
-float64 scale
-bool valid
----
-bool result 
