@@ -19,6 +19,15 @@ class CognitiveNode(Node):
         """
         super().__init__(name)
 
+    def assign_id(self, id):
+        """
+        Assign an ID to the node.
+
+        :param id: The ID (an integer) to be assigned.
+        :type id: int
+        """
+        self.id = id
+
     def get_data(self):
         """
         Get the data associated with the node.

@@ -13,12 +13,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/CreateNode.srv"
-  "srv/ReadNode.srv"
-  "srv/UpdateNode.srv"
-  "srv/DeleteNode.srv"
-  "srv/SendCommand.srv"
+  "srv/HandleCommand.srv"
   "msg/Command.msg"
+  "srv/RegisterNode.srv"
 )
 
 if(BUILD_TESTING)

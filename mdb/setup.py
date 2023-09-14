@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'a_node = mdb.a_node:main',
+            'b_node = mdb.b_node:main',
             'publisher = mdb.publisher:main',
             'execution_node = mdb.execution_node:main',
             'create_node_client = mdb.create_node_client:main',

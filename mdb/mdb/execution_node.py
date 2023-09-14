@@ -2,15 +2,18 @@ import os
 import sys
 import rclpy
 import yaml
-from rclpy.node import Node
 
+from rclpy.node import Node
 from mdb.a_node import ANode
+from mdb.b_node import BNode
 from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
-from mdb_interfaces.srv import SendCommand
-from mdb_interfaces.msg import Command
 
-data_dir = '/home/cristina/ros2_ws/src/mdb/saved_data' # TODO: Cambiar a ruta relativa
+from mdb_interfaces.srv import HandleCommand, RegisterNode
+
+from mdb.constants import NODE_TYPES
+
+data_dir = '/home/cristina/ros2_ws/src/mdb/saved_data' # TODO: Change to relative dir
 
 class ExecutionNode(Node):
     """
@@ -36,26 +39,35 @@ class ExecutionNode(Node):
         self.executor = executor
         
         # Send command service
-        self.send_command_service = self.create_service(
-            SendCommand,
-            'send_command_' + str(self.id),
-            self.send_command
+        self.handle_command_service = self.create_service(
+            HandleCommand,
+            'handle_command_' + str(self.id),
+            self.handle_command
         )
 
-    def create_node(self, name, data=None): # TODO: add different node types
+        # # Register node client
+        # self.register_node_client = self.create_client(
+        #     RegisterNode,
+        #     'register_node_' + str(self.id),
+        #     self.register_node
+        # )
+
+    def create_node(self, name, node_type, data=None): # TODO: add different node types
         """
         Create a new node.
 
         :param name: The name of the node to be created.
         :type name: str
+        :param node_type: The type of the node to be created.
+        :type node_type: str
         :param data: Optional data to initialize the new node.
         :type data: dict
         """
-        if data == None: # TODO: differenciate node types
-            
-            new_node = ANode(name)
+
+        if data is None:
+            new_node = NODE_TYPES.get(node_type, None)(name)
         else:
-            new_node = ANode(name, **data)
+            new_node = NODE_TYPES.get(node_type, None)(name, **data)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
@@ -109,30 +121,33 @@ class ExecutionNode(Node):
             self.get_logger().info('Node with name ' + name + ' not found.')         
 
 
-    def load_node(self, name): # TODO: Comprobar que no exista un nodo con ese nombre
+    def load_node(self, name, node_type): # TODO: Check that it doesn't already exists a node with that name
         """
         Load the state of a node from a YAML file and create the node.
 
         :param name: The name of the node to load.
         :type name: str
+        :param node_type: The type of the node to be created.
+        :type node_type: str
         """        
+
         state_file = os.path.join(data_dir, name + '.yaml')
         if os.path.exists(state_file):
             with open(state_file, 'r') as file:
                 loaded_data = yaml.load(file, Loader=yaml.FullLoader)
-                self.create_node(name, loaded_data)
+                self.create_node(name, node_type, loaded_data)
                 self.get_logger().info('Loaded node: ' + str(name))
 
-    def send_command(self, request, response): # TODO: change name to "handle command"
+    def handle_command(self, request, response):
         """
         Handle command requests.
 
         :param request: The command request.
-        :type request: mdb_interfaces.srv.SendCommand_Request
+        :type request: mdb_interfaces.srv.HandleCommand_Request
         :param response: The response to the command.
-        :type response: mdb_interfaces.srv.SendCommand_Response
+        :type response: mdb_interfaces.srv.HandleCommand_Response
         :return: The response to the command.
-        :rtype: mdb_interfaces.srv.SendCommand_Response
+        :rtype: mdb_interfaces.srv.HandleCommand_Response
         """        
         id = int(request.id)
         command = str(request.command)
@@ -142,7 +157,8 @@ class ExecutionNode(Node):
             self.get_logger().info('Received request: ' + command)
             
             if(command == 'create'):
-                self.create_node(name)
+                type = str(request.type)
+                self.create_node(name, type)
                 response.msg = 'Node created: ' + name
             
             elif (command == 'read'):
@@ -161,7 +177,8 @@ class ExecutionNode(Node):
                 response.msg = 'Node saved: ' + name
 
             elif (command == 'load'):
-                self.load_node(name)
+                type = str(request.type)
+                self.load_node(name, type)
                 response.msg = 'Node loaded: ' + name
             else:
                 self.get_logger().info('Wrong command.')
