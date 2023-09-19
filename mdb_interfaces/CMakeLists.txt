@@ -14,8 +14,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/HandleCommand.srv"
-  "msg/Command.msg"
-  "srv/RegisterNode.srv"
+  "srv/SendToCommander.srv"
+  "srv/SendToExecutor.srv"
 )
 
 if(BUILD_TESTING)

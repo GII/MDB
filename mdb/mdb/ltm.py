@@ -5,19 +5,17 @@ from a_node import ANode
 from b_node import BNode
 from constants import NODE_TYPES
 
-from mdb_interfaces.srv import RegisterNode
-
 class LTM:
     def __init__(self):
         super().__init__('LTM')
         self.nodes = {node_type: [] for node_type in NODE_TYPES}
         
         # Register node service
-        self.register_node_service = self.create_service(
-            RegisterNode,
-            'register_node',
-            self.register_node
-        )
+        # self.register_node_service = self.create_service(
+        #     RegisterNode,
+        #     'register_node',
+        #     self.register_node
+        # )
         self.last_id = 0
     
     @property

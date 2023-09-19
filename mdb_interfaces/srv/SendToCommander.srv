@@ -1,6 +1,6 @@
-int64 id
 string command
 string name
 string type
+string data
 ---
 string msg

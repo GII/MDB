@@ -46,7 +46,7 @@ class ANode(CognitiveNode):
     :param msg_count: The initial message count.
     """
 
-    def __init__(self, name='subscriber', msg_count=0):
+    def __init__(self, name='a_node', msg_count=0):
         """
         Initialize the ANode.
 

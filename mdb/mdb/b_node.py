@@ -32,7 +32,7 @@ class BNode(CognitiveNode):
     :param msg_count: The initial message count.
     """
 
-    def __init__(self, name='subscriber', msg_count=0):
+    def __init__(self, name='b_node', msg_count=0):
         """
         Initialize the BNode.
 

@@ -24,10 +24,10 @@ setup(
             'b_node = mdb.b_node:main',
             'publisher = mdb.publisher:main',
             'execution_node = mdb.execution_node:main',
-            'create_node_client = mdb.create_node_client:main',
-            'commander = mdb.commander:main',
+            'commander = mdb.commander_node:main',
             'cognitive_node = mdb.cognitive_node:main',
-            'ltm = mdb.ltm:main'
+            'ltm = mdb.ltm:main',
+            'create_command_client = mdb.create_command_client:main'
         ],
     },
 )

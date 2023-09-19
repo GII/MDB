@@ -4,12 +4,10 @@ import rclpy
 import yaml
 
 from rclpy.node import Node
-from mdb.a_node import ANode
-from mdb.b_node import BNode
 from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
 
-from mdb_interfaces.srv import HandleCommand, RegisterNode
+from mdb_interfaces.srv import SendToExecutor
 
 from mdb.constants import NODE_TYPES
 
@@ -20,6 +18,8 @@ class ExecutionNode(Node):
     This class represents an execution node, which can execute several cognitive nodes.
     It is subscribed to the topic where the commander node sends commands.
     """
+
+    # TODO: Transform all the IDs into strings
 
     def __init__(self, executor, id):
         """
@@ -38,23 +38,18 @@ class ExecutionNode(Node):
         self.nodes = {}
         self.executor = executor
         
-        # Send command service
-        self.handle_command_service = self.create_service(
-            HandleCommand,
-            'handle_command_' + str(self.id),
+        # Send To Executor Service for the commander node
+        self.send_to_executor_service = self.create_service(
+            SendToExecutor,
+            'send_to_executor_' + str(self.id),
             self.handle_command
         )
 
-        # # Register node client
-        # self.register_node_client = self.create_client(
-        #     RegisterNode,
-        #     'register_node_' + str(self.id),
-        #     self.register_node
-        # )
-
-    def create_node(self, name, node_type, data=None): # TODO: add different node types
+    def create_node(self, name, node_type, data=None):
         """
-        Create a new node.
+        Create a new cognitive node.
+        If the node doesn't have previous data, it is created with the default values.
+        In other case, the existent data is loaded.
 
         :param name: The name of the node to be created.
         :type name: str
@@ -71,6 +66,7 @@ class ExecutionNode(Node):
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
+
         self.get_logger().info('Added node: ' + str(new_node.get_name()))
 
     def read_node(self, name):
@@ -143,52 +139,46 @@ class ExecutionNode(Node):
         Handle command requests.
 
         :param request: The command request.
-        :type request: mdb_interfaces.srv.HandleCommand_Request
+        :type request: mdb_interfaces.srv.SendToExecutor_Request
         :param response: The response to the command.
-        :type response: mdb_interfaces.srv.HandleCommand_Response
+        :type response: mdb_interfaces.srv.SendToExecutor_Response
         :return: The response to the command.
-        :rtype: mdb_interfaces.srv.HandleCommand_Response
+        :rtype: mdb_interfaces.srv.SendToExecutor_Response
         """        
-        id = int(request.id)
         command = str(request.command)
         name = str(request.name)
-        if(id == self.id):
             
-            self.get_logger().info('Received request: ' + command)
-            
-            if(command == 'create'):
-                type = str(request.type)
-                self.create_node(name, type)
-                response.msg = 'Node created: ' + name
-            
-            elif (command == 'read'):
-                read_node = self.read_node(name)
-                if read_node is not None:
-                    response.msg = 'Node ' + str(name) + ': ' + str(read_node)
-                else:
-                    response.msg = 'Couldnt read node ' + name + '.'
-
-            elif (command == 'delete'):
-                self.delete_node(name)
-                response.msg = 'Node deleted: ' + name
-
-            elif (command == 'save'):
-                self.save_node(name)
-                response.msg = 'Node saved: ' + name
-
-            elif (command == 'load'):
-                type = str(request.type)
-                self.load_node(name, type)
-                response.msg = 'Node loaded: ' + name
+        self.get_logger().info('Received request: ' + command)
+        
+        if(command == 'create'):
+            type = str(request.type)
+            self.create_node(name, type)
+            response.msg = 'Node created: ' + name
+        
+        elif (command == 'read'):
+            read_node = self.read_node(name)
+            if read_node is not None:
+                response.msg = str(read_node)
             else:
-                self.get_logger().info('Wrong command.')
-                response.msg = 'Wrong request: ' + command
+                response.msg = 'Couldnt read node ' + name + '.'
 
-            return response
+        elif (command == 'delete'):
+            self.delete_node(name)
+            response.msg = 'Node deleted: ' + name
+
+        elif (command == 'save'):
+            self.save_node(name)
+            response.msg = 'Node saved: ' + name
+
+        elif (command == 'load'):
+            type = str(request.type) # TODO save the type of the node
+            self.load_node(name, type)
+            response.msg = 'Node loaded: ' + name
         else:
-            self.get_logger().info('Request for other executor: ' + command)
-            response.msg = 'Request for other executor'
-            return response
+            self.get_logger().info('Wrong command.')
+            response.msg = 'Wrong request: ' + command
+        return response
+
     
 # single threaded executor
 def main(args=None):
@@ -203,7 +193,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
 
-    for name, node in execution_node.nodes.items():
+    for node in execution_node.nodes.values():
         executor.remove_node(node)
         node.destroy_node()
 
