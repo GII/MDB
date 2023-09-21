@@ -60,9 +60,9 @@ class ExecutionNode(Node):
         """
 
         if data is None:
-            new_node = NODE_TYPES.get(node_type, None)(name)
+            new_node = NODE_TYPES.get(node_type)(name)
         else:
-            new_node = NODE_TYPES.get(node_type, None)(name, **data)
+            new_node = NODE_TYPES.get(node_type)(name, **data)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
@@ -117,7 +117,7 @@ class ExecutionNode(Node):
             self.get_logger().info('Node with name ' + name + ' not found.')         
 
 
-    def load_node(self, name, node_type): # TODO: Check that it doesn't already exists a node with that name
+    def load_node(self, name): # TODO: Check that it doesn't already exists a node with that name
         """
         Load the state of a node from a YAML file and create the node.
 
@@ -130,9 +130,17 @@ class ExecutionNode(Node):
         state_file = os.path.join(data_dir, name + '.yaml')
         if os.path.exists(state_file):
             with open(state_file, 'r') as file:
-                loaded_data = yaml.load(file, Loader=yaml.FullLoader)
-                self.create_node(name, node_type, loaded_data)
-                self.get_logger().info('Loaded node: ' + str(name))
+                data = yaml.load(file, Loader=yaml.FullLoader)
+            
+            node_type = data['node_type']
+            del data['node_type']
+            
+            loaded_node = NODE_TYPES.get(node_type)(**data)
+
+            self.nodes[name] = loaded_node
+            self.executor.add_node(loaded_node)
+
+            self.get_logger().info('Loaded node: ' + str(name))
 
     def handle_command(self, request, response):
         """
@@ -171,8 +179,7 @@ class ExecutionNode(Node):
             response.msg = 'Node saved: ' + name
 
         elif (command == 'load'):
-            type = str(request.type) # TODO save the type of the node
-            self.load_node(name, type)
+            self.load_node(name)
             response.msg = 'Node loaded: ' + name
         else:
             self.get_logger().info('Wrong command.')

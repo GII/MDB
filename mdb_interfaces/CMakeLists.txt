@@ -16,6 +16,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/HandleCommand.srv"
   "srv/SendToCommander.srv"
   "srv/SendToExecutor.srv"
+  "srv/SendToLTM.srv"
 )
 
 if(BUILD_TESTING)

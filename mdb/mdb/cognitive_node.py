@@ -1,6 +1,9 @@
 import yaml
 from rclpy.node import Node
 
+from mdb.send_to_ltm_client import SendToLTMClient
+from mdb_interfaces.srv import SendToLTM
+
 class CognitiveNode(Node):
     """
     A base class for cognitive nodes in the system.
@@ -11,22 +14,15 @@ class CognitiveNode(Node):
     :param name: The name of the node.
     """
 
-    def __init__(self, name):   # TODO: add state and type
+    def __init__(self, name, node_type):   # TODO: add state
         """
         Initialize a CognitiveNode.
 
         :param name: The name of the node.
         """
         super().__init__(name)
-
-    def assign_id(self, id):
-        """
-        Assign an ID to the node.
-
-        :param id: The ID (an integer) to be assigned.
-        :type id: int
-        """
-        self.id = id
+        self.name = name
+        self.node_type = node_type
 
     def get_data(self):
         """
@@ -45,6 +41,43 @@ class CognitiveNode(Node):
             del node_data[key]
         del node_data['subscription']
         return node_data
+    
+    def register_in_LTM(self, subscribed, publishing):
+        
+        data_dic = {
+            'subscribed': subscribed,
+            'publishing': publishing
+        }
+
+        data = yaml.dump(data_dic)
+
+        self.send_request_to_LTM('register', data)
+    
+    def suscribe(self, topic):
+        self.send_request_to_LTM('subscribe', topic)
+
+    def puslish(self, topic):
+        self.send_request_to_LTM('publish', topic)
+   
+    def send_request_to_LTM(self, command, data):
+        """
+        Send a request to the LTM.
+
+        :param command: The command to send.
+        :type command: str
+        :param name: The name of the node.
+        :type name: str
+        :param type: The type of the node.
+        :type type: str
+        :param data: Optional data.
+        :type data: str
+        :return: The response from the LTM.
+        :rtype: mdb_interfaces.srv.SendToLTM_Response
+        """
+        send_to_LTM_client = SendToLTMClient()
+        executor_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
+        send_to_LTM_client.destroy_node()
+        return executor_response
 
     def __str__(self):
         """

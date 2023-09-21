@@ -4,6 +4,7 @@ import random
 from rclpy.node import Node
 
 from mdb.send_to_executor_client import SendToExecutorClient
+from mdb.send_to_ltm_client import SendToLTMClient
 from mdb_interfaces.srv import SendToCommander
 
 class CommanderNode(Node):
@@ -28,13 +29,14 @@ class CommanderNode(Node):
         for executor_id in self.executor_ids:
             self.nodes[executor_id] = []
                 
-        # Create Command Service for the cognitive nodes
+        # SendToCommander Service for the cognitive nodes
         self.send_to_commander_service = self.create_service(
             SendToCommander,
             'send_to_commander_service',
             self.handle_command
         )
 
+    # TODO: implement commands 'subscribe' and 'publish'
     def handle_command(self, request, response):
         """
         Handle command requests received from cognitive nodes and send them to the correct executor node.
@@ -55,12 +57,12 @@ class CommanderNode(Node):
                     response.msg = 'Node with name ' + str(name) + ' already exists.'
                 
                 else:
-                    type = str(request.type)
+                    node_type = str(request.type)
                     data = str(request.data)
                     
                     ex = self.get_lowest_load_executor()
                     
-                    executor_response = self.send_request_to_executor(ex, command, name, type, data)
+                    executor_response = self.send_request_to_executor(ex, command, name, node_type, data)
                     
                     self.register_node(ex, name)
                     
@@ -88,9 +90,13 @@ class CommanderNode(Node):
                     response.msg = 'Node with name ' + str(name) + ' does not exist.'
                 
                 else:
+                    node_type = str(request.type)
+
                     ex = self.get_executor_for_node(name)
 
                     executor_response = self.send_request_to_executor(ex, command, name, '', '')
+
+                    ltm_response = self.send_request_to_ltm(command, name, node_type, '') # TODO obtain node_type
 
                     self.get_logger().info('Node ' + str(name) + ' deleted from executor ' + str(ex) + '.')
 
@@ -116,11 +122,10 @@ class CommanderNode(Node):
                     response.msg = 'Node with name ' + str(name) + ' already exists.'
                 
                 else:
-                    type = str(request.type) # TODO save the type of the node
-                    
+                   
                     ex = self.get_lowest_load_executor()
                     
-                    executor_response = self.send_request_to_executor(ex, command, name, type, '')
+                    executor_response = self.send_request_to_executor(ex, command, name, '', '')
                     
                     self.register_node(ex, name)
                     
@@ -201,6 +206,12 @@ class CommanderNode(Node):
         """
         self.nodes[executor_id].remove(node_name)
 
+    def send_request_to_ltm(self, command, name, type, data):
+        send_to_ltm_client = SendToLTMClient()
+        ltm_response = send_to_ltm_client.send_request(command, name, type, data)
+        send_to_ltm_client.destroy_node()
+        return ltm_response
+
     def send_request_to_executor(self, executor_id, command, name, type, data):
         """
         Send a request to an executor for node management.
@@ -218,9 +229,9 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.SendToExecutor_Response
         """
-        create_command_client = SendToExecutorClient(executor_id)
-        executor_response = create_command_client.send_request(command, name, type, data)
-        create_command_client.destroy_node()
+        send_to_executor_client = SendToExecutorClient(executor_id)
+        executor_response = send_to_executor_client.send_request(command, name, type, data)
+        send_to_executor_client.destroy_node()
         return executor_response
 
 

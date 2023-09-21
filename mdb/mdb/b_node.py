@@ -3,8 +3,6 @@ from rclpy.node import Node
 from mdb.cognitive_node import CognitiveNode
 
 from std_msgs.msg import Int64
-from std_msgs.msg import Int64MultiArray
-
 
 def calculate_fibonacci(n):
     """
@@ -39,7 +37,7 @@ class BNode(CognitiveNode):
         :param name: The name of the node.
         :param msg_count: The initial message count.
         """
-        super().__init__(name)
+        super().__init__(name, 'BNode')
         self.msg_count = msg_count
         self.subscription = self.create_subscription(
             Int64,
@@ -47,6 +45,7 @@ class BNode(CognitiveNode):
             self.calculate_next_callback,
             10
         )
+        self.register_in_LTM(['fibonacci'], [])
 
     def calculate_next_callback(self, msg):
         """

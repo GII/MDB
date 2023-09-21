@@ -20,14 +20,13 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'a_node = mdb.a_node:main',
-            'b_node = mdb.b_node:main',
-            'publisher = mdb.publisher:main',
-            'execution_node = mdb.execution_node:main',
+            # 'a_node = mdb.a_node:main',
+            # 'b_node = mdb.b_node:main',
+            # 'cognitive_node = mdb.cognitive_node:main',
             'commander = mdb.commander_node:main',
-            'cognitive_node = mdb.cognitive_node:main',
+            'execution_node = mdb.execution_node:main',
             'ltm = mdb.ltm:main',
-            'create_command_client = mdb.create_command_client:main'
+            'publisher = mdb.publisher:main',
         ],
     },
 )
