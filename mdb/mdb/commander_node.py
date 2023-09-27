@@ -3,13 +3,17 @@ import rclpy
 import random
 from rclpy.node import Node
 
-from mdb.send_to_executor_client import SendToExecutorClient
 from mdb.send_to_ltm_client import SendToLTMClient
-from mdb_interfaces.srv import SendToCommander
+from mdb.create_node_client import CreateNodeClient
+from mdb.read_node_client import ReadNodeClient
+from mdb.delete_node_client import DeleteNodeClient
+from mdb.load_node_client import LoadNodeClient
+from mdb.save_node_client import SaveNodeClient
+from mdb_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 
 class CommanderNode(Node):
     """
-    This class is responsible for handling the commands from the cognitive nodes and sending them to the execution nodes.
+    This class is responsible for handling the requests from the user and sending them to the execution nodes.
 
     Attributes:
         cli (:class:`rclpy.client.Client`): A client for the 'SendCommand' service.
@@ -20,7 +24,7 @@ class CommanderNode(Node):
         """
         Constructor for the CommanderNode class.
 
-        Creates a ROS 2 node named 'commander node' and a service for the cognitive nodes.
+        Creates a ROS 2 node named 'commander node' and a service for the user to send commands.
         """
         super().__init__('commander_node')
         self.executor_ids = [0, 1] # TODO configure this from file
@@ -29,121 +33,196 @@ class CommanderNode(Node):
         for executor_id in self.executor_ids:
             self.nodes[executor_id] = []
                 
-        # SendToCommander Service for the cognitive nodes
-        self.send_to_commander_service = self.create_service(
-            SendToCommander,
-            'send_to_commander_service',
-            self.handle_command
+        # Create Node Service for the user
+        self.create_node_service = self.create_service(
+            CreateNode,
+            'commander/create',
+            self.create_node
+        )
+                
+        # Read Node Service for the user
+        self.read_node_service = self.create_service(
+            ReadNode,
+            'commander/read',
+            self.read_node
+        )
+                
+        # Delete Node Service for the user
+        self.delete_node_service = self.create_service(
+            DeleteNode,
+            'commander/delete',
+            self.delete_node
+        )
+                
+        # Save Node Service for the user
+        self.save_node_service = self.create_service(
+            SaveNode,
+            'commander/save',
+            self.save_node
         )
 
-    # TODO: implement commands 'subscribe' and 'publish'
-    def handle_command(self, request, response):
-        """
-        Handle command requests received from cognitive nodes and send them to the correct executor node.
+        # Load Node Service for the user
+        self.load_node_service = self.create_service(
+            LoadNode,
+            'commander/load',
+            self.load_node
+        )
 
-        :param request: The command request.
-        :type request: mdb_interfaces.srv.SendToCommander_Request
-        :param response: The response to the command.
-        :type response: mdb_interfaces.srv.SendToCommander_Response
-        :return: The response to the command.
-        :rtype: mdb_interfaces.srv.SendToCommander_Response
+    def create_node(self, request, response):
         """
-        command = str(request.command)
+        Handle the creation of a cognitive node.
+
+        :param request: The creation request.
+        :type request: mdb_interfaces.srv.CreateNode_Request
+        :param response: The response to the creation request.
+        :type response: mdb_interfaces.srv.CreateNode_Response
+        :return: The response to the creation request.
+        :rtype: mdb_interfaces.srv.CreateNode_Response
+        """
         name = str(request.name)
-        try:
-            if(command == 'create'):
-
-                if self.node_exists(name):
-                    response.msg = 'Node with name ' + str(name) + ' already exists.'
-                
-                else:
-                    node_type = str(request.type)
-                    data = str(request.data)
-                    
-                    ex = self.get_lowest_load_executor()
-                    
-                    executor_response = self.send_request_to_executor(ex, command, name, node_type, data)
-                    
-                    self.register_node(ex, name)
-                    
-                    self.get_logger().info('Node ' + str(name) + ' created in executor ' + str(ex) + '.')
-
-                    response.msg = 'Node ' + str(name) + ' created.'
+        node_type = str(request.node_type)
+        self.get_logger().info('Creating new ' + node_type + ' ' + name + '...')
+        if self.node_exists(name):
+            self.get_logger().info('Node ' + str(name) + ' already exists.')
+            response.created = False
+        else:
+           
+            ex = self.get_lowest_load_executor()
             
-            elif (command == 'read'):
+            executor_response = self.send_create_request_to_executor(ex, name, node_type)
+            
+            self.register_node(ex, name)
+            
+            self.get_logger().info('Node ' + str(name) + ' created in executor ' + str(ex) + '.')
 
-                if not self.node_exists(name):
-                    response.msg = 'Node with name ' + str(name) + ' does not exist.'
-                
-                else:
-                    ex = self.get_executor_for_node(name)
-
-                    executor_response = self.send_request_to_executor(ex, command, name, '', '')
-
-                    self.get_logger().info('Read node ' + str(name) + ': ' + str(executor_response.msg) + '.')
-
-                    response.msg = executor_response.msg
-
-            elif (command == 'delete'):
-
-                if not self.node_exists(name):
-                    response.msg = 'Node with name ' + str(name) + ' does not exist.'
-                
-                else:
-                    node_type = str(request.type)
-
-                    ex = self.get_executor_for_node(name)
-
-                    executor_response = self.send_request_to_executor(ex, command, name, '', '')
-
-                    ltm_response = self.send_request_to_ltm(command, name, node_type, '') # TODO obtain node_type
-
-                    self.get_logger().info('Node ' + str(name) + ' deleted from executor ' + str(ex) + '.')
-
-                    self.remove_node_from_executor(ex, name)
-
-                    response.msg = 'Deleted node ' + str(name) + '.'
-
-            elif (command == 'save'):
-                
-                if not self.node_exists(name):
-                    response.msg = 'Node with name ' + str(name) + ' does not exist.'
-                
-                else:
-                    ex = self.get_executor_for_node(name)
-
-                    executor_response = self.send_request_to_executor(ex, command, name, '', '')
-
-                    response.msg = 'Node saved: ' + str(name) + '.'
-
-            elif (command == 'load'):
-
-                if self.node_exists(name):
-                    response.msg = 'Node with name ' + str(name) + ' already exists.'
-                
-                else:
-                   
-                    ex = self.get_lowest_load_executor()
-                    
-                    executor_response = self.send_request_to_executor(ex, command, name, '', '')
-                    
-                    self.register_node(ex, name)
-                    
-                    self.get_logger().info('Node ' + str(name) + ' loaded in executor ' + str(ex) + '.')
-
-                    response.msg = 'Node ' + str(name) + ' loaded.'
-                    
-            else:
-                self.get_logger().info('Wrong command.')
-                response.msg = 'Wrong request: ' + str(command) + '.'
-        
-        except Exception as e:
-            error = 'Error handling command: ' + str(e)
-            self.get_logger().error(error)
-            response.msg = error
-        
+            response = executor_response
         return response
-    
+
+    def read_node(self, request, response):
+        """
+        Handle reading data from a cognitive node.
+
+        :param request: The read request.
+        :type request: mdb_interfaces.srv.ReadNode_Request
+        :param response: The response to the read request.
+        :type response: mdb_interfaces.srv.ReadNode_Response
+        :return: The response to the read request.
+        :rtype: mdb_interfaces.srv.ReadNode_Response
+        """        
+        name = str(request.name)
+        
+        self.get_logger().info('Reading node ' + name + '...')
+
+        if not self.node_exists(name):
+            response.data = ''
+            self.get_logger().info('Node ' + name + ' does not exist.')
+        
+        else:
+            ex = self.get_executor_for_node(name)
+
+            executor_response = self.send_read_request_to_executor(ex, name)
+
+            self.get_logger().info('Read node ' + str(name) + ': ' + str(executor_response.data) + '.')
+
+            response = executor_response
+        return response
+
+    def delete_node(self, request, response):
+        """
+        Handle the deletion of a cognitive node.
+
+        :param request: The delete request.
+        :type request: mdb_interfaces.srv.DeleteNode_Request
+        :param response: The response to the delete request.
+        :type response: mdb_interfaces.srv.DeleteNode_Response
+        :return: The response to the delete request.
+        :rtype: mdb_interfaces.srv.DeleteNode_Response
+        """        
+        name = str(request.name)
+        node_type = str(request.node_type)
+
+        self.get_logger().info('Deleting node ' + name + '...')
+        
+        if not self.node_exists(name):
+            self.get_logger().info('Node ' + name + ' does not exist.')
+            response.deleted = False
+        
+        else:
+            node_type = str(request.node_type)
+
+            ex = self.get_executor_for_node(name)
+
+            executor_response = self.send_delete_request_to_executor(ex, name, node_type)
+
+            ltm_response = self.send_request_to_ltm('delete', name, node_type, '') # TODO obtain node_type
+
+            self.get_logger().info('Node ' + str(name) + ' deleted from executor ' + str(ex) + '.')
+
+            self.remove_node_from_executor(ex, name)
+
+            response = executor_response
+
+        return response
+
+    def save_node(self, request, response):
+        """
+        Handle saving the state of a cognitive node.
+
+        :param request: The save request.
+        :type request: mdb_interfaces.srv.SaveNode_Request
+        :param response: The response to the save request.
+        :type response: mdb_interfaces.srv.SaveNode_Response
+        :return: The response to the save request.
+        :rtype: mdb_interfaces.srv.SaveNode_Response
+        """        
+        name = str(request.name)
+                
+        if not self.node_exists(name):
+            self.get_logger().info('Node ' + str(name) + ' does not exist.')
+            response.saved = False
+        
+        else:
+            ex = self.get_executor_for_node(name)
+
+            executor_response = self.send_save_request_to_executor(ex, name)
+            if executor_response.saved:
+                self.get_logger().info('Node ' + str(name) + ' saved.')
+
+            response = executor_response
+
+        return response
+
+    def load_node(self, request, response):
+        """
+        Handle loading a cognitive node from a configuration.
+
+        :param request: The load request.
+        :type request: mdb_interfaces.srv.LoadNode_Request
+        :param response: The response to the load request.
+        :type response: mdb_interfaces.srv.LoadNode_Response
+        :return: The response to the load request.
+        :rtype: mdb_interfaces.srv.LoadNode_Response
+        """
+        name = str(request.name)
+
+        if self.node_exists(name):
+            response.loaded = False
+        
+        else:
+            
+            ex = self.get_lowest_load_executor()
+            
+            executor_response = self.send_load_request_to_executor(ex, name)
+            
+            self.register_node(ex, name)
+            
+            if executor_response.loaded:
+                self.get_logger().info('Node ' + str(name) + ' loaded in executor ' + str(ex) + '.')
+
+            response = executor_response
+                    
+        return response
+  
     # TODO: implement this method with load balancing
     def get_lowest_load_executor(self):
         """
@@ -212,35 +291,100 @@ class CommanderNode(Node):
         send_to_ltm_client.destroy_node()
         return ltm_response
 
-    def send_request_to_executor(self, executor_id, command, name, type, data):
+    def send_create_request_to_executor(self, executor_id, name, node_type):
         """
-        Send a request to an executor for node management.
+        Send a 'create' request to an executor.
 
         :param executor_id: The ID of the executor.
         :type executor_id: int
-        :param command: The command to send.
-        :type command: str
-        :param name: The name of the node.
+        :param name: The name of the node to create.
         :type name: str
-        :param type: The type of the node.
-        :type type: str
-        :param data: Optional data to initialize the node.
-        :type data: str
+        :param node_type: The type of the node to create.
+        :type node_type: str
         :return: The response from the executor.
-        :rtype: mdb_interfaces.srv.SendToExecutor_Response
+        :rtype: mdb_interfaces.srv.CreateNode_Response
         """
-        send_to_executor_client = SendToExecutorClient(executor_id)
-        executor_response = send_to_executor_client.send_request(command, name, type, data)
-        send_to_executor_client.destroy_node()
+        service_name = 'executor' + str(executor_id) + '/create'
+        create_client = CreateNodeClient(service_name)
+        executor_response = create_client.send_request(name, node_type)
+        create_client.destroy_node()
         return executor_response
 
+    def send_read_request_to_executor(self, executor_id, name):
+        """
+        Send a 'read' request to an executor.
+
+        :param executor_id: The ID of the executor.
+        :type executor_id: int
+        :param name: The name of the node to read.
+        :type name: str
+        :return: The response from the executor.
+        :rtype: mdb_interfaces.srv.ReadNode_Response
+        """
+        service_name = 'executor' + str(executor_id) + '/read'
+        read_client = ReadNodeClient(service_name)
+        executor_response = read_client.send_request(name)
+        read_client.destroy_node()
+        return executor_response
+
+    def send_delete_request_to_executor(self, executor_id, name, node_type):
+        """
+        Send a 'delete' request to an executor.
+
+        :param executor_id: The ID of the executor.
+        :type executor_id: int
+        :param name: The name of the node to delete.
+        :type name: str
+        :param node_type: The type of the node to delete.
+        :type node_type: str
+        :return: The response from the executor.
+        :rtype: mdb_interfaces.srv.DeleteNode_Response
+        """
+        service_name = 'executor' + str(executor_id) + '/delete'
+        delete_client = DeleteNodeClient(service_name)
+        executor_response = delete_client.send_request(name, node_type)
+        delete_client.destroy_node()
+        return executor_response
+
+    def send_save_request_to_executor(self, executor_id, name):
+        """
+        Send a 'save' request to an executor.
+
+        :param executor_id: The ID of the executor.
+        :type executor_id: int
+        :param name: The name of the node to save.
+        :type name: str
+        :return: The response from the executor.
+        :rtype: mdb_interfaces.srv.SaveNode_Response
+        """
+        service_name = 'executor' + str(executor_id) + '/save'
+        save_client = SaveNodeClient(service_name)
+        executor_response = save_client.send_request(name)
+        save_client.destroy_node()
+        return executor_response
+
+    def send_load_request_to_executor(self, executor_id, name):
+        """
+        Send a 'load' request to an executor.
+
+        :param executor_id: The ID of the executor.
+        :type executor_id: int
+        :param name: The name of the node to load.
+        :type name: str
+        :return: The response from the executor.
+        :rtype: mdb_interfaces.srv.LoadNode_Response
+        """
+        service_name = 'executor' + str(executor_id) + '/load'
+        load_client = LoadNodeClient(service_name)
+        executor_response = load_client.send_request(name)
+        load_client.destroy_node()
+        return executor_response
 
 def main(args=None):
     rclpy.init()
     commander = CommanderNode()
 
     rclpy.spin(commander)
-    rclpy.shutdown()
 
     commander.destroy_node()
     rclpy.shutdown()

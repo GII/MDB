@@ -26,6 +26,7 @@ setup(
             'commander = mdb.commander_node:main',
             'execution_node = mdb.execution_node:main',
             'ltm = mdb.ltm:main',
+            'main_loop = mdb.main_loop:main',
             'publisher = mdb.publisher:main',
         ],
     },

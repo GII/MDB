@@ -1,6 +1,0 @@
-int64 id
-string command
-string name
-string type
----
-string msg

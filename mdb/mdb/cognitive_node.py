@@ -75,9 +75,9 @@ class CognitiveNode(Node):
         :rtype: mdb_interfaces.srv.SendToLTM_Response
         """
         send_to_LTM_client = SendToLTMClient()
-        executor_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
+        ltm_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
         send_to_LTM_client.destroy_node()
-        return executor_response
+        return ltm_response
 
     def __str__(self):
         """

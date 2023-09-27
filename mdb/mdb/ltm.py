@@ -20,7 +20,7 @@ class LTM(Node):
 
         self.last_id = 0
         
-        # SendToLTM Service for the cognitive nodes
+        # SendToLTM Service for the cognitive nodes and the main loop
         self.send_to_LTM_service = self.create_service(
             SendToLTM,
             'send_to_LTM',
@@ -54,6 +54,16 @@ class LTM(Node):
         """
         return self.cognitive_nodes.get('BNode')
     
+    @property
+    def policy_nodes(self):
+        """
+        Get all cognitive nodes of type 'Policy' from the LTM.
+
+        :return: A list of 'Policy' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('Policy')
+
     def handle_command(self, request, response):
         """
         Handle command requests received from cognitive nodes.
