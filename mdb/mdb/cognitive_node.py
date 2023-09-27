@@ -1,10 +1,11 @@
+from abc import ABC, abstractmethod
 import yaml
 from rclpy.node import Node
 
 from mdb.send_to_ltm_client import SendToLTMClient
-from mdb_interfaces.srv import SendToLTM
+from mdb_interfaces.srv import CalculateActivation
 
-class CognitiveNode(Node):
+class CognitiveNode(ABC, Node):
     """
     A base class for cognitive nodes in the system.
 
@@ -23,6 +24,13 @@ class CognitiveNode(Node):
         super().__init__(name)
         self.name = name
         self.node_type = node_type
+                        
+        # Calculate Activations Service for other Cognitive Nodes
+        self.calculate_activations_service = self.create_service(
+            CalculateActivation,
+            'cognitive_node/' +str(node_type) + '/' + str(name) + '/calculate_activation',
+            self.handle_calculate_activation
+        )
 
     def get_data(self):
         """
@@ -40,6 +48,7 @@ class CognitiveNode(Node):
         for key in keys_to_delete:
             del node_data[key]
         del node_data['subscription']
+        del node_data['calculate_activations_service']
         return node_data
     
     def register_in_LTM(self, subscribed, publishing):
@@ -78,6 +87,24 @@ class CognitiveNode(Node):
         ltm_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
         send_to_LTM_client.destroy_node()
         return ltm_response
+    
+    def handle_calculate_activation(self, request, response):
+        response.activation = self.calculate_activation()
+        return response
+
+    @abstractmethod
+    def calculate_activation(self):
+        """
+        Calculate and return the node's activations.
+
+        :param request: The request for calculating activations.
+        :type request: mdb_interfaces.srv.CalculateActivations_Request
+        :param response: The response containing the activations.
+        :type response: mdb_interfaces.srv.CalculateActivations_Response
+        """
+        pass
+    
+
 
     def __str__(self):
         """

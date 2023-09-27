@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from mdb.cognitive_node import CognitiveNode
+import random
 
 from std_msgs.msg import Int64
 
@@ -73,6 +74,16 @@ class ANode(CognitiveNode):
         primes = calculate_n_primes(n)
         self.msg_count += 1
         self.get_logger().info('Node ' + str(self.get_name()) + ' calculated ' + str(n) + ' primes: ' + str(primes) + '. Total msgs received: ' + str(self.msg_count))
+
+    def calculate_activation(self):
+        """
+        Fake method that simulates the calculation of the activation of the ANode.
+
+        :return: A random float between 0 and 1, representing the activation level.
+        :rtype: float
+        """
+        return random.random()
+
 
 def main(args=None):
     rclpy.init(args=args)
