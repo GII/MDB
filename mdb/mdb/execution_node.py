@@ -9,9 +9,8 @@ from rclpy.executors import SingleThreadedExecutor
 
 from mdb_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 
-from mdb.constants import NODE_TYPES
-
-data_dir = '/home/cristina/ros2_ws/src/mdb/saved_data' # TODO: Change to relative dir
+from mdb.config.config import saved_data_dir
+from mdb.utils.utils import class_from_classname
 
 class ExecutionNode(Node):
     """
@@ -99,7 +98,7 @@ class ExecutionNode(Node):
         
         self.get_logger().info('Creating new ' + str(node_type) + ' ' + str(name) + '...')
 
-        new_node = NODE_TYPES.get(node_type)(name)
+        new_node = class_from_classname(node_type)(name)
 
         # if data is None:
         #     new_node = NODE_TYPES.get(node_type)(name)
@@ -169,7 +168,7 @@ class ExecutionNode(Node):
         node_to_save = self.nodes.get(name)
         
         if node_to_save is not None:
-            state_file = os.path.join(data_dir, name + '.yaml')
+            state_file = os.path.join(saved_data_dir, name + '.yaml')
             data_to_save = node_to_save.get_data()
             with open(state_file, 'w') as file:
                 yaml.dump(data_to_save, file)
@@ -194,7 +193,7 @@ class ExecutionNode(Node):
 
         self.get_logger().info('Loading node: ' + name + '...')
 
-        state_file = os.path.join(data_dir, name + '.yaml')
+        state_file = os.path.join(saved_data_dir, name + '.yaml')
         if os.path.exists(state_file):
             with open(state_file, 'r') as file:
                 data = yaml.load(file, Loader=yaml.FullLoader)
@@ -202,7 +201,7 @@ class ExecutionNode(Node):
             node_type = data['node_type']
             del data['node_type']
             
-            loaded_node = NODE_TYPES.get(node_type)(**data)
+            loaded_node = class_from_classname(node_type)(**data)
 
             self.nodes[name] = loaded_node
             self.executor.add_node(loaded_node)
