@@ -75,7 +75,7 @@ class ANode(CognitiveNode):
         self.msg_count += 1
         self.get_logger().info('Node ' + str(self.get_name()) + ' calculated ' + str(n) + ' primes: ' + str(primes) + '. Total msgs received: ' + str(self.msg_count))
 
-    def calculate_activation(self):
+    def calculate_activation(self, perception):
         """
         Fake method that simulates the calculation of the activation of the ANode.
 

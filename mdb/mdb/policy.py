@@ -32,7 +32,7 @@ class Policy(CognitiveNode):
             self.execute_policy
         )
 
-    def calculate_activation(self): # TODO: Implmement this method
+    def calculate_activation(self, perception): # TODO: Implmement this method
         """
         Calculate the activation level of the policy: a random float between 0 and 1.
 

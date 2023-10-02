@@ -37,46 +37,39 @@ class ExecutionNode(Node):
         self.id = id
         self.nodes = {}
         self.executor = executor
-        
-        # # Send To Executor Service for the commander node
-        # self.send_to_executor_service = self.create_service(
-        #     SendToExecutor,
-        #     'send_to_executor_' + str(self.id),
-        #     self.handle_command
-        # )
                 
         # Create Node Service for the commander node
         self.create_node_service = self.create_service(
             CreateNode,
-            'executor' + str(self.id) + '/create',
+            'execution_node_' + str(self.id) + '/create',
             self.create_node
         )
                 
         # Read Node Service for the commander node
         self.read_node_service = self.create_service(
             ReadNode,
-            'executor' + str(self.id) + '/read',
+            'execution_node_' + str(self.id) + '/read',
             self.read_node
         )
                 
         # Delete Node Service for the commander node
         self.delete_node_service = self.create_service(
             DeleteNode,
-            'executor' + str(self.id) + '/delete',
+            'execution_node_' + str(self.id) + '/delete',
             self.delete_node
         )
                 
         # Save Node Service for the commander node
         self.save_node_service = self.create_service(
             SaveNode,
-            'executor' + str(self.id) + '/save',
+            'execution_node_' + str(self.id) + '/save',
             self.save_node
         )
 
         # Load Node Service for the commander node
         self.load_node_service = self.create_service(
             LoadNode,
-            'executor' + str(self.id) + '/load',
+            'execution_node_' + str(self.id) + '/load',
             self.load_node
         )
     

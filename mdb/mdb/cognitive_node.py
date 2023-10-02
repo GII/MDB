@@ -3,7 +3,7 @@ import yaml
 from rclpy.node import Node
 
 from mdb.send_to_ltm_client import SendToLTMClient
-from mdb_interfaces.srv import CalculateActivation
+from mdb_interfaces.srv import UpdateActivation
 
 class CognitiveNode(ABC, Node):
     """
@@ -28,10 +28,10 @@ class CognitiveNode(ABC, Node):
         self.node_type = node_type
 
         # Calculate Activations Service for other Cognitive Nodes
-        self.calculate_activations_service = self.create_service(
-            CalculateActivation,
-            'cognitive_node/' + str(node_type) + '/' + str(name) + '/calculate_activation',
-            self.handle_calculate_activation
+        self.update_activation_service = self.create_service(
+            UpdateActivation,
+            'cognitive_node/' + str(node_type) + '/' + str(name) + '/update_activation',
+            self.handle_update_activation
         )
 
     def get_data(self):
@@ -91,8 +91,10 @@ class CognitiveNode(ABC, Node):
         send_to_LTM_client.destroy_node()
         return ltm_response
     
-    def handle_calculate_activation(self, request, response):
-        response.activation = self.calculate_activation()
+    def handle_update_activation(self, request, response):
+        perception = request.perception
+        activation = self.calculate_activation(perception)
+        response.updated = True
         return response
 
     @abstractmethod

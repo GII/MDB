@@ -363,7 +363,7 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.CreateNode_Response
         """
-        service_name = 'executor' + str(executor_id) + '/create'
+        service_name = 'execution_node_' + str(executor_id) + '/create'
         create_client = CreateNodeClient(service_name)
         executor_response = create_client.send_request(name, class_name)
         create_client.destroy_node()
@@ -380,7 +380,7 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.ReadNode_Response
         """
-        service_name = 'executor' + str(executor_id) + '/read'
+        service_name = 'execution_node_' + str(executor_id) + '/read'
         read_client = ReadNodeClient(service_name)
         executor_response = read_client.send_request(name)
         read_client.destroy_node()
@@ -399,7 +399,7 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.DeleteNode_Response
         """
-        service_name = 'executor' + str(executor_id) + '/delete'
+        service_name = 'execution_node_' + str(executor_id) + '/delete'
         delete_client = DeleteNodeClient(service_name)
         executor_response = delete_client.send_request(name, class_name)
         delete_client.destroy_node()
@@ -416,7 +416,7 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.SaveNode_Response
         """
-        service_name = 'executor' + str(executor_id) + '/save'
+        service_name = 'execution_node_' + str(executor_id) + '/save'
         save_client = SaveNodeClient(service_name)
         executor_response = save_client.send_request(name)
         save_client.destroy_node()
@@ -433,7 +433,7 @@ class CommanderNode(Node):
         :return: The response from the executor.
         :rtype: mdb_interfaces.srv.LoadNode_Response
         """
-        service_name = 'executor' + str(executor_id) + '/load'
+        service_name = 'execution_node_' + str(executor_id) + '/load'
         load_client = LoadNodeClient(service_name)
         executor_response = load_client.send_request(name)
         load_client.destroy_node()
