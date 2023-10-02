@@ -88,18 +88,18 @@ class ExecutionNode(Node):
 
         :param name: The name of the node to be created.
         :type name: str
-        :param node_type: The type of the node to be created.
-        :type node_type: str
+        :param class_name: The type of the node to be created.
+        :type class_name: str
         :param data: Optional data to initialize the new node.
         :type data: dict
         """
 
-        node_type = str(request.node_type)
+        class_name = str(request.class_name)
         name = str(request.name)
         
-        self.get_logger().info('Creating new ' + str(node_type) + ' ' + str(name) + '...')
+        self.get_logger().info('Creating new ' + str(class_name) + ' ' + str(name) + '...')
 
-        new_node = class_from_classname(node_type)(name)
+        new_node = class_from_classname(class_name)(name)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
@@ -181,8 +181,8 @@ class ExecutionNode(Node):
 
         :param name: The name of the node to load.
         :type name: str
-        :param node_type: The type of the node to be created.
-        :type node_type: str
+        :param class_name: The type of the node to be created.
+        :type class_name: str
         """        
         
         name = str(request.name)
@@ -194,10 +194,10 @@ class ExecutionNode(Node):
             with open(state_file, 'r') as file:
                 data = yaml.load(file, Loader=yaml.FullLoader)
             
-            node_type = data['node_type']
-            del data['node_type']
+            class_name = data['class_name']
+            del data['class_name']
             
-            loaded_node = class_from_classname(node_type)(**data)
+            loaded_node = class_from_classname(class_name)(**data)
 
             self.nodes[name] = loaded_node
             self.executor.add_node(loaded_node)

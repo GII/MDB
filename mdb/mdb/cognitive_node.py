@@ -15,7 +15,7 @@ class CognitiveNode(ABC, Node):
     :param name: The name of the node.
     """
 
-    def __init__(self, name, node_type):   # TODO: add state
+    def __init__(self, name, class_name):   # TODO: add state
         """
         Initialize a CognitiveNode.
 
@@ -23,12 +23,14 @@ class CognitiveNode(ABC, Node):
         """
         super().__init__(name)
         self.name = name
+        self.class_name = class_name
+        _, _, node_type = self.class_name.rpartition(".")
         self.node_type = node_type
-                        
+
         # Calculate Activations Service for other Cognitive Nodes
         self.calculate_activations_service = self.create_service(
             CalculateActivation,
-            'cognitive_node/' + str(name) + '/calculate_activation',
+            'cognitive_node/' + str(node_type) + '/' + str(name) + '/calculate_activation',
             self.handle_calculate_activation
         )
 
@@ -84,6 +86,7 @@ class CognitiveNode(ABC, Node):
         :rtype: mdb_interfaces.srv.SendToLTM_Response
         """
         send_to_LTM_client = SendToLTMClient()
+
         ltm_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
         send_to_LTM_client.destroy_node()
         return ltm_response
@@ -104,8 +107,6 @@ class CognitiveNode(ABC, Node):
         """
         pass
     
-
-
     def __str__(self):
         """
         Returns a YAML representation of the node's data.

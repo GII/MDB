@@ -74,9 +74,14 @@ class LTM(Node):
         :return: The response to the command.
         :rtype: mdb_interfaces.srv.SendToLTM_Response
         """
+
         command = str(request.command)
         name = str(request.name)
         node_type = str(request.type)
+
+        self.get_logger().info('Command: ' + command + '.')
+        self.get_logger().info('Name: ' + name + '.')
+        self.get_logger().info('Node_type: ' + node_type + '.')
 
         try:
             if(command == 'register'):
@@ -86,6 +91,7 @@ class LTM(Node):
                 
                 else:
                     data = str(request.data)
+                    self.get_logger().info('Data: ' + data + '.')
 
                     data_dic = yaml.load(data, Loader=yaml.FullLoader)
 

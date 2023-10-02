@@ -2,13 +2,25 @@ import sys
 import rclpy
 from rclpy.node import Node
 from operator import attrgetter
+import random
 
 from mdb.send_to_ltm_client import SendToLTMClient
 from mdb.execute_policy_client import ExecutePolicyClient
 
 class MainLoop(Node):
+    """
+    MainLoop class for managing the main loop of the system.
+
+    This class handles the core logic of the system, including reading perceptions,
+    selecting policies, and executing policies.
+    """
 
     def __init__(self):
+        """
+        Constructor for the MainLoop class.
+
+        Initializes the MainLoop node and starts the main loop execution.
+        """        
         super().__init__('main_loop')
         self.iteration = 0
         self.current_policy = None
@@ -20,12 +32,6 @@ class MainLoop(Node):
 
         :param command: The command to send.
         :type command: str
-        :param name: The name of the node.
-        :type name: str
-        :param type: The type of the node.
-        :type type: str
-        :param data: Optional data.
-        :type data: str
         :return: The response from the LTM.
         :rtype: mdb_interfaces.srv.SendToLTM_Response
         """
@@ -42,25 +48,50 @@ class MainLoop(Node):
         pass
 
     def select_policy(self, sensing): # TODO: implement
+        """
+        Select a policy based on the current sensing.
+
+        Mock method that selects a random policy between policy1 and policy2.
+
+        :param sensing: The current sensing.
+        :type sensing: Any
+        :return: The selected policy.
+        :rtype: str
+        """
         self.get_logger().info("Selecting policy...")
+        id = random.randint(1,2)
+        
         # Get all policies
         # policies = []
 
         # Get max activation policy
         # policy = max(policies, key=attrgetter("activation"))            
 
-        return 'policy1'
+        return 'policy' + str(id)
 
     def execute_policy(self, policy):
+        """
+        Execute a policy.
+
+        This method sends a request to the policy to be executed.
+
+        :param policy: The policy to execute.
+        :type policy: str
+        :return: The response from executing the policy.
+        :rtype: The executed policy.
+        """
         self.get_logger().info('Executing policy ' + str(policy)+ '...')
 
         service_name = 'policy/' + str(policy) + '/execute'
         client = ExecutePolicyClient(service_name)
         policy_response = client.send_request()
         client.destroy_node()
-        return policy_response
+        return policy_response.policy
 
     def run(self):
+        """
+        Run the main loop of the system.
+        """        
         sensing = self.read_perceptions()
         while True: # TODO: check conditions to continue the loop
             self.get_logger().info("*** ITERATION: " + str(self.iteration) + " ***")

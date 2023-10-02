@@ -1,6 +1,5 @@
 import importlib
 
-@staticmethod
 def class_from_classname(class_name):
     """Return a class object from a class name."""
     module_string, _, class_string = class_name.rpartition(".")

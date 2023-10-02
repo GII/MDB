@@ -16,9 +16,9 @@ class CreateNodeClient(Node):
             self.get_logger().info('service not available, waiting again...')
         self.req = CreateNode.Request()
 
-    def send_request(self, name, node_type):
+    def send_request(self, name, class_name):
         self.req.name = name
-        self.req.node_type = node_type
+        self.req.class_name = class_name
         self.future = self.cli.call_async(self.req)
         rclpy.spin_until_future_complete(self, self.future)
         return self.future.result()
