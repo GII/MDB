@@ -28,7 +28,7 @@ class CognitiveNode(ABC, Node):
         # Calculate Activations Service for other Cognitive Nodes
         self.calculate_activations_service = self.create_service(
             CalculateActivation,
-            'cognitive_node/' +str(node_type) + '/' + str(name) + '/calculate_activation',
+            'cognitive_node/' + str(name) + '/calculate_activation',
             self.handle_calculate_activation
         )
 

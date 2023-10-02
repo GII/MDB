@@ -4,7 +4,6 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-from mdb.constants import NODE_TYPES
 from mdb.cognitive_node import CognitiveNode
 
 from mdb.send_to_commander_client import SendToCommanderClient
@@ -14,7 +13,7 @@ from mdb_interfaces.srv import SendToLTM
 class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
-        self.cognitive_nodes = {node_type: {} for node_type in NODE_TYPES}
+        self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Policy': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
 

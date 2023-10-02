@@ -1,8 +1,10 @@
 import sys
 import rclpy
 from rclpy.node import Node
+from operator import attrgetter
 
 from mdb.send_to_ltm_client import SendToLTMClient
+from mdb.execute_policy_client import ExecutePolicyClient
 
 class MainLoop(Node):
 
@@ -10,6 +12,7 @@ class MainLoop(Node):
         super().__init__('main_loop')
         self.iteration = 0
         self.current_policy = None
+        self.run()
 
     def send_request_to_LTM(self, command):
         """
@@ -32,20 +35,30 @@ class MainLoop(Node):
         return ltm_response
 
     def read_perceptions(self): # TODO: implement
+        self.get_logger().info('Reading perceptions...')
         pass
 
     def update_activations(self): # TODO: implement
         pass
 
-    def select_policy(self, sensing):
-        self.update_activations(sensing, new_sensings=True)
-        # 1
-        policies = [] # TODO: get policies from LTM
-        # policy = max(policies, key=attrgetter("activation"))
-        # 2
-        # TODO: #3 #4 #5
-        return policy
+    def select_policy(self, sensing): # TODO: implement
+        self.get_logger().info("Selecting policy...")
+        # Get all policies
+        # policies = []
 
+        # Get max activation policy
+        # policy = max(policies, key=attrgetter("activation"))            
+
+        return 'policy1'
+
+    def execute_policy(self, policy):
+        self.get_logger().info('Executing policy ' + str(policy)+ '...')
+
+        service_name = 'policy/' + str(policy) + '/execute'
+        client = ExecutePolicyClient(service_name)
+        policy_response = client.send_request()
+        client.destroy_node()
+        return policy_response
 
     def run(self):
         sensing = self.read_perceptions()
@@ -53,6 +66,7 @@ class MainLoop(Node):
             self.get_logger().info("*** ITERATION: " + str(self.iteration) + " ***")
             
             self.current_policy = self.select_policy(sensing)
+            self.execute_policy(self.current_policy)
             old_sensing, sensing = sensing, self.read_perceptions()
             
             self.iteration += 1

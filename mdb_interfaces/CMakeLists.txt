@@ -14,14 +14,15 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CalculateActivation.srv"
-  "srv/SendToCommander.srv"
-  "srv/SendToExecutor.srv"
-  "srv/SendToLTM.srv"
   "srv/CreateNode.srv"
   "srv/DeleteNode.srv"
+  "srv/ExecutePolicy.srv"
   "srv/LoadNode.srv"
   "srv/ReadNode.srv"
   "srv/SaveNode.srv"
+  "srv/SendToCommander.srv"
+  "srv/SendToExecutor.srv"
+  "srv/SendToLTM.srv"
 )
 
 if(BUILD_TESTING)

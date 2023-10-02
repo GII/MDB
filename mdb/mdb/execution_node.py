@@ -2,6 +2,7 @@ import os
 import sys
 import rclpy
 import yaml
+import importlib
 
 from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor
@@ -9,8 +10,8 @@ from rclpy.executors import SingleThreadedExecutor
 
 from mdb_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 
-from mdb.config.config import saved_data_dir
-from mdb.utils.utils import class_from_classname
+from mdb.config import saved_data_dir
+from mdb.utils import class_from_classname
 
 class ExecutionNode(Node):
     """
@@ -78,7 +79,7 @@ class ExecutionNode(Node):
             'executor' + str(self.id) + '/load',
             self.load_node
         )
-
+    
     def create_node(self, request, response):
         """
         Create a new cognitive node.
@@ -99,11 +100,6 @@ class ExecutionNode(Node):
         self.get_logger().info('Creating new ' + str(node_type) + ' ' + str(name) + '...')
 
         new_node = class_from_classname(node_type)(name)
-
-        # if data is None:
-        #     new_node = NODE_TYPES.get(node_type)(name)
-        # else:
-        #     new_node = NODE_TYPES.get(node_type)(name, **data)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
@@ -209,7 +205,7 @@ class ExecutionNode(Node):
             self.get_logger().info('Loaded node: ' + str(name))
             response.loaded = True
         return response
-    
+
     # def handle_command(self, request, response):
     #     """
     #     Handle command requests.
