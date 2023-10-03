@@ -31,14 +31,14 @@ class BNode(CognitiveNode):
     :param msg_count: The initial message count.
     """
 
-    def __init__(self, name='b_node', msg_count=0):
+    def __init__(self, name='b_node', msg_count=0, class_name = 'mdb.b_node.BNode'):
         """
         Initialize the BNode.
 
         :param name: The name of the node.
         :param msg_count: The initial message count.
         """
-        super().__init__(name, 'mdb.b_node.BNode')
+        super().__init__(name, class_name)
         self.msg_count = msg_count
         self.subscription = self.create_subscription(
             Int64,

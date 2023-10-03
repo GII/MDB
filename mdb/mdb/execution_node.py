@@ -188,7 +188,7 @@ class ExecutionNode(Node):
                 data = yaml.load(file, Loader=yaml.FullLoader)
             
             class_name = data['class_name']
-            del data['class_name']
+            del data['node_type']
             
             loaded_node = class_from_classname(class_name)(**data)
 

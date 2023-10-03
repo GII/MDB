@@ -79,10 +79,6 @@ class LTM(Node):
         name = str(request.name)
         node_type = str(request.type)
 
-        self.get_logger().info('Command: ' + command + '.')
-        self.get_logger().info('Name: ' + name + '.')
-        self.get_logger().info('Node_type: ' + node_type + '.')
-
         try:
             if(command == 'register'):
 

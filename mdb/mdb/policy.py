@@ -11,7 +11,7 @@ class Policy(CognitiveNode):
     Policy class.
     """
 
-    def __init__(self, name='policy'):
+    def __init__(self, name='policy', class_name='mdb.policy.Policy'):
         """
         Constructor for the Policy class.
 
