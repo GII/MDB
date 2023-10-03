@@ -98,7 +98,7 @@ class CognitiveNode(ABC, Node):
         return response
 
     @abstractmethod
-    def calculate_activation(self):
+    def calculate_activation(self, perception):
         """
         Calculate and return the node's activations.
 

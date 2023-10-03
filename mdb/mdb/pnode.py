@@ -12,13 +12,13 @@ class PNode(CognitiveNode):
     This class is migrating to be able to aggregate different input spaces.
     """
 
-    def __init__(self, space_class=None, space=None, **kwargs):
-        """Initialize."""
-        self.spaces = [space if space else class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
-        super().__init__(**kwargs)
+    # def __init__(self, space_class=None, space=None, **kwargs):
+    #     """Initialize."""
+    #     self.spaces = [space if space else class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
+    #     super().__init__(**kwargs)
 
     def __init__(self, name='pnode'):
-        super.__init__(name, 'mdb.pnode.PNode')
+        super().__init__(name, 'mdb.pnode.PNode')
         self.register_in_LTM([],[]) #¿Qué era subscribing y publishing?
         self.add_perception_service = self.create_service(AddPerception, 'pnode/' + str(name) + '/add_perception', self.add_perception_callback)
 
@@ -69,7 +69,7 @@ class PNode(CognitiveNode):
             point_message.confidence = self.spaces[0].memberships[added_point_pos]
             self.data_publisher.publish(point_message)
 
-    def calc_activation(self, perception=None):
+    def calculate_activation(self, perception=None):
         """Calculate the new activation value."""
         space = self.get_space(perception)
         if space:
@@ -88,4 +88,14 @@ class PNode(CognitiveNode):
         return None
 
 def main(args = None):
-    r
+    rclpy.init(args=args)
+
+    pnode = PNode()
+
+    rclpy.spin(pnode)
+
+    pnode.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
