@@ -15,7 +15,7 @@ class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
         self.id = 0
-        self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Policy': {}}
+        self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Policy': {}, 'PNode': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
 
