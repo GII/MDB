@@ -1,3 +1,4 @@
-msg_count: 30
+class_name: mdb.a_node.ANode
+msg_count: 27
 name: node1
-node_type: mdb.a_node.ANode
+node_type: ANode

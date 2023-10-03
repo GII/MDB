@@ -46,11 +46,11 @@ class CognitiveNode(ABC, Node):
         :rtype: dict
         """
         node_data = self.__dict__.copy()
-        keys_to_delete = [key for key in node_data.keys() if key.startswith('_')]
+        keys_to_delete = [key for key in node_data.keys() if key.startswith('_') or 'service' in key]
         for key in keys_to_delete:
             del node_data[key]
         del node_data['subscription']
-        del node_data['calculate_activations_service']
+        # del node_data['calculate_activations_service']
         return node_data
     
     def register_in_LTM(self, subscribed, publishing):
