@@ -9,10 +9,12 @@ from mdb.cognitive_node import CognitiveNode
 from mdb.send_to_commander_client import SendToCommanderClient
 
 from mdb_interfaces.srv import SendToLTM
+from ltm_interfaces.srv import AddNode, DeleteNode, GetNode, ReplaceNode, SetChangesTopic
 
 class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
+        self.id = 0
         self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Policy': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
@@ -24,6 +26,41 @@ class LTM(Node):
             SendToLTM,
             'send_to_LTM',
             self.handle_command
+        )
+
+        # Add node service
+        self.add_node_service = self.create_service(
+            AddNode,
+            'ltm_' + str(self.id) + '/add_node',
+            self.add_node_callback
+        )
+
+        # Replace node service
+        self.replace_node_service = self.create_service(
+            ReplaceNode,
+            'ltm_' + str(self.id) + '/replace_node',
+            self.replace_node_callback
+        )
+
+        # Delete node service
+        self.delete_node_service = self.create_service(
+            DeleteNode,
+            'ltm_' + str(self.id) + '/delete_node',
+            self.delete_node_callback
+        )
+
+        # Get node service
+        self.get_node_service = self.create_service(
+            GetNode,
+            'ltm_' + str(self.id) + '/get_node',
+            self.get_node_callback
+        )
+
+        # Set changes topic service
+        self.set_changes_topic_service = self.create_service(
+            SetChangesTopic,
+            'ltm_' + str(self.id) + '/set_changes_topic',
+            self.set_changes_topic_callback
         )
 
     def state_timer_callback(self):
@@ -62,6 +99,41 @@ class LTM(Node):
         :rtype: list
         """
         return self.cognitive_nodes.get('Policy')
+
+    def add_node_callback(self, request, response): 
+        name = str(request.name)
+        self.get_logger().info('Adding node ' + name + '...')
+        # TODO: implement logic
+        response.added = True
+        return response
+    
+    def replace_node_callback(self, request, response): # TODO: implement
+        name = str(request.name)
+        self.get_logger().info('Replacing node ' + name + '...')
+        # TODO: implement logic
+        response.replaced = True
+        return response
+    
+    def delete_node_callback(self, request, response): # TODO: implement
+        name = str(request.name)
+        self.get_logger().info('Deleting node ' + name + '...')
+        # TODO: implement logic
+        response.deleted = True
+        return response
+    
+    def get_node_callback(self, request, response): # TODO: implement
+        name = str(request.name)
+        self.get_logger().info('Getting node ' + name + '...')
+        # TODO: implement logic
+        response.data = 'Node data'
+        return response
+    
+    def set_changes_topic_callback(self, request, response): # TODO: implement
+        changes_topic = request.changes_topic
+        self.get_logger().info('Setting changes topic to ' + str(changes_topic) + '...')
+        # TODO: implement logic
+        response.changes_topic = changes_topic
+        return response
 
     def handle_command(self, request, response):
         """
@@ -149,7 +221,6 @@ class LTM(Node):
         
         return response
     
-       
     def send_request_to_commander(self, command, data):
         """
         Send a request to the commander node.
