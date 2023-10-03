@@ -1,0 +1,4 @@
+float32 perception
+float32 confidence
+---
+bool added
