@@ -28,35 +28,35 @@ class LTM(Node):
             self.handle_command
         )
 
-        # Add node service
+        # N: Add node service
         self.add_node_service = self.create_service(
             AddNode,
             'ltm_' + str(self.id) + '/add_node',
             self.add_node_callback
         )
 
-        # Replace node service
+        # N: Replace node service
         self.replace_node_service = self.create_service(
             ReplaceNode,
             'ltm_' + str(self.id) + '/replace_node',
             self.replace_node_callback
         )
 
-        # Delete node service
+        # N: Delete node service
         self.delete_node_service = self.create_service(
             DeleteNode,
             'ltm_' + str(self.id) + '/delete_node',
             self.delete_node_callback
         )
 
-        # Get node service
+        # N: Get node service
         self.get_node_service = self.create_service(
             GetNode,
             'ltm_' + str(self.id) + '/get_node',
             self.get_node_callback
         )
 
-        # Set changes topic service
+        # N: Set changes topic service
         self.set_changes_topic_service = self.create_service(
             SetChangesTopic,
             'ltm_' + str(self.id) + '/set_changes_topic',

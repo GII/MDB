@@ -12,10 +12,10 @@ class PNode(CognitiveNode):
     This class is migrating to be able to aggregate different input spaces.
     """
 
-    # def __init__(self, space_class=None, space=None, **kwargs):
-    #     """Initialize."""
-    #     self.spaces = [space if space else class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
-    #     super().__init__(**kwargs)
+    def __init__(self, space_class=None, space=None, **kwargs):
+        """Initialize."""
+        self.spaces = [space if space else class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
+        super().__init__(**kwargs)
 
     def __init__(self, name='pnode'):
         super().__init__(name, 'mdb.pnode.PNode')

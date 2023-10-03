@@ -4,7 +4,7 @@ from mdb.cognitive_node import CognitiveNode
 import random
 
 from std_msgs.msg import Int64
-from mdb_interfaces.srv import ExecutePolicy
+from cognitive_node_interfaces.srv import SetActivation, Execute
 
 class Policy(CognitiveNode):
     """
@@ -26,10 +26,16 @@ class Policy(CognitiveNode):
 
         self.register_in_LTM([], [])
 
-        self.execute_policy_service = self.create_service(
-            ExecutePolicy,
+        self.set_activation_service = self.create_service(
+            SetActivation,
+            'policy/' + str(name) + '/set_activation',
+            self.set_activation_callback
+        )
+
+        self.execute_service = self.create_service(
+            Execute,
             'policy/' + str(name) + '/execute',
-            self.execute_policy
+            self.execute_callback
         )
 
     def calculate_activation(self, perception): # TODO: Implmement this method
@@ -43,7 +49,8 @@ class Policy(CognitiveNode):
         """
         return random.random()
     
-    def execute_policy(self, request, response):
+    def execute_callback(self, request, response): # TODO: implement
+
         """
         Mock method that pretends to execute the policy.
         It logs the execution and returns the policy name in the response.
@@ -55,8 +62,16 @@ class Policy(CognitiveNode):
         :return: The response with the executed policy name.
         :rtype: mdb_interfaces.srv.ExecutePolicy_Response
         """
-        self.get_logger().info('Executing policy: ' + self.name)
+        self.get_logger().info('Executing policy: ' + self.name + '...')
+        # TODO: implement logic
         response.policy = self.name
+        return response
+    
+    def set_activation_callback(self, request, response): # TODO: implement
+        activation = request.activation
+        self.get_logger().info('Setting activation ' + activation + '...')
+        # TODO: implement logic
+        response.set = True
         return response
 
 

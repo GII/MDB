@@ -4,6 +4,7 @@ from rclpy.node import Node
 
 from mdb.send_to_ltm_client import SendToLTMClient
 from mdb_interfaces.srv import UpdateActivation
+from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 
 class CognitiveNode(ABC, Node):
     """
@@ -32,6 +33,27 @@ class CognitiveNode(ABC, Node):
             UpdateActivation,
             'cognitive_node/' + str(node_type) + '/' + str(name) + '/update_activation',
             self.handle_update_activation
+        )
+
+        # N: Get Activation Service
+        self.get_activation_service = self.create_service(
+            GetActivation,
+            'cognitive_node/' + str(name) + '/get_activation',
+            self.get_activation_callback
+        )
+        
+        # N: Get Information Service
+        self.get_information_service = self.create_service(
+            GetInformation,
+            'cognitive_node/' + str(name) + '/get_information',
+            self.get_information_callback
+        )
+        
+        # N: Set Activation Topic Service
+        self.set_activation_service = self.create_service(
+            SetActivationTopic,
+            'cognitive_node/' + str(name) + '/set_activation_topic',
+            self.set_activation_topic_callback
         )
 
     def get_data(self):
@@ -108,6 +130,25 @@ class CognitiveNode(ABC, Node):
         :type response: mdb_interfaces.srv.CalculateActivations_Response
         """
         pass
+
+    def get_activation_callback(self, request, response): # TODO: implement this method
+        self.get_logger().info('Getting node activation...')
+        activation = 0.5 # TODO: implement logic
+        response.activation = activation
+        return response
+
+    def get_information_callback(self, request, response): # TODO: implement this method
+        self.get_logger().info('Getting node information...')
+        information = 'information' # TODO: implement logic
+        response.data = information
+        return response
+
+    def set_activation_topic_callback(self, request, response): # TODO: implement this method
+        activation_topic = request.activation_topic
+        # TODO: implement logic
+        self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
+        response.activation_topic = activation_topic
+        return response
     
     def __str__(self):
         """
