@@ -8,9 +8,10 @@ import random
 
 class Drive(CognitiveNode):
 
-    def __init__(self, name='drive', class_name = 'mdb.drive.mdb/mdb/drive.py'):
+    def __init__(self, name='drive', class_name = 'mdb.drive.Drive'):
 
         super().__init__(name, class_name)
+        self.register_in_LTM([],[])
 
         # N: Set Activation Service
         self.set_activation_service = self.create_service(

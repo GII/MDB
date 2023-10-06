@@ -15,7 +15,7 @@ class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
         self.id = 0
-        self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Policy': {}, 'PNode': {}}
+        self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Drive': {}, 'Goal': {}, 'Need': {}, 'Policy': {}, 'Perception': {},'PNode': {}, 'UtilityModel': {}, 'WorldModel': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
 
@@ -89,9 +89,38 @@ class LTM(Node):
         :rtype: list
         """
         return self.cognitive_nodes.get('BNode')
+    @property
+    def drives(self):
+        """
+        Get all cognitive nodes of type 'Drive' from the LTM.
+
+        :return: A list of 'Drive' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('Drive')
     
     @property
-    def policy_nodes(self):
+    def goals(self):
+        """
+        Get all cognitive nodes of type 'Goal' from the LTM.
+
+        :return: A list of 'Goal' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('Goal')
+    
+    @property
+    def needs(self):
+        """
+        Get all cognitive nodes of type 'Need' from the LTM.
+
+        :return: A list of 'Need' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('Need')
+    
+    @property
+    def policies(self):
         """
         Get all cognitive nodes of type 'Policy' from the LTM.
 
@@ -99,6 +128,36 @@ class LTM(Node):
         :rtype: list
         """
         return self.cognitive_nodes.get('Policy')
+
+    @property
+    def pnodes(self):
+        """
+        Get all cognitive nodes of type 'PNode' from the LTM.
+
+        :return: A list of 'PNode' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('PNode')
+
+    @property
+    def utilitymodels(self):
+        """
+        Get all cognitive nodes of type 'UtilityModel' from the LTM.
+
+        :return: A list of 'UtilityModel' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('UtilityModel')
+    
+    @property
+    def worldmodels(self):
+        """
+        Get all cognitive nodes of type 'WorldModel' from the LTM.
+
+        :return: A list of 'WorldModel' nodes.
+        :rtype: list
+        """
+        return self.cognitive_nodes.get('WorldModel')
 
     def add_node_callback(self, request, response): 
         name = str(request.name)
@@ -151,6 +210,10 @@ class LTM(Node):
         name = str(request.name)
         node_type = str(request.type)
 
+        self.get_logger().info('Handling command: ' + str(command))
+        self.get_logger().info('name: ' + str(name))
+        self.get_logger().info('node_type: ' + str(node_type))
+    
         try:
             if(command == 'register'):
 
