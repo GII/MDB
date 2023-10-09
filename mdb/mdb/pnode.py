@@ -5,45 +5,42 @@ from mdb_interfaces.srv import AddPerception
 
 class PNode(CognitiveNode):
     """
-    A subspace of the input space (sensorial or result of a redescription process).
-
-    This subspace is linked to every node for which it is relevant,
-    activating them when a new perception pertaining to this subspace occurs.
-    This class is migrating to be able to aggregate different input spaces.
+    PNode class
     """
 
-    def __init__(self, space_class=None, space=None, **kwargs):
-        """Initialize."""
-        self.spaces = [space if space else class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
-        super().__init__(**kwargs)
-
-    def __init__(self, name='pnode'):
-        super().__init__(name, 'mdb.pnode.PNode')
-        self.register_in_LTM([],[]) #¿Qué era subscribing y publishing?
+    def __init__(self, name='pnode', class_name = 'mdb.pnode.PNode', space_class = None, space = None):
+        """
+        Constructor for the PNode class.
+        
+        Initializes a PNode with the given name and registers it in the LTM.
+        It also creates a service for adding perceptions to the node.
+        
+        :param name: The name of the PNode.
+        :type name: str
+        :param class_name: The name of the PNode class.
+        :type class_name: str
+        :param space_class: The class of the space used to define the PNode
+        :type space_class: str or None
+        :param space: The space used to define the PNode
+        :type space: mdb.space or None
+        """
+        super().__init__(name, class_name)
+        self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
+        self.register_in_LTM([],[])
         self.add_perception_service = self.create_service(AddPerception, 'pnode/' + str(name) + '/add_perception', self.add_perception_callback)
 
 
-    # def publish(self, message=None, first_time=False):
-    #     """Publish node information."""
-    #     message = self.node_message()
-    #     space = self.spaces[0]
-    #     if not isinstance(space.members, list):
-    #         message.names = space.members.dtype.names
-    #     else:
-    #         message.names = []
-    #     if first_time and not isinstance(message.names, list):
-    #         point_message = self.data_message()
-    #         point_message.command = "new"
-    #         point_message.id = self.ident
-    #         point_array = structured_to_unstructured(space.members)
-    #         confidence_array = space.memberships
-    #         for point, confidence in zip(point_array, confidence_array):
-    #             point_message.point = point
-    #             point_message.confidence = confidence
-    #             self.data_publisher.publish(point_message)
-    #     super().publish(message, first_time)
-    
-    def add_perception_callback(self, request, response):
+    def add_perception_callback(self, request, response): # TODO: Consider error adding perception
+        """
+        Callback function for adding a perception to a specific PNode.
+
+        :param request: The request that contains the perception that is added and its confidence.
+        :type request: mdb_interfaces.srv.AddPerception_Request
+        :param response: The response indicating if the perception was added to the PNode.
+        :type respone: mdb_interfaces.srv.AddPerception_Response
+        :return: The response indicating if the perception was added to the PNode.
+        :rtype: mdb_interfaces.srv.AddPerception_Response
+        """
         perception = request.perception
         confidence = request.confidence
         self.add_perception(perception,confidence)
@@ -55,7 +52,14 @@ class PNode(CognitiveNode):
         return response
     
     def add_perception(self, perception, confidence):
-        """Add a new point to the p-node."""
+        """
+        Add a new point to the PNode.
+        
+        :param perception: The perception that is added to the PNode
+        :type perception: Any
+        :param confidence: Indicates if the perception added is a point or an antipoint.
+        :type confidence: float
+        """
         space = self.get_space(perception)
         if not space:
             space = self.spaces[0].__class__()
@@ -70,16 +74,30 @@ class PNode(CognitiveNode):
             self.data_publisher.publish(point_message)
 
     def calculate_activation(self, perception=None):
-        """Calculate the new activation value."""
+        """
+        Calculate the new activation value.
+
+        :param perception: The perception for which PNode activation is calculated.
+        :type perception: Any or None
+        :return: If there is space, returns the activation of the PNode. If not, returns 0
+        :rtype: float
+        """
         space = self.get_space(perception)
         if space:
             return space.get_probability(perception)
         return 0
 
     def get_space(self, perception):
-        """Return the compatible space with perception."""
-        # Ugly hack just to see if this works. In that case, everything need to be checked to reduce the number of
-        # conversions between sensing, perception and space.
+        """
+        Return the compatible space with perception.
+        (Ugly hack just to see if this works. In that case, everything need to be checked to reduce the number of
+        conversions between sensing, perception and space.)
+
+        :param perception: The perception for which PNode activation is calculated.
+        :type perception: Any
+        :return: If there is space, returns it. If not, returns None.
+        :rtype: Any or None
+        """
         temp_space = self.spaces[0].__class__()
         temp_space.add_point(perception, 1.0)
         for space in self.spaces:
