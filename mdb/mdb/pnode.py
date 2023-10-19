@@ -1,7 +1,7 @@
 import rclpy
 from mdb.cognitive_node import CognitiveNode
 from mdb.utils import class_from_classname
-from mdb_interfaces.srv import AddPerception
+from mdb_interfaces.srv import AddPoint
 
 class PNode(CognitiveNode):
     """
@@ -13,7 +13,7 @@ class PNode(CognitiveNode):
         Constructor for the PNode class.
         
         Initializes a PNode with the given name and registers it in the LTM.
-        It also creates a service for adding perceptions to the node.
+        It also creates a service for adding points to the node.
         
         :param name: The name of the PNode.
         :type name: str
@@ -27,44 +27,44 @@ class PNode(CognitiveNode):
         super().__init__(name, class_name)
         self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
         self.register_in_LTM([],[])
-        self.add_perception_service = self.create_service(AddPerception, 'pnode/' + str(name) + '/add_perception', self.add_perception_callback)
+        self.add_point_service = self.create_service(AddPoint, 'pnode/' + str(name) + '/add_point', self.add_point_callback)
 
 
-    def add_perception_callback(self, request, response): # TODO: Consider error adding perception
+    def add_point_callback(self, request, response): # TODO: Consider error adding point
         """
-        Callback function for adding a perception to a specific PNode.
+        Callback function for adding a point (or anti-point) to a specific PNode.
 
-        :param request: The request that contains the perception that is added and its confidence.
-        :type request: mdb_interfaces.srv.AddPerception_Request
-        :param response: The response indicating if the perception was added to the PNode.
-        :type respone: mdb_interfaces.srv.AddPerception_Response
-        :return: The response indicating if the perception was added to the PNode.
-        :rtype: mdb_interfaces.srv.AddPerception_Response
+        :param request: The request that contains the point that is added and its confidence.
+        :type request: mdb_interfaces.srv.AddPoint_Request
+        :param response: The response indicating if the point was added to the PNode.
+        :type respone: mdb_interfaces.srv.AddPoint_Response
+        :return: The response indicating if the point was added to the PNode.
+        :rtype: mdb_interfaces.srv.AddPoint_Response
         """
-        perception = request.perception
+        point = request.point
         confidence = request.confidence
-        self.add_perception(perception,confidence)
+        self.add_point(point,confidence)
 
-        self.get_logger().info('Adding perception: ' + perception)
+        self.get_logger().info('Adding point: ' + point + 'Confidence: ' + confidence)
 
         response.added = True
 
         return response
     
-    def add_perception(self, perception, confidence):
+    def add_point(self, point, confidence):
         """
-        Add a new point to the PNode.
+        Add a new point (or antipoint) to the PNode.
         
-        :param perception: The perception that is added to the PNode
-        :type perception: Any
+        :param point: The point that is added to the PNode
+        :type point: Any
         :param confidence: Indicates if the perception added is a point or an antipoint.
         :type confidence: float
         """
-        space = self.get_space(perception)
+        space = self.get_space(point)
         if not space:
             space = self.spaces[0].__class__()
             self.spaces.append(space)
-        added_point_pos = space.add_point(perception, confidence)
+        added_point_pos = space.add_point(point, confidence)
         point_message = self.data_message()
         point_message.id = self.ident
         if added_point_pos != -1:
