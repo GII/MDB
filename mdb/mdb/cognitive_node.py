@@ -119,8 +119,7 @@ class CognitiveNode(ABC, Node):
         response.updated = True
         return response
 
-    @abstractmethod
-    def calculate_activation(self, perception):
+    def calculate_activation(self):
         """
         Calculate and return the node's activations.
 
@@ -129,11 +128,11 @@ class CognitiveNode(ABC, Node):
         :param response: The response containing the activations.
         :type response: mdb_interfaces.srv.CalculateActivations_Response
         """
-        pass
+        raise NotImplementedError
 
     def get_activation_callback(self, request, response): # TODO: implement this method
         self.get_logger().info('Getting node activation...')
-        activation = 0.5 # TODO: implement logic
+        activation = self.calculate_activation() # TODO: implement logic
         response.activation = activation
         return response
 

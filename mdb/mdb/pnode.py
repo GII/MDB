@@ -1,7 +1,8 @@
 import rclpy
 from mdb.cognitive_node import CognitiveNode
 from mdb.utils import class_from_classname
-from mdb_interfaces.srv import AddPoint
+from cognitive_node_interfaces.srv import AddPoint
+from cognitive_node_interfaces.srv import SetActivationTopic
 
 class PNode(CognitiveNode):
     """
@@ -28,6 +29,7 @@ class PNode(CognitiveNode):
         self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
         self.register_in_LTM([],[])
         self.add_point_service = self.create_service(AddPoint, 'pnode/' + str(name) + '/add_point', self.add_point_callback)
+        self.set_activation_topic_service= self.create_service(SetActivationTopic, 'pnode/' + str(name) + '/set_activation_topic', self.set_activation_topic_callback)
 
 
     def add_point_callback(self, request, response): # TODO: Consider error adding point
