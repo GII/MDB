@@ -4,8 +4,6 @@ from mdb.cognitive_node import CognitiveNode
 import random
 
 from std_msgs.msg import Int64
-from cognitive_node_interfaces.srv import SetActivationTopic
-from cognitive_node_interfaces.msg import Activation
 
 def is_prime(num):
     """
@@ -65,23 +63,7 @@ class ANode(CognitiveNode):
             10
         )
         self.register_in_LTM(['primes'], [])
-        self.set_activation_topic_service= self.create_service(SetActivationTopic, 'a_node/' + str(name) + '/set_activation_topic', self.set_activation_topic_callback)
-        self.activation_publisher = self.create_publisher(Activation, 'a_node/' + str(name) + '/activation', 0)
-        self.activation_topic = False
         
-    def set_activation_topic_callback(self,request,response): #TODO Generalize in Cognitive_Nodes
-        self.activation_topic = request.activation_topic
-        if self.activation_topic:
-            self.get_logger().info("Publish current activation enabled")
-        else:
-            self.get_logger().info("Publish current activation disabled")
-        return response
-        
-    def publish_activation(self, activation): #TODO Generalize in Cognitive_Nodes
-        msg = Activation()
-        msg.activation = activation
-        self.activation_publisher.publish(msg)
-    
     def calculate_next_callback(self, msg):
         """
         Calculates the the first n prime numbers.
@@ -93,7 +75,7 @@ class ANode(CognitiveNode):
         self.msg_count += 1
         self.get_logger().info('Node ' + str(self.get_name()) + ' calculated ' + str(n) + ' primes: ' + str(primes) + '. Total msgs received: ' + str(self.msg_count))
 
-    def calculate_activation(self):
+    def calculate_activation(self, perception):
         """
         Fake method that simulates the calculation of the activation of the ANode.
 

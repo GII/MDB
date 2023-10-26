@@ -5,6 +5,7 @@ from rclpy.node import Node
 from mdb.send_to_ltm_client import SendToLTMClient
 from mdb_interfaces.srv import UpdateActivation
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
+from cognitive_node_interfaces.msg import Activation
 
 class CognitiveNode(ABC, Node):
     """
@@ -27,6 +28,14 @@ class CognitiveNode(ABC, Node):
         self.class_name = class_name
         _, _, node_type = self.class_name.rpartition(".")
         self.node_type = node_type
+
+        #Publish node activation when SetActivationTopic is true
+        self.publish_activation_topic = self.create_publisher(
+            Activation,
+            'cognitive_node/' + str(name) + '/activation',
+            0
+        )
+        self.activation_topic = False
 
         # Calculate Activations Service for other Cognitive Nodes
         self.update_activation_service = self.create_service(
@@ -119,7 +128,7 @@ class CognitiveNode(ABC, Node):
         response.updated = True
         return response
 
-    def calculate_activation(self):
+    def calculate_activation(self, perception):
         """
         Calculate and return the node's activations.
 
@@ -129,10 +138,16 @@ class CognitiveNode(ABC, Node):
         :type response: mdb_interfaces.srv.CalculateActivations_Response
         """
         raise NotImplementedError
+    
+    def publish_activation(self, activation):
+        msg = Activation()
+        msg.activation = activation
+        self.publish_activation_topic.publish(msg)
 
     def get_activation_callback(self, request, response): # TODO: implement this method
         self.get_logger().info('Getting node activation...')
-        activation = self.calculate_activation() # TODO: implement logic
+        perception = 0 #Only for avoid errors with calculate_activation method
+        activation = self.calculate_activation(perception) # TODO: implement logic
         response.activation = activation
         return response
 
@@ -144,8 +159,11 @@ class CognitiveNode(ABC, Node):
 
     def set_activation_topic_callback(self, request, response): # TODO: implement this method
         activation_topic = request.activation_topic
-        # TODO: implement logic
         self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
+        if activation_topic:
+            self.activation_topic = True
+        else:
+            self.activation_topic = False
         response.activation_topic = activation_topic
         return response
     
