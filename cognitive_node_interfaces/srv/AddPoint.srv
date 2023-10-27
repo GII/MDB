@@ -1,4 +1,4 @@
-float32 perception
+float32 point
 float32 confidence
 ---
 bool added

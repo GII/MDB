@@ -1,2 +1,2 @@
 ---
-string data
+float32 current_activation

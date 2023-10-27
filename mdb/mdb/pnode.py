@@ -2,14 +2,13 @@ import rclpy
 from mdb.cognitive_node import CognitiveNode
 from mdb.utils import class_from_classname
 from cognitive_node_interfaces.srv import AddPoint
-from cognitive_node_interfaces.srv import SetActivationTopic
 
 class PNode(CognitiveNode):
     """
     PNode class
     """
 
-    def __init__(self, name='pnode', class_name = 'mdb.pnode.PNode', space_class = None, space = None):
+    def __init__(self, name= 'pnode', class_name = 'mdb.pnode.PNode', space_class = None, space = None):
         """
         Constructor for the PNode class.
         
@@ -29,7 +28,6 @@ class PNode(CognitiveNode):
         self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
         self.register_in_LTM([],[])
         self.add_point_service = self.create_service(AddPoint, 'pnode/' + str(name) + '/add_point', self.add_point_callback)
-        self.set_activation_topic_service= self.create_service(SetActivationTopic, 'pnode/' + str(name) + '/set_activation_topic', self.set_activation_topic_callback)
 
 
     def add_point_callback(self, request, response): # TODO: Consider error adding point
@@ -46,16 +44,14 @@ class PNode(CognitiveNode):
         point = request.point
         confidence = request.confidence
         self.add_point(point,confidence)
-
-        self.get_logger().info('Adding point: ' + point + 'Confidence: ' + confidence)
-
+        self.get_logger().info('Adding point: ' + str(point) + 'Confidence: ' + str(confidence))
         response.added = True
 
         return response
     
     def add_point(self, point, confidence):
         """
-        Add a new point (or antipoint) to the PNode.
+        Add a new point (or anti-point) to the PNode.
         
         :param point: The point that is added to the PNode
         :type point: Any
@@ -86,8 +82,14 @@ class PNode(CognitiveNode):
         """
         space = self.get_space(perception)
         if space:
-            return space.get_probability(perception)
-        return 0
+            activation = space.get_probability(perception)
+        else:
+            activation = 0
+ 
+        if self.activation_topic:
+            self.publish_activation(activation)
+            
+        return activation
 
     def get_space(self, perception):
         """

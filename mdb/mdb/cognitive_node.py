@@ -57,6 +57,7 @@ class CognitiveNode(ABC, Node):
             'cognitive_node/' + str(name) + '/get_information',
             self.get_information_callback
         )
+        self.last_activation = 0
         
         # N: Set Activation Topic Service
         self.set_activation_service = self.create_service(
@@ -147,17 +148,17 @@ class CognitiveNode(ABC, Node):
     def get_activation_callback(self, request, response): # TODO: implement this method
         self.get_logger().info('Getting node activation...')
         perception = 0 #Only for avoid errors with calculate_activation method
-        activation = self.calculate_activation(perception) # TODO: implement logic
-        response.activation = activation
+        self.last_activation = self.calculate_activation(perception) # TODO: implement logic
+        response.activation = self.last_activation
         return response
 
     def get_information_callback(self, request, response): # TODO: implement this method
         self.get_logger().info('Getting node information...')
-        information = 'information' # TODO: implement logic
-        response.data = information
+        response.current_activation = self.last_activation
+        self.get_logger().info('The last activation of the node is: ' + str(response.current_activation))
         return response
 
-    def set_activation_topic_callback(self, request, response): # TODO: implement this method
+    def set_activation_topic_callback(self, request, response):
         activation_topic = request.activation_topic
         self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
         if activation_topic:
