@@ -1,0 +1,4 @@
+class_name: core.b_node.BNode
+msg_count: 16
+name: node3
+node_type: BNode

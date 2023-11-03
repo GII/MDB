@@ -1,0 +1,29 @@
+Experiment:
+    iterations: 12000
+LTM:
+    Nodes:
+        ANode:
+            -
+                name: node1
+                class_name: core.a_node.ANode
+                msg_count: 100
+            -
+                name: node2
+                class_name: core.a_node.ANode
+                msg_count: 1000
+        BNode:
+            -
+                name: node3
+                class_name: core.b_node.BNode
+                msg_count: 100
+            -
+                name: node4
+                class_name: core.b_node.BNode
+                msg_count: 1000
+        Policy:
+            -
+                name: policy1
+                class_name: core.policy.Policy
+            -
+                name: policy2
+                class_name: core.policy.Policy

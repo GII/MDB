@@ -9,6 +9,6 @@
 __pycache__
 
 docs/build/
-mdb/build/
-mdb/install/
-mdb/log/
+core/build/
+core/install/
+core/log/

@@ -1,0 +1,4 @@
+class_name: core.a_node.ANode
+msg_count: 24
+name: node1
+node_type: ANode
