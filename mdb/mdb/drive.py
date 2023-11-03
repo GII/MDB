@@ -16,7 +16,7 @@ class Drive(CognitiveNode):
         # N: Set Activation Service
         self.set_activation_service = self.create_service(
             SetActivation,
-            'need/' + str(name) + '/set_activation',
+            'drive/' + str(name) + '/set_activation',
             self.set_activation_callback
         )
 
