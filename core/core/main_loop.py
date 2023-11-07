@@ -4,6 +4,8 @@ from rclpy.node import Node
 from operator import attrgetter
 import random
 
+from core_interfaces.srv import SendToLTM
+
 from core.send_to_ltm_client import SendToLTMClient
 from core.execute_policy_client import ExecutePolicyClient
 
@@ -35,8 +37,9 @@ class MainLoop(Node):
         :return: The response from the LTM.
         :rtype: core_interfaces.srv.SendToLTM_Response
         """
-        send_to_LTM_client = SendToLTMClient()
-        ltm_response = send_to_LTM_client.send_request(command, '', '', '')
+        service_name = 'send_to_LTM'
+        send_to_LTM_client = SendToLTMClient(SendToLTM, service_name)
+        ltm_response = send_to_LTM_client.send_request(command=command)
         send_to_LTM_client.destroy_node()
         return ltm_response
 

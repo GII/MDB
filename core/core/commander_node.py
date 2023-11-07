@@ -5,12 +5,8 @@ import yaml
 import random
 from rclpy.node import Node
 
-from core.send_to_ltm_client import SendToLTMClient
-from core.create_node_client import CreateNodeClient
-from core.read_node_client import ReadNodeClient
-from core.delete_node_client import DeleteNodeClient
-from core.load_node_client import LoadNodeClient
-from core.save_node_client import SaveNodeClient
+from core.service_client import ServiceClient
+from core_interfaces.srv import SendToLTM
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 from core_interfaces.srv import SaveConfig, LoadConfig
 
@@ -345,9 +341,10 @@ class CommanderNode(Node):
         self.nodes[executor_id].remove(node_name)
 
     def send_request_to_ltm(self, command, name, type, data):
-        send_to_ltm_client = SendToLTMClient()
-        ltm_response = send_to_ltm_client.send_request(command, name, type, data)
-        send_to_ltm_client.destroy_node()
+        service_name = 'send_to_LTM'
+        send_to_LTM_client = ServiceClient(SendToLTM, service_name)
+        ltm_response = send_to_LTM_client.send_request(command=command, name=self.name, node_type=self.node_type, data=data)
+        send_to_LTM_client.destroy_node()
         return ltm_response
 
     def send_create_request_to_executor(self, executor_id, name, class_name):
@@ -364,8 +361,8 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.CreateNode_Response
         """
         service_name = 'execution_node_' + str(executor_id) + '/create'
-        create_client = CreateNodeClient(service_name)
-        executor_response = create_client.send_request(name, class_name)
+        create_client = ServiceClient(CreateNode, service_name)
+        executor_response = create_client.send_request(name=name, class_name=class_name)       
         create_client.destroy_node()
         return executor_response
 
@@ -381,8 +378,8 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.ReadNode_Response
         """
         service_name = 'execution_node_' + str(executor_id) + '/read'
-        read_client = ReadNodeClient(service_name)
-        executor_response = read_client.send_request(name)
+        read_client = ServiceClient(ReadNode, service_name)
+        executor_response = read_client.send_request(name=name)
         read_client.destroy_node()
         return executor_response
 
@@ -400,8 +397,8 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.DeleteNode_Response
         """
         service_name = 'execution_node_' + str(executor_id) + '/delete'
-        delete_client = DeleteNodeClient(service_name)
-        executor_response = delete_client.send_request(name, class_name)
+        delete_client = ServiceClient(DeleteNode, service_name)
+        executor_response = delete_client.send_request(name=name, class_name=class_name)
         delete_client.destroy_node()
         return executor_response
 
@@ -417,8 +414,8 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.SaveNode_Response
         """
         service_name = 'execution_node_' + str(executor_id) + '/save'
-        save_client = SaveNodeClient(service_name)
-        executor_response = save_client.send_request(name)
+        save_client = ServiceClient(SaveNode, service_name)
+        executor_response = save_client.send_request(name=name)
         save_client.destroy_node()
         return executor_response
 
@@ -434,8 +431,8 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.LoadNode_Response
         """
         service_name = 'execution_node_' + str(executor_id) + '/load'
-        load_client = LoadNodeClient(service_name)
-        executor_response = load_client.send_request(name)
+        load_client = ServiceClient(LoadNode, service_name)
+        executor_response = load_client.send_request(name=name)
         load_client.destroy_node()
         return executor_response
 

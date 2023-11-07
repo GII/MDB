@@ -26,8 +26,7 @@ setup(
             'commander = core.commander_node:main',
             'execution_node = core.execution_node:main',
             'ltm = core.ltm:main',
-            'main_loop = core.main_loop:main',
-            'publisher = core.publisher:main',
+            'main_loop = core.main_loop:main'
         ],
     },
 )

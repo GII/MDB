@@ -9,6 +9,7 @@ from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
 
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
+from core.service_client import ServiceClient
 
 from core.config import saved_data_dir
 from core.utils import class_from_classname

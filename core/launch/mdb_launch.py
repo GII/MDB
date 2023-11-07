@@ -21,11 +21,5 @@ def generate_launch_description():
             executable='main_loop',
             name='main_loop',
             output='screen',
-        ),
-        Node(
-            package='core',
-            executable='publisher',
-            name='publisher',
-            output='screen',
-        ),
+        )
     ])

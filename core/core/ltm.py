@@ -6,10 +6,8 @@ from std_msgs.msg import String
 
 from core.cognitive_node import CognitiveNode
 
-from core.send_to_commander_client import SendToCommanderClient
-
-from core_interfaces.srv import SendToLTM
-from ltm_interfaces.srv import AddNode, DeleteNode, GetNode, ReplaceNode, SetChangesTopic
+from core_interfaces.srv import SendToLTM, SendToCommander
+from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM, GetNodeFromLTM, ReplaceNodeFromLTM
 
 class LTM(Node):
     def __init__(self):
@@ -30,37 +28,30 @@ class LTM(Node):
 
         # N: Add node service
         self.add_node_service = self.create_service(
-            AddNode,
+            AddNodeToLTM,
             'ltm_' + str(self.id) + '/add_node',
             self.add_node_callback
         )
 
         # N: Replace node service
         self.replace_node_service = self.create_service(
-            ReplaceNode,
+            ReplaceNodeFromLTM,
             'ltm_' + str(self.id) + '/replace_node',
             self.replace_node_callback
         )
 
         # N: Delete node service
         self.delete_node_service = self.create_service(
-            DeleteNode,
+            DeleteNodeFromLTM,
             'ltm_' + str(self.id) + '/delete_node',
             self.delete_node_callback
         )
 
         # N: Get node service
         self.get_node_service = self.create_service(
-            GetNode,
+            GetNodeFromLTM,
             'ltm_' + str(self.id) + '/get_node',
             self.get_node_callback
-        )
-
-        # N: Set changes topic service
-        self.set_changes_topic_service = self.create_service(
-            SetChangesTopic,
-            'ltm_' + str(self.id) + '/set_changes_topic',
-            self.set_changes_topic_callback
         )
 
     def state_timer_callback(self):
@@ -208,7 +199,7 @@ class LTM(Node):
 
         command = str(request.command)
         name = str(request.name)
-        node_type = str(request.type)
+        node_type = str(request.node_type)
 
         self.get_logger().info('Handling command: ' + str(command))
         self.get_logger().info('name: ' + str(name))
@@ -299,8 +290,9 @@ class LTM(Node):
         :return: The response from the LTM.
         :rtype: core_interfaces.srv.SendToLTM_Response
         """
-        send_to_commander_client = SendToCommanderClient()
-        executor_response = send_to_commander_client.send_request(command, self.name, self.type, data)
+        service_name = 'send_to_commander'
+        send_to_commander_client = ServiceClient(SendToCommander, service_name)
+        executor_response = send_to_commander_client.send_request(command=command, name=self.name, node_type=self.type, data=data)
         send_to_commander_client.destroy_node()
         return executor_response
     

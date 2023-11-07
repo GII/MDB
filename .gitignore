@@ -9,6 +9,6 @@
 __pycache__
 
 docs/build/
-core/build/
-core/install/
-core/log/
+build/
+install/
+log/

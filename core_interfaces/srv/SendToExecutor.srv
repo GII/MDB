@@ -1,6 +1,6 @@
 string command
 string name
-string type
+string node_type
 string data
 ---
 string msg

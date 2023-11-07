@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 import yaml
 from rclpy.node import Node
 
-from core.send_to_ltm_client import SendToLTMClient
+from core.service_client import ServiceClient
 from core_interfaces.srv import UpdateActivation
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
+from core_interfaces.srv import SendToLTM
 
 class CognitiveNode(ABC, Node):
     """
@@ -117,9 +118,9 @@ class CognitiveNode(ABC, Node):
         :return: The response from the LTM.
         :rtype: core_interfaces.srv.SendToLTM_Response
         """
-        send_to_LTM_client = SendToLTMClient()
-
-        ltm_response = send_to_LTM_client.send_request(command, self.name, self.node_type, data)
+        service_name = 'send_to_LTM'
+        send_to_LTM_client = ServiceClient(SendToLTM, service_name)
+        ltm_response = send_to_LTM_client.send_request(command=command, name=self.name, node_type=self.node_type, data=data)
         send_to_LTM_client.destroy_node()
         return ltm_response
     
