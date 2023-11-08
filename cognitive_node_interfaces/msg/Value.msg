@@ -1,1 +1,1 @@
-string value
+float64[] value
