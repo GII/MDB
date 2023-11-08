@@ -82,14 +82,14 @@ class PNode(CognitiveNode):
         """
         space = self.get_space(perception)
         if space:
-            activation = space.get_probability(perception)
+            self.last_activation = space.get_probability(perception)
         else:
-            activation = 0
+            self.last_activation = 0
  
         if self.activation_topic:
-            self.publish_activation(activation)
+            self.publish_activation(self.last_activation)
             
-        return activation
+        return self.last_activation
 
     def get_space(self, perception):
         """

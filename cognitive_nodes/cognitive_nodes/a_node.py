@@ -82,10 +82,10 @@ class ANode(CognitiveNode):
         :return: A random float between 0 and 1, representing the activation level.
         :rtype: float
         """
-        activation = random.random()
+        self.last_activation = random.random()
         if self.activation_topic:
-            self.publish_activation(activation)
-        return activation
+            self.publish_activation(self.last_activation)
+        return self.last_activation
 
 
 def main(args=None):

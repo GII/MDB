@@ -149,7 +149,7 @@ class CognitiveNode(ABC, Node):
     def get_activation_callback(self, request, response): # TODO: implement this method
         self.get_logger().info('Getting node activation...')
         perception = 0 #Only for avoid errors with calculate_activation method
-        self.last_activation = self.calculate_activation(perception) # TODO: implement logic
+        self.calculate_activation(perception) # TODO: implement logic
         response.activation = self.last_activation
         return response
 
