@@ -3,7 +3,7 @@ import numpy
 from numpy.lib.recfunctions import structured_to_unstructured, require_fields
 import pandas as pd
 import tensorflow as tf
-from rclpy import Node
+from rclpy.node import Node
 
 class Space(object):
     """A n-dimensional state space."""
