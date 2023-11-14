@@ -57,7 +57,7 @@ class Policy(CognitiveNode):
 
     def execute_from_old_mdb(self):
         """Run the policy."""
-        self.get_logger().info()"Executing policy " + self.ident)
+        self.get_logger().info("Executing policy " + self.ident)
         self.data_publisher.publish(self.ident)           
 
     def calculate_activation(self, perception): # TODO: Implmement this method

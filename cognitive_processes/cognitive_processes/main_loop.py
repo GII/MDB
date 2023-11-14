@@ -6,8 +6,8 @@ import random
 
 from core_interfaces.srv import SendToLTM
 
-from core.send_to_ltm_client import SendToLTMClient
-from core.execute_policy_client import ExecutePolicyClient
+from core.service_client import ServiceClient
+from cognitive_node_interfaces.srv import Execute
 
 class MainLoop(Node):
     """
@@ -38,7 +38,7 @@ class MainLoop(Node):
         :rtype: core_interfaces.srv.SendToLTM_Response
         """
         service_name = 'send_to_LTM'
-        send_to_LTM_client = SendToLTMClient(SendToLTM, service_name)
+        send_to_LTM_client = ServiceClient(SendToLTM, service_name)
         ltm_response = send_to_LTM_client.send_request(command=command)
         send_to_LTM_client.destroy_node()
         return ltm_response
@@ -86,7 +86,7 @@ class MainLoop(Node):
         self.get_logger().info('Executing policy ' + str(policy)+ '...')
 
         service_name = 'policy/' + str(policy) + '/execute'
-        client = ExecutePolicyClient(service_name)
+        client = ServiceClient(Execute, service_name)
         policy_response = client.send_request()
         client.destroy_node()
         return policy_response.policy
