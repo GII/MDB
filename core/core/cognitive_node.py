@@ -38,7 +38,7 @@ class CognitiveNode(ABC, Node):
         )
         self.activation_topic = False
 
-        # Calculate Activations Service for other Cognitive Nodes
+        # Update Activations Service for other Cognitive Nodes
         self.update_activation_service = self.create_service(
             UpdateActivation,
             'cognitive_node/' + str(node_type) + '/' + str(name) + '/update_activation',

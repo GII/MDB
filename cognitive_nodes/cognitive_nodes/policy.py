@@ -38,6 +38,28 @@ class Policy(CognitiveNode):
             self.execute_callback
         )
 
+    def update_activation_from_old_mdb(self, **kwargs):
+        """
+        Calculate the new activation value.
+
+        This activation value is the maximum of the connected c-nodes.
+        """
+        cnodes = [node for node in self.neighbors if node.type == "CNode"]
+        if cnodes:
+            cnode = max(cnodes, key=attrgetter("activation"))
+            self.perception = cnode.perception
+            self.activation = cnode.activation
+        else:
+            self.perception = []
+            self.activation = 0.0
+        self.get_logger().info(self.type + " activation for " + self.ident + " = " + str(self.activation))
+        self.publish()     
+
+    def execute_from_old_mdb(self):
+        """Run the policy."""
+        self.get_logger().info()"Executing policy " + self.ident)
+        self.data_publisher.publish(self.ident)           
+
     def calculate_activation(self, perception): # TODO: Implmement this method
         """
         Calculate the activation level of the policy: a random float between 0 and 1.
