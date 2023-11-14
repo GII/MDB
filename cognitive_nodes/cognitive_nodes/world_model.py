@@ -52,7 +52,7 @@ class WorldModel(CognitiveNode):
         policy = request.policy
         self.get_logger().info('Predicting for policy ' +str(policy) + ' at ' + str(timestamp) + '...')
         # TODO: implement logic
-        perception = 'my_perception'
+        perception = [0.35, 0.36]
         response.perception = perception
         return response
     

@@ -58,7 +58,7 @@ class CognitiveNode(ABC, Node):
             'cognitive_node/' + str(name) + '/get_information',
             self.get_information_callback
         )
-        self.last_activation = 0
+        self.last_activation = 0.0
         
         # N: Set Activation Topic Service
         self.set_activation_service = self.create_service(

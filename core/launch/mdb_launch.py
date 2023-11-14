@@ -18,8 +18,16 @@ def generate_launch_description():
         ),
         Node(
             package='core',
-            executable='main_loop',
-            name='main_loop',
+            executable='execution_node',
+            name='ex0',
             output='screen',
+            arguments=['0'],
+        ),
+        Node(
+            package='core',
+            executable='execution_node',
+            name='ex1',
+            output='screen',
+            arguments=['1'],
         )
     ])
