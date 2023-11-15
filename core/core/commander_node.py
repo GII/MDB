@@ -255,7 +255,12 @@ class CommanderNode(Node):
                 for node in node_list:
                     name = node['name']
                     class_name = node['class_name']
+                    if node.get('parameters'):
+                        parameters = str(node['parameters'])
+                    else:
+                        parameters = ''
                     self.get_logger().info('Creating new ' + class_name + ' ' + name + '...')
+                    print("parameters: " + str(parameters))
 
                     if self.node_exists(name):
                         self.get_logger().info('Node ' + str(name) + ' already exists.')
@@ -264,7 +269,7 @@ class CommanderNode(Node):
                     
                         ex = self.get_lowest_load_executor()
                         
-                        executor_response = self.send_create_request_to_executor(ex, name, class_name)
+                        executor_response = self.send_create_request_to_executor(ex, name, class_name, parameters)
                         
                         self.register_node(ex, name)
                         
@@ -347,7 +352,7 @@ class CommanderNode(Node):
         send_to_LTM_client.destroy_node()
         return ltm_response
 
-    def send_create_request_to_executor(self, executor_id, name, class_name):
+    def send_create_request_to_executor(self, executor_id, name, class_name, parameters):
         """
         Send a 'create' request to an executor.
 
@@ -362,7 +367,7 @@ class CommanderNode(Node):
         """
         service_name = 'execution_node_' + str(executor_id) + '/create'
         create_client = ServiceClient(CreateNode, service_name)
-        executor_response = create_client.send_request(name=name, class_name=class_name)       
+        executor_response = create_client.send_request(name=name, class_name=class_name, parameters=parameters)       
         create_client.destroy_node()
         return executor_response
 

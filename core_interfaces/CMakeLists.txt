@@ -13,23 +13,20 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/CalculateActivation.srv"
+  "srv/AddNodeToLTM.srv"
   "srv/CreateNode.srv"
   "srv/DeleteNode.srv"
-  "srv/ExecutePolicy.srv"
+  "srv/DeleteNodeFromLTM.srv"
+  "srv/GetNodeFromLTM.srv"
   "srv/LoadConfig.srv"
   "srv/LoadNode.srv"
   "srv/ReadNode.srv"
+  "srv/ReplaceNodeFromLTM.srv"
   "srv/SaveConfig.srv"
   "srv/SaveNode.srv"
   "srv/SendToCommander.srv"
   "srv/SendToExecutor.srv"
   "srv/SendToLTM.srv"
-  "srv/UpdateActivation.srv"
-  "srv/AddNodeToLTM.srv"
-  "srv/DeleteNodeFromLTM.srv"
-  "srv/GetNodeFromLTM.srv"
-  "srv/ReplaceNodeFromLTM.srv"
 )
 
 if(BUILD_TESTING)

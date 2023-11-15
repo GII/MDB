@@ -1,0 +1,10 @@
+Experiment:
+    iterations: 12000
+LTM:
+    Nodes:     
+        PNode:
+            -
+                name: pnode1
+                class_name: cognitive_nodes.pnode.PNode
+                parameters:
+                    space_class: cognitive_nodes.space.PointBasedSpace                                         

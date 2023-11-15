@@ -50,4 +50,15 @@ LTM:
                 class_name: cognitive_nodes.policy.Policy
             -
                 name: policy2
-                class_name: cognitive_nodes.policy.Policy                                            
+                class_name: cognitive_nodes.policy.Policy          
+        PNode:
+            -
+                name: pnode1
+                class_name: cognitive_nodes.pnode.PNode
+                parameters:
+                    space_class: cognitive_nodes.space.PointBasedSpace
+            -
+                name: pnode2
+                class_name: cognitive_nodes.pnode.PNode
+                parameters:
+                    space_class: cognitive_nodes.space.PointBasedSpace                                                      

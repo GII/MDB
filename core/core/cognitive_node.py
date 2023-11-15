@@ -3,7 +3,6 @@ import yaml
 from rclpy.node import Node
 
 from core.service_client import ServiceClient
-from core_interfaces.srv import UpdateActivation
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
 from core_interfaces.srv import SendToLTM
@@ -30,7 +29,7 @@ class CognitiveNode(ABC, Node):
         _, _, node_type = self.class_name.rpartition(".")
         self.node_type = node_type
 
-        #Publish node activation when SetActivationTopic is true
+        # Publish node activation topic (when SetActivationTopic is true)
         self.publish_activation_topic = self.create_publisher(
             Activation,
             'cognitive_node/' + str(name) + '/activation',
@@ -38,21 +37,14 @@ class CognitiveNode(ABC, Node):
         )
         self.activation_topic = False
 
-        # Update Activations Service for other Cognitive Nodes
-        self.update_activation_service = self.create_service(
-            UpdateActivation,
-            'cognitive_node/' + str(node_type) + '/' + str(name) + '/update_activation',
-            self.handle_update_activation
-        )
-
-        # N: Get Activation Service
+        # Get Activation Service
         self.get_activation_service = self.create_service(
             GetActivation,
             'cognitive_node/' + str(name) + '/get_activation',
             self.get_activation_callback
         )
         
-        # N: Get Information Service
+        # Get Information Service
         self.get_information_service = self.create_service(
             GetInformation,
             'cognitive_node/' + str(name) + '/get_information',
@@ -60,7 +52,7 @@ class CognitiveNode(ABC, Node):
         )
         self.last_activation = 0.0
         
-        # N: Set Activation Topic Service
+        # Set Activation Topic Service
         self.set_activation_service = self.create_service(
             SetActivationTopic,
             'cognitive_node/' + str(name) + '/set_activation_topic',
@@ -124,12 +116,6 @@ class CognitiveNode(ABC, Node):
         send_to_LTM_client.destroy_node()
         return ltm_response
     
-    def handle_update_activation(self, request, response):
-        perception = request.perception
-        activation = self.calculate_activation(perception)
-        response.updated = True
-        return response
-
     def calculate_activation(self, perception):
         """
         Calculate and return the node's activations.

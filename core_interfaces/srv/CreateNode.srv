@@ -1,4 +1,5 @@
 string name
 string class_name
+string parameters
 ---
 bool created

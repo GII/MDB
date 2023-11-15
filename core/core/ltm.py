@@ -13,6 +13,7 @@ class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
         self.id = 0
+        # TODO Remove ANode and BNode
         self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Drive': {}, 'Goal': {}, 'Need': {}, 'Policy': {}, 'Perception': {},'PNode': {}, 'UtilityModel': {}, 'WorldModel': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
@@ -62,7 +63,7 @@ class LTM(Node):
 
 
     @property
-    def a_nodes(self):
+    def a_nodes(self): # TODO Remove this
         """
         Get all cognitive nodes of type 'ANode' from the LTM.
 
@@ -72,7 +73,7 @@ class LTM(Node):
         return self.cognitive_nodes.get('ANode')
     
     @property
-    def b_nodes(self):
+    def b_nodes(self): # TODO Remove this
         """
         Get all cognitive nodes of type 'BNode' from the LTM.
 

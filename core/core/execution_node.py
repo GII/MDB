@@ -90,10 +90,17 @@ class ExecutionNode(Node):
 
         class_name = str(request.class_name)
         name = str(request.name)
+        yaml_parameters = str(request.parameters)
+        if yaml_parameters:
+            parameters = yaml.safe_load(yaml_parameters)
+        else:
+            parameters = {}
+
+        print("params: " + str(parameters))
         
         self.get_logger().info('Creating new ' + str(class_name) + ' ' + str(name) + '...')
 
-        new_node = class_from_classname(class_name)(name)
+        new_node = class_from_classname(class_name)(name, **parameters)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
