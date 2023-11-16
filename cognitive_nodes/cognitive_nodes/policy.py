@@ -52,7 +52,7 @@ class Policy(CognitiveNode):
         else:
             self.perception = []
             self.activation = 0.0
-        self.get_logger().info(self.type + " activation for " + self.ident + " = " + str(self.activation))
+        self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.activation))
         self.publish()     
 
     def execute_from_old_mdb(self):
