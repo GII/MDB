@@ -8,10 +8,10 @@ import random
 
 class WorldModel(CognitiveNode):
 
-    def __init__(self, name='world_model', class_name = 'core.world_model.WorldModel'):
+    def __init__(self, name='world_model', class_name = 'cognitive_nodes.world_model.WorldModel'):
 
         super().__init__(name, class_name)
-        self.register_in_LTM([],[])
+        self.register_in_LTM({})
 
         # N: Set Activation Service
         self.set_activation_service = self.create_service(

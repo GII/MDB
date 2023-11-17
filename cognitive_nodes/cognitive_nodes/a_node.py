@@ -47,7 +47,7 @@ class ANode(CognitiveNode):
     :param msg_count: The initial message count.
     """
 
-    def __init__(self, name='a_node', msg_count=0, class_name = 'core.a_node.ANode'):
+    def __init__(self, name='a_node', msg_count=0, class_name = 'cognitive_nodes.a_node.ANode'):
         """
         Initialize the ANode.
 
@@ -62,7 +62,7 @@ class ANode(CognitiveNode):
             self.calculate_next_callback,
             10
         )
-        self.register_in_LTM(['primes'], [])
+        self.register_in_LTM({})
         
     def calculate_next_callback(self, msg):
         """

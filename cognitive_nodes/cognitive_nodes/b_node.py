@@ -31,7 +31,7 @@ class BNode(CognitiveNode):
     :param msg_count: The initial message count.
     """
 
-    def __init__(self, name='b_node', msg_count=0, class_name = 'core.b_node.BNode'):
+    def __init__(self, name='b_node', msg_count=0, class_name = 'cognitive_nodes.b_node.BNode'):
         """
         Initialize the BNode.
 
@@ -46,7 +46,7 @@ class BNode(CognitiveNode):
             self.calculate_next_callback,
             10
         )
-        self.register_in_LTM(['fibonacci'], [])
+        self.register_in_LTM({})
 
     def calculate_next_callback(self, msg):
         """

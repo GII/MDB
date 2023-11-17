@@ -7,13 +7,14 @@ from std_msgs.msg import String
 from core.cognitive_node import CognitiveNode
 
 from core_interfaces.srv import SendToLTM, SendToCommander
-from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM, GetNodeFromLTM, ReplaceNodeFromLTM
+from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM, GetNodeFromLTM, ReplaceNodeFromLTM, SetChangesTopic
 
 class LTM(Node):
     def __init__(self):
         super().__init__('LTM')
         self.id = 0
         # TODO Remove ANode and BNode
+        # TODO Create keys from config file
         self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Drive': {}, 'Goal': {}, 'Need': {}, 'Policy': {}, 'Perception': {},'PNode': {}, 'UtilityModel': {}, 'WorldModel': {}}
         self.state_publisher = self.create_publisher(String, 'state', 10)
         self.state_timer = self.create_timer(1, self.state_timer_callback)
@@ -53,6 +54,13 @@ class LTM(Node):
             GetNodeFromLTM,
             'ltm_' + str(self.id) + '/get_node',
             self.get_node_callback
+        )
+
+        # N: Set changes topic
+        self.set_changes_topic_service = self.create_service(
+            SetChangesTopic,
+            'ltm_' + str(self.id) + '/set_changes_topic',
+            self.set_changes_topic_callback
         )
 
     def state_timer_callback(self):
@@ -214,14 +222,9 @@ class LTM(Node):
                 
                 else:
                     data = str(request.data)
-                    self.get_logger().info('Data: ' + data + '.')
-
                     data_dic = yaml.load(data, Loader=yaml.FullLoader)
 
-                    publishing_topics = data_dic['publishing']
-                    subscribed_topics = data_dic['subscribed']
-
-                    self.add_node(node_type, name, publishing_topics, subscribed_topics)     
+                    self.add_node(node_type, name, data_dic)     
                                         
                     self.get_logger().info('Registered node ' + str(name) + '.')
 
@@ -297,7 +300,7 @@ class LTM(Node):
         send_to_commander_client.destroy_node()
         return executor_response
     
-    def add_node(self, node_type, node_name, publishing_topics=[], subscribed_topics=[]):
+    def add_node(self, node_type, node_name, node_data):
         """
         Add a cognitive node to the LTM.
 
@@ -305,16 +308,11 @@ class LTM(Node):
         :type node_type: str
         :param node_name: The name of the cognitive node.
         :type node_name: str
-        :param publishing_topics: The list of topics where the node is publishing.
-        :type publishing_topics: list[str]
-        :param subscribed_topics: The list of topics to which the node is subscribed.
-        :type subscribed_topics: list[str]
+        :param node_data: The dictionary containing the data of the cognitive node.
+        :type node_data: dict
         """
-        node_info = {
-            'subscribed': subscribed_topics,
-            'publishing': publishing_topics,
-        }
-        self.cognitive_nodes[node_type][node_name] = node_info
+
+        self.cognitive_nodes[node_type][node_name] = node_data
     
     def delete_node(self, node_type, node_name):
         """

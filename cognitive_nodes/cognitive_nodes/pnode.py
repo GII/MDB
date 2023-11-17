@@ -8,7 +8,7 @@ class PNode(CognitiveNode):
     PNode class
     """
 
-    def __init__(self, name= 'pnode', class_name = 'core.pnode.PNode', space_class = None, space = None):
+    def __init__(self, name= 'pnode', class_name = 'cognitive_nodes.pnode.PNode', space_class = None, space = None):
         """
         Constructor for the PNode class.
         
@@ -26,7 +26,7 @@ class PNode(CognitiveNode):
         """
         super().__init__(name, class_name)
         self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
-        self.register_in_LTM([],[])
+        self.register_in_LTM({})
         self.add_point_service = self.create_service(AddPoint, 'pnode/' + str(name) + '/add_point', self.add_point_callback)
 
 

@@ -29,13 +29,21 @@ class CognitiveNode(ABC, Node):
         _, _, node_type = self.class_name.rpartition(".")
         self.node_type = node_type
 
+        self.perception = None
+        self.activation = 0.0
+
+        # self.threshold = threshold
+        self.neighbors = []
+
+        self.activation_topic = False
+        self.last_activation = 0.0
+
         # Publish node activation topic (when SetActivationTopic is true)
         self.publish_activation_topic = self.create_publisher(
             Activation,
             'cognitive_node/' + str(name) + '/activation',
             0
         )
-        self.activation_topic = False
 
         # Get Activation Service
         self.get_activation_service = self.create_service(
@@ -50,7 +58,6 @@ class CognitiveNode(ABC, Node):
             'cognitive_node/' + str(name) + '/get_information',
             self.get_information_callback
         )
-        self.last_activation = 0.0
         
         # Set Activation Topic Service
         self.set_activation_service = self.create_service(
@@ -78,14 +85,9 @@ class CognitiveNode(ABC, Node):
         # del node_data['calculate_activations_service']
         return node_data
     
-    def register_in_LTM(self, subscribed, publishing):
-        
-        data_dic = {
-            'subscribed': subscribed,
-            'publishing': publishing
-        }
+    def register_in_LTM(self, data_dic):
 
-        data = yaml.dump(data_dic)
+        data = yaml.dump({**data_dic, 'activation': self.activation, 'perception': self.perception})
 
         self.send_request_to_LTM('register', data)
     
@@ -154,6 +156,23 @@ class CognitiveNode(ABC, Node):
             self.activation_topic = False
         response.activation_topic = activation_topic
         return response
+    
+    def publish(self, message=None, first_time=False):
+        """Publish node information."""
+        if not message:
+            message = self.name + str('_msg')
+        if first_time:
+            message.command = "new"
+        else:
+            message.command = "update"
+        message.node_name = self.name
+        message.neighbor_names = [node.name for node in self.neighbors]
+        message.neighbor_types = [node.node_type for node in self.neighbors]
+        if isinstance(self.activation, list):
+            message.activation = max(self.activation)
+        else:
+            message.activation = self.activation
+        self.node_publisher.publish(message)        
     
     def __str__(self):
         """

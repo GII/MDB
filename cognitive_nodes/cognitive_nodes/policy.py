@@ -24,7 +24,7 @@ class Policy(CognitiveNode):
 
         super().__init__(name, 'core.policy.Policy')
 
-        self.register_in_LTM([], [])
+        self.register_in_LTM({})
 
         self.set_activation_service = self.create_service(
             SetActivation,

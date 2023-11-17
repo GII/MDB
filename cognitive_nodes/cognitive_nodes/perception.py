@@ -9,10 +9,10 @@ import random
 
 class Perception(CognitiveNode):
 
-    def __init__(self, name='perception', class_name = 'core.perception.Perception'):
+    def __init__(self, name='perception', class_name = 'cognitive_nodes.perception.Perception'):
 
         super().__init__(name, class_name)
-        self.register_in_LTM([],[])
+        self.register_in_LTM({})
 
         #N: Value topic
         self.create_publisher(Value, "perception/" + str(name) + "/value", 0) #TODO Implement the message's publication

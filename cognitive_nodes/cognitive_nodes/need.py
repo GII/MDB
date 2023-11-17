@@ -8,10 +8,10 @@ import random
 
 class Need(CognitiveNode):
 
-    def __init__(self, name='need', class_name = 'core.need.Need'):
+    def __init__(self, name='need', class_name = 'cognitive_nodes.need.Need'):
 
         super().__init__(name, class_name)
-        self.register_in_LTM([],[])
+        self.register_in_LTM({})
         
         # N: Set Activation Service
         self.set_activation_service = self.create_service(
