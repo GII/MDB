@@ -3,9 +3,9 @@ import yaml
 from rclpy.node import Node
 
 from core.service_client import ServiceClient
+from core_interfaces.srv import AddNodeToLTM
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
-from core_interfaces.srv import SendToLTM
 
 class CognitiveNode(ABC, Node):
     """
@@ -89,35 +89,12 @@ class CognitiveNode(ABC, Node):
 
         data = yaml.dump({**data_dic, 'activation': self.activation, 'perception': self.perception})
 
-        self.send_request_to_LTM('register', data)
-    
-    def suscribe(self, topic):
-        self.send_request_to_LTM('subscribe', topic)
-
-    def puslish(self, topic):
-        self.send_request_to_LTM('publish', topic)
-   
-    def send_request_to_LTM(self, command, data):
-        """
-        Send a request to the LTM.
-
-        :param command: The command to send.
-        :type command: str
-        :param name: The name of the node.
-        :type name: str
-        :param type: The type of the node.
-        :type type: str
-        :param data: Optional data.
-        :type data: str
-        :return: The response from the LTM.
-        :rtype: core_interfaces.srv.SendToLTM_Response
-        """
-        service_name = 'send_to_LTM'
-        send_to_LTM_client = ServiceClient(SendToLTM, service_name)
-        ltm_response = send_to_LTM_client.send_request(command=command, name=self.name, node_type=self.node_type, data=data)
-        send_to_LTM_client.destroy_node()
+        service_name = 'ltm_0' + '/add_node' # TODO choose LTM ID
+        add_node_to_LTM_client = ServiceClient(AddNodeToLTM, service_name)
+        ltm_response = add_node_to_LTM_client.send_request(name=self.name, node_type=self.node_type, data=data)
+        add_node_to_LTM_client.destroy_node()
         return ltm_response
-    
+   
     def calculate_activation(self, perception):
         """
         Calculate and return the node's activations.

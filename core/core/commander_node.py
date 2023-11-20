@@ -6,7 +6,7 @@ import random
 from rclpy.node import Node
 
 from core.service_client import ServiceClient
-from core_interfaces.srv import SendToLTM
+from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 from core_interfaces.srv import SaveConfig, LoadConfig
 
@@ -154,10 +154,10 @@ class CommanderNode(Node):
         name = str(request.name)
         class_name = str(request.class_name)
 
-        self.get_logger().info('Deleting node ' + name + '...')
+        self.get_logger().info(f"Deleting node {name}...")
         
         if not self.node_exists(name):
-            self.get_logger().info('Node ' + name + ' does not exist.')
+            self.get_logger().info(f"Node {name} doesn't exist.")
             response.deleted = False
         
         else:
@@ -167,11 +167,13 @@ class CommanderNode(Node):
 
             executor_response = self.send_delete_request_to_executor(ex, name, class_name)
 
-            ltm_response = self.send_request_to_ltm('delete', name, class_name, '') # TODO obtain class_name
-
-            self.get_logger().info('Node ' + str(name) + ' deleted from executor ' + str(ex) + '.')
-
+            service_name = 'ltm_0' + '/delete_node' # TODO: choose the ltm ID
+            delete_node_client = ServiceClient(DeleteNodeFromLTM, service_name)
+            ltm_response = delete_node_client.send_request(name=name)
+            delete_node_client.destroy_node()
+          
             self.remove_node_from_executor(ex, name)
+            self.get_logger().info(f"Node {name} deleted from executor {ex}")
 
             response = executor_response
 
@@ -344,13 +346,6 @@ class CommanderNode(Node):
         :type node_name: str
         """
         self.nodes[executor_id].remove(node_name)
-
-    def send_request_to_ltm(self, command, name, type, data):
-        service_name = 'send_to_LTM'
-        send_to_LTM_client = ServiceClient(SendToLTM, service_name)
-        ltm_response = send_to_LTM_client.send_request(command=command, name=self.name, node_type=self.node_type, data=data)
-        send_to_LTM_client.destroy_node()
-        return ltm_response
 
     def send_create_request_to_executor(self, executor_id, name, class_name, parameters):
         """

@@ -1,75 +1,95 @@
+import sys
 import yaml
-
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-from core.cognitive_node import CognitiveNode
-
-from core_interfaces.srv import SendToLTM, SendToCommander
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM, GetNodeFromLTM, ReplaceNodeFromLTM, SetChangesTopic
 
 class LTM(Node):
-    def __init__(self):
+    """
+    The Long-Term Memory (LTM) node in the cognitive architecture.
+
+    This node is responsible for storing and managing cognitive nodes of various types.
+    It provides services for adding, replacing, deleting, and retrieving these nodes,
+    as well as publishing changes.
+
+    Attributes:
+        id (str): An identifier for the LTM instance.
+        changes_topic (bool): Flag to indicate if changes are being published.
+        cognitive_nodes (dict): A dictionary to store cognitive nodes by type.
+        state_publisher (Publisher): Publisher for the state of the LTM.
+        add_node_service (Service): Service to add new cognitive nodes.
+        replace_node_service (Service): Service to replace existing cognitive nodes.
+        delete_node_service (Service): Service to delete cognitive nodes.
+        get_node_service (Service): Service to retrieve data of cognitive nodes.
+        set_changes_topic_service (Service): Service to set the changes topic.
+    """    
+    
+    def __init__(self, id):
+        """
+        Initialize the LTM node.
+
+        :param id: The identifier for this LTM instance.
+        :type id: str
+        """        
         super().__init__('LTM')
-        self.id = 0
+        self.id = id
+        self.changes_topic = True
         # TODO Remove ANode and BNode
         # TODO Create keys from config file
         self.cognitive_nodes = {'ANode': {}, 'BNode': {}, 'Drive': {}, 'Goal': {}, 'Need': {}, 'Policy': {}, 'Perception': {},'PNode': {}, 'UtilityModel': {}, 'WorldModel': {}}
-        self.state_publisher = self.create_publisher(String, 'state', 10)
-        self.state_timer = self.create_timer(1, self.state_timer_callback)
-
-        self.last_id = 0
         
-        # SendToLTM Service for the cognitive nodes and the main loop
-        self.send_to_LTM_service = self.create_service(
-            SendToLTM,
-            'send_to_LTM',
-            self.handle_command
+        # State topic
+        self.state_publisher = self.create_publisher(
+            String, 
+            'state',
+            10
         )
 
-        # N: Add node service
+        # Add node service
         self.add_node_service = self.create_service(
             AddNodeToLTM,
             'ltm_' + str(self.id) + '/add_node',
             self.add_node_callback
         )
 
-        # N: Replace node service
+        # Replace node service
         self.replace_node_service = self.create_service(
             ReplaceNodeFromLTM,
             'ltm_' + str(self.id) + '/replace_node',
             self.replace_node_callback
         )
 
-        # N: Delete node service
+        # Delete node service
         self.delete_node_service = self.create_service(
             DeleteNodeFromLTM,
             'ltm_' + str(self.id) + '/delete_node',
             self.delete_node_callback
         )
 
-        # N: Get node service
+        # Get node service
         self.get_node_service = self.create_service(
             GetNodeFromLTM,
             'ltm_' + str(self.id) + '/get_node',
             self.get_node_callback
         )
 
-        # N: Set changes topic
+        # Set changes topic service
         self.set_changes_topic_service = self.create_service(
             SetChangesTopic,
             'ltm_' + str(self.id) + '/set_changes_topic',
             self.set_changes_topic_callback
         )
 
-    def state_timer_callback(self):
-        msg = String()
-        msg.data = self.cognitive_nodes.__str__()
-        self.state_publisher.publish(msg)
-        self.get_logger().info("State: " + str(msg.data) + ".")
+    def publish_state(self):
+        if(self.changes_topic):
+            msg = String()
+            msg.data = self.cognitive_nodes.__str__()
+            self.state_publisher.publish(msg)
+            self.get_logger().info(f"State: {msg.data}")
 
-
+    # region Properties
     @property
     def a_nodes(self): # TODO Remove this
         """
@@ -78,7 +98,7 @@ class LTM(Node):
         :return: A list of 'ANode' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('ANode')
+        return self.cognitive_nodes.get('ANode', [])
     
     @property
     def b_nodes(self): # TODO Remove this
@@ -88,7 +108,8 @@ class LTM(Node):
         :return: A list of 'BNode' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('BNode')
+        return self.cognitive_nodes.get('BNode', [])
+    
     @property
     def drives(self):
         """
@@ -97,7 +118,7 @@ class LTM(Node):
         :return: A list of 'Drive' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('Drive')
+        return self.cognitive_nodes.get('Drive', [])
     
     @property
     def goals(self):
@@ -107,7 +128,7 @@ class LTM(Node):
         :return: A list of 'Goal' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('Goal')
+        return self.cognitive_nodes.get('Goal', [])
     
     @property
     def needs(self):
@@ -117,7 +138,7 @@ class LTM(Node):
         :return: A list of 'Need' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('Need')
+        return self.cognitive_nodes.get('Need', [])
     
     @property
     def policies(self):
@@ -127,7 +148,7 @@ class LTM(Node):
         :return: A list of 'Policy' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('Policy')
+        return self.cognitive_nodes.get('Policy', [])
 
     @property
     def pnodes(self):
@@ -137,7 +158,7 @@ class LTM(Node):
         :return: A list of 'PNode' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('PNode')
+        return self.cognitive_nodes.get('PNode', [])
 
     @property
     def utilitymodels(self):
@@ -147,7 +168,7 @@ class LTM(Node):
         :return: A list of 'UtilityModel' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('UtilityModel')
+        return self.cognitive_nodes.get('UtilityModel', [])
     
     @property
     def worldmodels(self):
@@ -157,149 +178,162 @@ class LTM(Node):
         :return: A list of 'WorldModel' nodes.
         :rtype: list
         """
-        return self.cognitive_nodes.get('WorldModel')
+        return self.cognitive_nodes.get('WorldModel', [])
 
+    # endregion Properties
+    
+    # region Callbacks
     def add_node_callback(self, request, response): 
-        name = str(request.name)
-        self.get_logger().info('Adding node ' + name + '...')
-        # TODO: implement logic
-        response.added = True
-        return response
-    
-    def replace_node_callback(self, request, response): # TODO: implement
-        name = str(request.name)
-        self.get_logger().info('Replacing node ' + name + '...')
-        # TODO: implement logic
-        response.replaced = True
-        return response
-    
-    def delete_node_callback(self, request, response): # TODO: implement
-        name = str(request.name)
-        self.get_logger().info('Deleting node ' + name + '...')
-        # TODO: implement logic
-        response.deleted = True
-        return response
-    
-    def get_node_callback(self, request, response): # TODO: implement
-        name = str(request.name)
-        self.get_logger().info('Getting node ' + name + '...')
-        # TODO: implement logic
-        response.data = 'Node data'
-        return response
-    
-    def set_changes_topic_callback(self, request, response): # TODO: implement
-        changes_topic = request.changes_topic
-        self.get_logger().info('Setting changes topic to ' + str(changes_topic) + '...')
-        # TODO: implement logic
-        response.changes_topic = changes_topic
-        return response
-
-    def handle_command(self, request, response):
         """
-        Handle command requests received from cognitive nodes.
+        Callback function for the 'add_node' service.
+        Adds a cognitive node to the LTM.
 
-        :param request: The command request.
-        :type request: core_interfaces.srv.SendToLTM_Request
-        :param response: The response to the command.
-        :type response: core_interfaces.srv.SendToLTM_Response
-        :return: The response to the command.
-        :rtype: core_interfaces.srv.SendToLTM_Response
+        This method checks if the node already exists in the LTM. If it does, it sets the response
+        'added' attribute to False. If the node does not exist, it adds the new node to the LTM 
+        and sets the 'added' attribute to True.
+
+        :param request: The service request containing the node's name, type, and data.
+        :type request: AddNodeToLTM_Request
+        :param response: The service response.
+        :type response: AddNodeToLTM_Response
+        :return: The response indicating whether the node was added successfully.
+        :rtype: AddNodeToLTM_Response
         """
-
-        command = str(request.command)
         name = str(request.name)
         node_type = str(request.node_type)
-
-        self.get_logger().info('Handling command: ' + str(command))
-        self.get_logger().info('name: ' + str(name))
-        self.get_logger().info('node_type: ' + str(node_type))
-    
-        try:
-            if(command == 'register'):
-
-                if self.node_exists(node_type, name):
-                    response.msg = str(node_type) + ' ' + str(name) + ' already exists.'
-                
-                else:
-                    data = str(request.data)
-                    data_dic = yaml.load(data, Loader=yaml.FullLoader)
-
-                    self.add_node(node_type, name, data_dic)     
-                                        
-                    self.get_logger().info('Registered node ' + str(name) + '.')
-
-                    response.msg = 'Registered node ' + str(name) + '.'
-            
-            elif(command == 'delete'):
-
-                if not self.node_exists(node_type, name):
-                    response.msg = str(node_type) + ' ' + str(name) + ' does not exist.'
-                
-                else:
-                                      
-                    self.delete_node(node_type, name)
-                    self.get_logger().info(str(node_type) + ' ' + str(name) + ' deleted.')
-
-                    response.msg = str(name) + ' deleted.'
-            
-            elif(command == 'subscribe'):
-
-                if not self.node_exists(node_type, name):
-                    response.msg = str(node_type) + ' ' + str(name) + ' does not exist.'
-                
-                else:
-
-                    # TODO: send request to commander
-                    self.get_logger().info(str(node_type) + ' ' + str(name) + ' deleted.')
-
-                    response.msg = str(name) + ' deleted.'
-            
-            elif (command == 'publish'):
-
-                if not self.node_exists(node_type, name):
-                    response.msg = str(node_type) + ' ' + str(name) + ' does not exist.'
-                
-                else:
-                                      
-                    topic = str(request.data)
-                    commander_response = self.send_request_to_commander(command, name, node_type, topic)
-                                        
-                    self.get_logger().info(str(node_type) + ' ' + str(name) + ' now publishing in topic ' + str(topic) + '.')
-
-                    response.msg = str(name) + ' now publishing in topic ' + str(topic) + '.'
-                    
-            else:
-                self.get_logger().info('Wrong command.')
-                response.msg = 'Wrong request: ' + str(command) + '.'
         
-        except Exception as e:
-            error = 'Error handling command: ' + str(e)
-            self.get_logger().error(error)
-            response.msg = error
-        
+        if self.node_exists(node_type, name):
+            self.get_logger().info(f"{node_type} {name} already exists.")
+            response.added = False
+
+        else:
+            data = str(request.data)
+            data_dic = yaml.load(data, Loader=yaml.FullLoader)
+            self.add_node(node_type, name, data_dic)     
+            self.get_logger().info(f"Added {node_type} {name}")
+            response.added = True
+
         return response
     
-    def send_request_to_commander(self, command, data):
+    def replace_node_callback(self, request, response):
         """
-        Send a request to the commander node.
+        Callback function for the 'replace_node' service.
+        Replaces an existing cognitive node in the LTM.
 
-        :param command: The command to send.
-        :type command: str
-        :param name: The name of the node.
-        :type name: str
-        :param type: The type of the node.
-        :type type: str
-        :param data: Optional data.
-        :type data: str
-        :return: The response from the LTM.
-        :rtype: core_interfaces.srv.SendToLTM_Response
+        This method first checks if the original node exists in the LTM. If it doesn't, it sets the 
+        response 'replaced' attribute to False. If the original node exists, it then checks if the new 
+        name is already taken. If not, it replaces the node with the new data and sets the 'replaced' 
+        attribute to True.
+
+        :param request: The service request containing the original and new name of the node, its type, 
+                        and the new data for the node.
+        :type request: ReplaceNodeFromLTM_Request
+        :param response: The service response.
+        :type response: ReplaceNodeFromLTM_Response
+        :return: The response indicating whether the node was replaced successfully.
+        :rtype: ReplaceNodeFromLTM_Response
         """
-        service_name = 'send_to_commander'
-        send_to_commander_client = ServiceClient(SendToCommander, service_name)
-        executor_response = send_to_commander_client.send_request(command=command, name=self.name, node_type=self.type, data=data)
-        send_to_commander_client.destroy_node()
-        return executor_response
+        name = str(request.name)
+        new_name = str(request.new_name)
+        node_type = str(request.node_type)
+        
+        if not self.node_exists(node_type, name):
+            self.get_logger().info(f"{node_type} {name} doesn't exist.")
+            response.replaced = False
+
+        elif self.node_exists(node_type, new_name):
+            self.get_logger().info(f"{node_type} {name} already exists.")
+            response.replaced = False
+
+        else:
+            data = str(request.data)
+            data_dic = yaml.load(data, Loader=yaml.FullLoader)
+            self.add_node(node_type, name, data_dic)     
+            self.get_logger().info(f"Replaced {node_type} {name} with {node_type} {name}.")
+            response.replaced = True
+
+        return response
     
+    def delete_node_callback(self, request, response):
+        """
+        Callback function for the 'delete_node' service.
+        Deletes a cognitive node from the LTM.
+
+        This method iterates over all node types in the LTM to find the node with the given name. 
+        If the node is found, it is deleted, and the response 'deleted' attribute is set to True. 
+        If the node is not found, the 'deleted' attribute is set to False.
+
+        :param request: The service request containing the name of the node to be deleted.
+        :type request: DeleteNodeFromLTM_Request
+        :param response: The service response.
+        :type response: DeleteNodeFromLTM_Response
+        :return: The response indicating whether the node was deleted successfully.
+        :rtype: DeleteNodeFromLTM_Response
+        """
+        name = str(request.name)
+        for node_type in self.cognitive_nodes:
+            if name in self.cognitive_nodes[node_type]:
+                self.delete_node(node_type, name)
+                self.get_logger().info(f"{node_type} {name} deleted.")
+                response.deleted = True
+                return response
+
+        self.get_logger().info(f"Node {name} doesn't exist.")
+        response.deleted = False
+        return response
+    
+    def get_node_callback(self, request, response):
+        """
+        Callback function for the 'get_node' service.
+        Retrieves data of a specific cognitive node from the LTM.
+
+        This method iterates over all node types in the LTM to find the node with the given name. 
+        If the node is found, its data is serialized into YAML format and returned in the response. 
+        If the node is not found, an empty string is returned.
+
+        :param request: The service request containing the name of the node to retrieve.
+        :type request: GetNodeFromLTM_Request
+        :param response: The service response containing the node data if found.
+        :type response: GetNodeFromLTM_Response
+        :return: The response with the node data in YAML format or an empty string.
+        :rtype: GetNodeFromLTM_Response
+        """        
+        name = str(request.name)
+        for node_type in self.cognitive_nodes:
+            if name in self.cognitive_nodes[node_type]:
+                data_dic = self.cognitive_nodes[node_type][name]
+                data = yaml.dump(data_dic)
+                self.get_logger().info(f"{node_type} {name}: {data}")
+                response.data = data
+                return response
+        self.get_logger().info(f"{node_type} {name} doesn't exist.")
+        response.data = ""
+        return response
+    
+    def set_changes_topic_callback(self, request, response):
+        """
+        Callback function for the 'set_changes_topic' service.
+        Sets the topic for tracking changes in the LTM.
+
+        This method updates the 'changes_topic' attribute of the LTM with the provided topic name 
+        from the service request. The updated topic name is returned in the service response.
+
+        :param request: The service request containing the name of the changes topic to be set.
+        :type request: SetChangesTopic_Request
+        :param response: The service response confirming the updated changes topic.
+        :type response: SetChangesTopic_Response
+        :return: The response with the updated changes topic name.
+        :rtype: SetChangesTopic_Response
+        """        
+        changes_topic = request.changes_topic
+        self.changes_topic = changes_topic
+        self.get_logger().info(f"Changes topic set to {changes_topic}")
+        response.changes_topic = changes_topic
+        return response
+    
+    # endregion Callbacks
+    
+    # region CRUD operations
     def add_node(self, node_type, node_name, node_data):
         """
         Add a cognitive node to the LTM.
@@ -311,25 +345,21 @@ class LTM(Node):
         :param node_data: The dictionary containing the data of the cognitive node.
         :type node_data: dict
         """
-
         self.cognitive_nodes[node_type][node_name] = node_data
+        self.publish_state()
     
     def delete_node(self, node_type, node_name):
         """
-        Remove a node from the LTM.
+        Delete a cognitive node from the LTM.
 
-        :param node_type: The type of the node to remove.
+        :param node_type: The type of the cognitive node.
         :type node_type: str
-        :param node_name: The name of the node to remove.
+        :param node_name: The name of the cognitive node.
         :type node_name: str
-        :return: True if the node was successfully removed, False otherwise.
-        :rtype: bool
         """
-        if node_type in self.cognitive_nodes and node_name in self.cognitive_nodes[node_type]:
-            del self.cognitive_nodes[node_type][node_name]
-            return True
-        else:
-            return False        
+        del self.cognitive_nodes[node_type][node_name]
+        self.publish_state()
+
 
     def node_exists(self, node_type, node_name):
         """
@@ -356,71 +386,13 @@ class LTM(Node):
         :rtype: bool
         """
         return node_type in self.cognitive_nodes
-
-    def get_subscriptions(self, node_type, node_name):
-        """
-        Get the list of topics to which a cognitive node is subscribed.
-
-        :param node_type: The type of the cognitive node.
-        :type node_type: str
-        :param node_name: The name of the cognitive node.
-        :type node_name: str
-        :return: A list of topics to which the node is subscribed, or an empty list if the node doesn't exist.
-        :rtype: list[str]
-        """
-        if self.node_exists(node_type, node_name):
-            return self.cognitive_nodes[node_type][node_name]['subscribed']
-        return []
     
-    def get_publications(self, node_type, node_name):
-        """
-        Get the list of topics where a cognitive node is publishing.
-
-        :param node_type: The type of the cognitive node.
-        :type node_type: str
-        :param node_name: The name of the cognitive node.
-        :type node_name: str
-        :return: A list of topics where the node is publishing, or an empty list if the node doesn't exist.
-        :rtype: list[str]
-        """
-        if self.node_exists(node_type, node_name):
-            return self.cognitive_nodes[node_type][node_name]['publishing']
-        return []
-    
-    def add_subscription(self, node_type, node_name, topic):
-        """
-        Add a topic subscription to a cognitive node.
-
-        :param node_type: The type of the cognitive node.
-        :type node_type: str
-        :param node_name: The name of the cognitive node.
-        :type node_name: str
-        :param topic: The topic to subscribe to.
-        :type topic: str
-        """
-        if self.node_exists(node_type, node_name):
-            self.cognitive_nodes[node_type][node_name]['subscribed'].append(topic)
-
-    def add_publication(self, node_type, node_name, topic):
-        """
-        Add a topic publication to a cognitive node.
-
-        :param node_type: The type of the cognitive node.
-        :type node_type: str
-        :param node_name: The name of the cognitive node.
-        :type node_name: str
-        :param topic: The topic to publish to.
-        :type topic: str
-        """
-        if self.node_exists(node_type, node_name):
-            self.cognitive_nodes[node_type][node_name]['publishing'].append(topic)
-        else:
-            self.cognitive_nodes.setdefault(node_type, {}).setdefault(node_name, {'subscribed': [], 'publishing': [topic]})
-
+    # endregion CRUD operations
 
 def main(args=None):
     rclpy.init()
-    ltm = LTM()
+    id = int(sys.argv[1])
+    ltm = LTM(id)
 
     rclpy.spin(ltm)
     rclpy.shutdown()

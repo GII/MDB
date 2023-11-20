@@ -26,7 +26,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SaveNode.srv"
   "srv/SendToCommander.srv"
   "srv/SendToExecutor.srv"
-  "srv/SendToLTM.srv"
   "srv/SetChangesTopic.srv"
 )
 

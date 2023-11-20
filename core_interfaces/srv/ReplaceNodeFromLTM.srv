@@ -1,3 +1,6 @@
 string name
+string new_name
+string node_type
+string data
 ---
 bool replaced

@@ -15,6 +15,7 @@ def generate_launch_description():
             executable='ltm',
             name='ltm',
             output='screen',
+            arguments=['0']
         ),
         Node(
             package='core',

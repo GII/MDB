@@ -1,6 +1,0 @@
-string command
-string name
-string node_type
-string data
----
-string msg

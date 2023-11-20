@@ -1,53 +1,45 @@
-mdb package
+core package
 ===========
 
 Submodules
 ----------
 
-mdb.a\_node module
+core.a\_node module
 ------------------
 
-.. automodule:: mdb.a_node
+.. automodule:: core.a_node
    :members:
    :undoc-members:
    :show-inheritance:
 
-mdb.cognitive\_node module
+core.cognitive\_node module
 --------------------------
 
-.. automodule:: mdb.cognitive_node
+.. automodule:: core.cognitive_node
    :members:
    :undoc-members:
    :show-inheritance:
 
-mdb.commander\_node module
+core.commander\_node module
 --------------------------
 
-.. automodule:: mdb.commander_node
+.. automodule:: core.commander_node
    :members:
    :undoc-members:
    :show-inheritance:
 
-mdb.execution\_node module
+core.execution\_node module
 --------------------------
 
-.. automodule:: mdb.execution_node
+.. automodule:: core.execution_node
    :members:
    :undoc-members:
    :show-inheritance:
 
-mdb.ltm module
+core.ltm module
 --------------
 
-.. automodule:: mdb.ltm
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-mdb.publisher module
---------------------
-
-.. automodule:: mdb.publisher
+.. automodule:: core.ltm
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,7 +47,7 @@ mdb.publisher module
 Module contents
 ---------------
 
-.. automodule:: mdb
+.. automodule:: core
    :members:
    :undoc-members:
    :show-inheritance:

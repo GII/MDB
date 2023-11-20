@@ -13,7 +13,9 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../../mdb'))
+sys.path.insert(0, os.path.abspath('../../core'))
+sys.path.insert(0, os.path.abspath('../../cognitive_nodes'))
+sys.path.insert(0, os.path.abspath('../../cognitive_processes'))
 # sys.path.insert(0, os.path.abspath('../../mdb_interfaces'))
 
 # Modules to be excluded from the docs
