@@ -46,7 +46,9 @@ class FileGoodness(File):
     def write_header(self):
         """Write the header of the file."""
         super().write_header()
-        self.file_object.write("Iteration\tGoal\tWorld\tReward\tPolicy\tSensorial changes\tC-nodes\n")
+        self.file_object.write(
+            "Iteration\tGoal\tWorld\tReward\tPolicy\tSensorial changes\tC-nodes\n"
+        )
 
     def write(self):
         """Write statistics data."""
@@ -68,6 +70,29 @@ class FileGoodness(File):
         )
 
 
+class FilePNodesSuccess(File):
+    """A file that records wether a P-node's activation has been successful or not."""
+
+    def write_header(self):
+        """Write the header of the file."""
+        super().write_header()
+        self.file_object.write("Iteration\tIdent\tSuccess\n")
+
+    def write(self):
+        """Write success."""
+        for pnode in self.ltm.p_nodes:
+            if pnode.successful_activation is not None:
+                self.file_object.write(
+                    str(self.ltm.iteration)
+                    + "\t"
+                    + pnode.ident
+                    + "\t"
+                    + str(pnode.successful_activation)
+                    + "\n"
+                )
+                pnode.successful_activation = None
+
+
 class FilePNodes(File):
     """A file where pnodes points and anti-points are stored."""
 
@@ -75,8 +100,12 @@ class FilePNodes(File):
         """Write the header of the file."""
         super().write_header()
         self.file_object.write("Iteration\tIdent\t")
+        i = 0
         for perception in self.ltm.perceptions.values():
-            self.file_object.write(perception.ident + "\t")
+            for perception_item in perception.value:
+                for key in perception_item:
+                    self.file_object.write(f"{i}_{perception.ident}_{key}\t")
+                i += 1
         self.file_object.write("Confidence\n")
 
     def write(self, force=False):
@@ -84,8 +113,12 @@ class FilePNodes(File):
         if (self.ltm.iteration % self.data == 0) or force:
             for pnode in self.ltm.p_nodes:
                 for space in pnode.spaces:
-                    for point, confidence in zip(space.members[0 : space.size], space.memberships[0 : space.size]):
-                        self.file_object.write(str(self.ltm.iteration) + "\t" + pnode.ident + "\t")
+                    for point, confidence in zip(
+                        space.members[0 : space.size], space.memberships[0 : space.size]
+                    ):
+                        self.file_object.write(
+                            str(self.ltm.iteration) + "\t" + pnode.ident + "\t"
+                        )
                         for sensor in point:
                             self.file_object.write(str(sensor) + "\t")
                         self.file_object.write(str(confidence) + "\n")
@@ -153,5 +186,7 @@ class FileLTMPeriodicDump(FileLTMDump):
 
     def write(self, force=False):
         """Do the LTM dump."""
-        if ((self.ltm.iteration > 0) and (self.ltm.iteration % self.data == 0)) or force:
+        if (
+            (self.ltm.iteration > 0) and (self.ltm.iteration % self.data == 0)
+        ) or force:
             super().write()

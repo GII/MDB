@@ -119,7 +119,9 @@ class LTM(object):
     @staticmethod
     def load_memory_dump(file_name):
         """Load a previous LTM memory dump from a file."""
-        ltm = yaml.load(open(file_name, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader)
+        ltm = yaml.load(
+            open(file_name, "r", encoding="utf-8"), Loader=yamlloader.ordereddict.CLoader
+        )
         ltm.files = []
         # Unfortunatly, implementing __setstate__ didn"t work, so I was forced to do this by hand.
         # I think construct_yaml_object is the guilty, because when __setstate__ exists,
@@ -178,7 +180,9 @@ class LTM(object):
         if ident is None:
             ident = node_type + str(len(self.nodes[node_type]))
         # Create the object
-        node = self.class_from_classname(class_name)(ident=ident, node_type=node_type, ltm=self, **kwargs)
+        node = self.class_from_classname(class_name)(
+            ident=ident, node_type=node_type, ltm=self, **kwargs
+        )
         # Add the object to the appropriate list (the perceptions are in a dictionary, not a list)
         if node.type == "Perception":
             self.nodes[node.type][ident] = node
@@ -187,7 +191,9 @@ class LTM(object):
         # Connect the object in the graph with the right nodes
         if neighbors is None:
             if node.type == "Perception":
-                node.neighbors = self.nodes["Goal"] + self.nodes["ForwardModel"] + self.nodes["Policy"]
+                node.neighbors = (
+                    self.nodes["Goal"] + self.nodes["ForwardModel"] + self.nodes["Policy"]
+                )
             else:
                 node.neighbors = list(self.nodes["Perception"].values())
         else:
@@ -212,11 +218,6 @@ class LTM(object):
             )
         self.files.append(new_file)
 
-    def write_headers_in_files(self):
-        """Write the header of each open file."""
-        for file_object in self.files:
-            file_object.write_header()
-
     def node_exists(self, ident):
         """Check if there is a node with a specific name."""
         for node_type, nodes in self.nodes.items():
@@ -235,9 +236,13 @@ class LTM(object):
         if data._connection_header["callerid"] != rospy.get_name() and data.command == "new":
             node_class = None
             if data.execute_service != "" or data.get_service != "":
-                node_class = self.class_from_classname("mdb_ltm." + self.module_names[node_type] + node_type)
+                node_class = self.class_from_classname(
+                    "mdb_ltm." + self.module_names[node_type] + node_type
+                )
             elif data.language != "" and data.language != "python":
-                rospy.logerr("Language not supported while processing a message for creating a new node!")
+                rospy.logerr(
+                    "Language not supported while processing a message for creating a new node!"
+                )
             elif data.class_name != "":
                 node_class = self.class_from_classname(data.class_name)
             else:
@@ -284,7 +289,9 @@ class LTM(object):
             self.default_ros_data_prefix[connector["data"]] = connector.get("ros_data_prefix")
             if self.default_ros_node_prefix[connector["data"]] is not None:
                 topic = rospy.get_param(connector["ros_node_prefix"] + "_topic")
-                message = self.class_from_classname(rospy.get_param(connector["ros_node_prefix"] + "_msg"))
+                message = self.class_from_classname(
+                    rospy.get_param(connector["ros_node_prefix"] + "_msg")
+                )
                 callback = getattr(self, connector["callback"])
                 callback_args = connector["data"]
                 rospy.logdebug("Subscribing to %s...", topic)
@@ -336,14 +343,20 @@ class LTM(object):
     def setup_control_channel(self, control_channel):
         """Load simulator / robot configuration channel."""
         topic = rospy.get_param(control_channel["control_prefix"] + "_topic")
-        message = self.class_from_classname(rospy.get_param(control_channel["control_prefix"] + "_msg"))
+        message = self.class_from_classname(
+            rospy.get_param(control_channel["control_prefix"] + "_msg")
+        )
         self.control_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
         rospy.Subscriber(topic, message, callback=self.control_callback)
         topic = rospy.get_param(control_channel["info_prefix"] + "_topic")
-        message = self.class_from_classname(rospy.get_param(control_channel["info_prefix"] + "_msg"))
+        message = self.class_from_classname(
+            rospy.get_param(control_channel["info_prefix"] + "_msg")
+        )
         self.info_publisher = rospy.Publisher(topic, message, latch=True, queue_size=0)
         topic = rospy.get_param(control_channel["reward_prefix"] + "_topic")
-        message = self.class_from_classname(rospy.get_param(control_channel["reward_prefix"] + "_msg"))
+        message = self.class_from_classname(
+            rospy.get_param(control_channel["reward_prefix"] + "_msg")
+        )
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.reward_callback)
 
@@ -376,8 +389,6 @@ class LTM(object):
                 self.setup_topics(configuration["LTM"]["Connectors"])
                 if not self.restoring:
                     self.setup_nodes(configuration["LTM"]["Nodes"])
-                if (self.iteration == 0) or self.restoring:
-                    self.write_headers_in_files()
                 self.setup_control_channel(configuration["Control"])
                 self.setup_experiment(configuration["Experiment"])
                 rospy.on_shutdown(self.shutdown)
@@ -412,7 +423,9 @@ class LTM(object):
         for policy in self.policies:
             policy.update_activation(perception=perception)
 
-    def do_forward_prospection(self, pnodes_to_consider, remaining_pnodes, path_goals, path_policies, search_new=False):
+    def do_forward_prospection(
+        self, pnodes_to_consider, remaining_pnodes, path_goals, path_policies, search_new=False
+    ):
         """
         Perform forward prospection starting with currently activated P-nodes and trying to find a useful policy.
 
@@ -433,7 +446,9 @@ class LTM(object):
                 forward_model = c_node.forward_model
                 goal = c_node.goal
                 policy = c_node.policy
-                if (forward_model.max_activation > forward_model.threshold) and (goal not in path_goals):
+                if (forward_model.max_activation > forward_model.threshold) and (
+                    goal not in path_goals
+                ):
                     new_path_goals = path_goals + [goal]
                     new_path_policies = path_policies + [policy]
                     if goal.max_activation > goal.threshold:
@@ -499,7 +514,10 @@ class LTM(object):
         """
         activated_pnodes = (p_node for p_node in self.p_nodes if max(p_node.activation) > 0.0)
         feasible_goals = [
-            neighbor for p_node in activated_pnodes for neighbor in p_node.neighbors if neighbor.type == "Goal"
+            neighbor
+            for p_node in activated_pnodes
+            for neighbor in p_node.neighbors
+            if neighbor.type == "Goal"
         ]
         feasible_goals.extend(
             (
@@ -637,12 +655,14 @@ class LTM(object):
     def add_point(p_node, perception):
         """Add a point to the p-node."""
         p_node.add_perception(perception, 1.0)
+        p_node.successful_activation = True
         rospy.loginfo("Added point in p-node " + p_node.ident + ": " + str(perception))
 
     @staticmethod
     def add_antipoint(p_node, perception):
         """Add an anti-point to the p-node."""
-        p_node.add_perception(perception, -0.3)
+        p_node.add_perception(perception, -1.0)
+        p_node.successful_activation = False
         rospy.loginfo("Added anti-point in p-node " + p_node.ident + ": " + str(perception))
 
     def update_pnodes_reward_basis(self, sensing, policy, goal, reward):
@@ -769,10 +789,14 @@ class LTM(object):
                 else:
                     changed_objects = []
                 for sensed_object in sensing1[sensor]:
-                    if (sensed_object not in sensing2[sensor]) and (sensed_object not in changed_objects):
+                    if (sensed_object not in sensing2[sensor]) and (
+                        sensed_object not in changed_objects
+                    ):
                         changed_objects.append(sensed_object)
                 for sensed_object in sensing2[sensor]:
-                    if (sensed_object not in sensing1[sensor]) and (sensed_object not in changed_objects):
+                    if (sensed_object not in sensing1[sensor]) and (
+                        sensed_object not in changed_objects
+                    ):
                         changed_objects.append(sensed_object)
                 if changed_objects:
                     relevant_sensors[sensor] = changed_objects
@@ -798,13 +822,13 @@ class LTM(object):
         """Prune every sensorization that didn't change."""
         new_stm = []
         relevant_sensors = {}
-        for (pre_sensing, policy, post_sensing) in stm:
+        for pre_sensing, policy, post_sensing in stm:
             self.find_changes(relevant_sensors, pre_sensing, post_sensing)
         _, _, last_sensing = stm[-1]
         self.find_changes(relevant_sensors, last_sensing, reset_sensing)
         if not relevant_sensors:
             rospy.logerr("Error: not relevant sensors found when filtering STM!!!")
-        for (old_sensing, policy, sensing) in stm:
+        for old_sensing, policy, sensing in stm:
             new_stm.append(
                 (
                     self.filter_sensing(old_sensing, relevant_sensors),
@@ -871,7 +895,7 @@ class LTM(object):
         rospy.loginfo(stm)
         candidate_vf = []
         # 1
-        for (old_sensing, policy, sensing) in stm:
+        for old_sensing, policy, sensing in stm:
             old_perception = self.create_perception(old_sensing)
             perception = self.create_perception(sensing)
             space = self.create_space(sensing)
@@ -965,8 +989,10 @@ class LTM(object):
 
     def update_status(self):
         """Update experiment information, and write / publish it."""
-        for file_object in self.files:
-            file_object.write()
+        for file in self.files:
+            if file.file_object is None:
+                file.write_header()
+            file.write()
         if self.current_goal is not None:
             goal_name = self.current_goal.ident
         else:
@@ -1034,7 +1060,9 @@ class LTM(object):
                             self.current_goal = max(self.goals, key=attrgetter("reward"))
                         sensing = reset_sensing
                         stm = []
-                    self.update_policies_to_test(policy=self.current_policy if not self.sensorial_changes() else None)
+                    self.update_policies_to_test(
+                        policy=self.current_policy if not self.sensorial_changes() else None
+                    )
                     self.update_status()
                     self.iteration += 1
         except rospy.ROSInterruptException:

@@ -17,7 +17,7 @@ from mdb_ltm.node import Node
 class Perception(Node):
     """A perception. Its content cames from a sensor or a redescription and it is stored in a memory."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, data=None, **kwargs):
         """Init attributes when a new object is created."""
         super(Perception, self).__init__(**kwargs)
         # Init data storage attributes
@@ -25,6 +25,7 @@ class Perception(Node):
         self.raw = 0.0
         self.old_value = 0.0
         self.value = 0.0
+        self.normalize_values = data
         # Init thread syncronizing stuff
         self.semaphore = None
         self.flag = None
@@ -46,11 +47,15 @@ class Perception(Node):
         """Create publishers and make subscriptions."""
         super().init_ros()
         rospy.logdebug("Subscribing to %s...", self.data_topic)
-        rospy.Subscriber(self.data_topic, self.data_message, callback=self.read_callback)
+        rospy.Subscriber(
+            self.data_topic, self.data_message, callback=self.read_callback
+        )
 
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""
-        rospy.logerr("Someone call calc_activation on a perception, this should not happen!!!")
+        rospy.logerr(
+            "Someone call calc_activation on a perception, this should not happen!!!"
+        )
 
     def read_callback(self, reading):
         """Get sensor data from ROS topic."""
@@ -66,34 +71,37 @@ class Perception(Node):
     def process_reading(self):
         """Process the new sensor reading."""
         self.value = []
-        self.value.append(dict(data=self.raw.data))
+        if isinstance(self.raw.data, list):
+            for perception in self.raw.data:
+                distance = (
+                    perception.distance - self.normalize_values["distance_min"]
+                ) / (
+                    self.normalize_values["distance_max"]
+                    - self.normalize_values["distance_min"]
+                )
+                angle = (perception.angle - self.normalize_values["angle_min"]) / (
+                    self.normalize_values["angle_max"]
+                    - self.normalize_values["angle_min"]
+                )
+                diameter = (
+                    perception.diameter - self.normalize_values["diameter_min"]
+                ) / (
+                    self.normalize_values["diameter_max"]
+                    - self.normalize_values["diameter_min"]
+                )
+                self.value.append(
+                    dict(
+                        distance=distance,
+                        angle=angle,
+                        diameter=diameter,
+                        # id=perception.id,
+                    )
+                )
+        else:
+            self.value.append(dict(data=self.raw.data))
 
     def read(self):
         """Obtain a new value for the sensor / redescription."""
         self.flag.wait()
         self.flag.clear()
         return self.value
-
-
-class ObjectListPerception(Perception):
-    """A perception corresponding with a list of objects."""
-
-    def __init__(self, data=None, **kwargs):
-        """Init attributes when a new object is created."""
-        self.normalize_values = data
-        super(ObjectListPerception, self).__init__(**kwargs)
-
-    def process_reading(self):
-        """Process the new sensor reading."""
-        self.value = []
-        for perception in self.raw.data:
-            distance = (perception.distance - self.normalize_values["distance_min"]) / (
-                self.normalize_values["distance_max"] - self.normalize_values["distance_min"]
-            )
-            angle = (perception.angle - self.normalize_values["angle_min"]) / (
-                self.normalize_values["angle_max"] - self.normalize_values["angle_min"]
-            )
-            diameter = (perception.diameter - self.normalize_values["diameter_min"]) / (
-                self.normalize_values["diameter_max"] - self.normalize_values["diameter_min"]
-            )
-            self.value.append(dict(distance=distance, angle=angle, diameter=diameter, id=perception.id))

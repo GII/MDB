@@ -4,6 +4,11 @@ MDB.
 https://github.com/GII/MDB
 """
 
+# Standard imports
+import os
+from sys import stderr
+from xmlrpc.client import ServerProxy
+
 # Library imports
 from numpy.lib.recfunctions import structured_to_unstructured
 
@@ -22,7 +27,14 @@ class PNode(Node):
 
     def __init__(self, space_class=None, space=None, **kwargs):
         """Initialize."""
-        self.spaces = [space if space else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")]
+        self.spaces = [
+            space
+            if space
+            else self.class_from_classname(space_class)(
+                ident=kwargs.get("ident") + " space"
+            )
+        ]
+        self.successful_activation = None
         super().__init__(**kwargs)
 
     def publish(self, message=None, first_time=False):
@@ -52,13 +64,22 @@ class PNode(Node):
             space = self.spaces[0].__class__()
             self.spaces.append(space)
         added_point_pos = space.add_point(perception, confidence)
-        point_message = self.data_message()
-        point_message.id = self.ident
-        if added_point_pos != -1:
-            point_message.command = "new"
-            point_message.point = self.spaces[0].members[added_point_pos]
-            point_message.confidence = self.spaces[0].memberships[added_point_pos]
-            self.data_publisher.publish(point_message)
+        rosmaster = os.environ.get("ROS_MASTER_URI")
+        if rosmaster:
+            try:
+                ServerProxy(rosmaster).getSystemState()
+            except ConnectionRefusedError:
+                print("ROS master is not running", file=stderr)
+            else:
+                point_message = self.data_message()
+                point_message.id = self.ident
+                if added_point_pos != -1:
+                    point_message.command = "new"
+                    point_message.point = self.spaces[0].members[added_point_pos]
+                    point_message.confidence = self.spaces[0].memberships[
+                        added_point_pos
+                    ]
+                    self.data_publisher.publish(point_message)
 
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""

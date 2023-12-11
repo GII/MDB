@@ -5,13 +5,6 @@ MDB.
 https://github.com/GII/MDB
 """
 
-# Python 2 compatibility imports
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import input
-
 import os
 import sys
 
@@ -41,7 +34,10 @@ def main():
     debug = input("Do you want to debug? (y/N): ")
     execute(input("Do you want to launch roscore? (y/N): "), roscore)
     execute(input("Do you want to launch the Gazebo simulator? (y/N): "), baxter_gazebo)
-    execute(input("Do you want to launch the Baxter joint trajectory action server? (y/N): "), baxter_action_server)
+    execute(
+        input("Do you want to launch the Baxter joint trajectory action server? (y/N): "),
+        baxter_action_server,
+    )
     execute(input("Do you want to launch MoveIt interface? (y/N): "), baxter_moveit)
     event_sim = input("Do you want to launch the event simulator? (y/N): ")
     if event_sim.lower() in ["yes", "y"]:

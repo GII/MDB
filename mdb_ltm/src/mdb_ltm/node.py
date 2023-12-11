@@ -6,6 +6,9 @@ https://github.com/GII/MDB
 
 # Standard imports
 import importlib
+import os
+from sys import stderr
+from xmlrpc.client import ServerProxy
 
 # Library imports
 import rospy
@@ -16,7 +19,14 @@ class Node(object):
     """An MDB element."""
 
     def __init__(
-        self, ident=None, node_type=None, threshold=0.1, ltm=None, ros_node_prefix=None, ros_data_prefix=None, **kwargs
+        self,
+        ident=None,
+        node_type=None,
+        threshold=0.1,
+        ltm=None,
+        ros_node_prefix=None,
+        ros_data_prefix=None,
+        **kwargs
     ):
         """Init attributes when a new object is created."""
         self.ident = ident
@@ -28,7 +38,14 @@ class Node(object):
         self.ltm = ltm
         self.ros_node_prefix = ros_node_prefix
         self.ros_data_prefix = ros_data_prefix
-        self.init_ros()
+        rosmaster = os.environ.get("ROS_MASTER_URI")
+        if rosmaster:
+            try:
+                ServerProxy(rosmaster).getSystemState()
+            except ConnectionRefusedError:
+                print("ROS master is not running", file=stderr)
+            else:
+                self.init_ros()
 
     @staticmethod
     def class_from_classname(class_name):
@@ -42,12 +59,22 @@ class Node(object):
         """Create publishers and make subscriptions."""
         if self.ros_node_prefix is not None:
             self.node_topic = rospy.get_param(self.ros_node_prefix + "_topic")
-            self.node_message = self.class_from_classname(rospy.get_param(self.ros_node_prefix + "_msg"))
-            self.node_publisher = rospy.Publisher(self.node_topic, self.node_message, latch=True, queue_size=0)
+            self.node_message = self.class_from_classname(
+                rospy.get_param(self.ros_node_prefix + "_msg")
+            )
+            self.node_publisher = rospy.Publisher(
+                self.node_topic, self.node_message, latch=True, queue_size=0
+            )
         if self.ros_data_prefix is not None:
             self.data_topic = rospy.get_param(self.ros_data_prefix + "_topic")
-            self.data_message = numpy_msg(self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_msg")))
-            self.data_publisher = rospy.Publisher(self.data_topic, self.data_message, latch=True, queue_size=0)
+            self.data_message = numpy_msg(
+                self.class_from_classname(
+                    rospy.get_param(self.ros_data_prefix + "_msg")
+                )
+            )
+            self.data_publisher = rospy.Publisher(
+                self.data_topic, self.data_message, latch=True, queue_size=0
+            )
         self.publish(first_time=True)
 
     def __getstate__(self):
@@ -99,5 +126,18 @@ class Node(object):
             if activation_value < self.threshold:
                 activation_value = 0.0
             self.activation.append(activation_value)
-            rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(activation_value))
-        self.publish()
+            rospy.logdebug(
+                self.type
+                + " activation for "
+                + self.ident
+                + " = "
+                + str(activation_value)
+            )
+        rosmaster = os.environ.get("ROS_MASTER_URI")
+        if rosmaster:
+            try:
+                ServerProxy(rosmaster).getSystemState()
+            except ConnectionRefusedError:
+                print("ROS master is not running", file=stderr)
+            else:
+                self.publish()

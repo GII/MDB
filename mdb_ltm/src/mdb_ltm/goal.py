@@ -31,7 +31,9 @@ class Goal(Node):
             self.new_from_configuration_file(data)
         else:
             self.space = (
-                space if space else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
+                space
+                if space
+                else self.class_from_classname(space_class)(ident=kwargs.get("ident") + " space")
             )
 
     def new_from_configuration_file(self, data):
@@ -81,7 +83,9 @@ class Goal(Node):
     def calc_activation(self, perception=None):
         """Calculate the new activation value."""
         if self.end:
-            if (self.ltm.iteration % self.period >= self.start) and (self.ltm.iteration % self.period <= self.end):
+            if (self.ltm.iteration % self.period >= self.start) and (
+                self.ltm.iteration % self.period <= self.end
+            ):
                 self.new_activation = 1.0
             else:
                 self.new_activation = 0.0
@@ -113,26 +117,28 @@ class Goal(Node):
         rospy.loginfo("Obtaining reward from " + self.ident + " => " + str(self.reward))
         return self.reward
 
-    @staticmethod
-    def object_in_close_box(perceptions):
+    def object_in_close_box(self, perceptions):
         """Check if there is an object inside of a box."""
         inside = False
         for box in perceptions["boxes"].raw.data:
-            if not LTMSim.object_too_far(box.distance, box.angle):
+            if not LTMSim.object_too_far(box.distance, box.angle, self.ltm.current_world):
                 for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (abs(box.angle - cylinder.angle) < 0.05)
+                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
+                        abs(box.angle - cylinder.angle) < 0.05
+                    )
                     if inside:
                         break
         return inside
 
-    @staticmethod
-    def object_in_far_box(perceptions):
+    def object_in_far_box(self, perceptions):
         """Check if there is an object inside of a box."""
         inside = False
         for box in perceptions["boxes"].raw.data:
-            if LTMSim.object_too_far(box.distance, box.angle):
+            if LTMSim.object_too_far(box.distance, box.angle, self.ltm.current_world):
                 for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (abs(box.angle - cylinder.angle) < 0.05)
+                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
+                        abs(box.angle - cylinder.angle) < 0.05
+                    )
                     if inside:
                         break
         return inside
@@ -144,7 +150,9 @@ class Goal(Node):
         if not Goal.object_held(perceptions):
             for cylinder in perceptions["cylinders"].raw.data:
                 dist_near, ang_near = LTMSim.calculate_closest_position(cylinder.angle)
-                together = (abs(cylinder.distance - dist_near) < 0.05) and (abs(cylinder.angle - ang_near) < 0.05)
+                together = (abs(cylinder.distance - dist_near) < 0.05) and (
+                    abs(cylinder.angle - ang_near) < 0.05
+                )
                 if together:
                     break
         return together
@@ -162,17 +170,24 @@ class Goal(Node):
     @classmethod
     def object_held(cls, perceptions):
         """Check if an object is held with one hand."""
-        return cls.object_held_with_left_hand(perceptions) or cls.object_held_with_right_hand(perceptions)
+        return cls.object_held_with_left_hand(perceptions) or cls.object_held_with_right_hand(
+            perceptions
+        )
 
     @staticmethod
     def object_held_before(perceptions):
         """Check if an object was held with one hand."""
-        return perceptions["ball_in_left_hand"].old_raw.data or perceptions["ball_in_right_hand"].old_raw.data
+        return (
+            perceptions["ball_in_left_hand"].old_raw.data
+            or perceptions["ball_in_right_hand"].old_raw.data
+        )
 
     @staticmethod
     def object_held_with_two_hands(perceptions):
         """Check if an object is held with two hands."""
-        return perceptions["ball_in_left_hand"].raw.data and perceptions["ball_in_right_hand"].raw.data
+        return (
+            perceptions["ball_in_left_hand"].raw.data and perceptions["ball_in_right_hand"].raw.data
+        )
 
     @staticmethod
     def ball_and_box_on_the_same_side(perceptions):
@@ -198,14 +213,17 @@ class Goal(Node):
                 break
         return pickable
 
-    @staticmethod
-    def object_was_approximated(perceptions):
+    def object_was_approximated(self, perceptions):
         """Check if an object was moved towards the robot's reachable area."""
         approximated = False
-        for old, cur in zip(perceptions["cylinders"].old_raw.data, perceptions["cylinders"].raw.data):
-            approximated = not LTMSim.object_too_far(cur.distance, cur.angle) and LTMSim.object_too_far(
-                old.distance, old.angle
-            )
+        for old, cur in zip(
+            perceptions["cylinders"].old_raw.data, perceptions["cylinders"].raw.data
+        ):
+            approximated = not LTMSim.object_too_far(
+                cur.distance,
+                cur.angle,
+                self.ltm.current_world,
+            ) and LTMSim.object_too_far(old.distance, old.angle, self.ltm.current_world)
             if approximated:
                 break
         return approximated
@@ -214,11 +232,23 @@ class Goal(Node):
     def hand_was_changed(perceptions):
         """Check if the held object changed from one hand to another."""
         return (
-            (perceptions["ball_in_left_hand"].raw.data and (not perceptions["ball_in_right_hand"].raw.data))
-            and ((not perceptions["ball_in_left_hand"].old_raw.data) and perceptions["ball_in_right_hand"].old_raw.data)
+            (
+                perceptions["ball_in_left_hand"].raw.data
+                and (not perceptions["ball_in_right_hand"].raw.data)
+            )
+            and (
+                (not perceptions["ball_in_left_hand"].old_raw.data)
+                and perceptions["ball_in_right_hand"].old_raw.data
+            )
         ) or (
-            ((not perceptions["ball_in_left_hand"].raw.data) and perceptions["ball_in_right_hand"].raw.data)
-            and (perceptions["ball_in_left_hand"].old_raw.data and (not perceptions["ball_in_right_hand"].old_raw.data))
+            (
+                (not perceptions["ball_in_left_hand"].raw.data)
+                and perceptions["ball_in_right_hand"].raw.data
+            )
+            and (
+                perceptions["ball_in_left_hand"].old_raw.data
+                and (not perceptions["ball_in_right_hand"].old_raw.data)
+            )
         )
 
     @staticmethod
@@ -228,7 +258,9 @@ class Goal(Node):
         for box in perceptions["boxes"].raw.data:
             if box.color == "skillet":
                 for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (abs(box.angle - cylinder.angle) < 0.05)
+                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
+                        abs(box.angle - cylinder.angle) < 0.05
+                    )
                     if inside:
                         if cylinder.color == "carrot":
                             carrot_inside = True
@@ -272,9 +304,13 @@ class GoalMotiven(Goal):
         if self.ros_data_prefix is None:
             self.ros_data_prefix = "/mdb/goal"
         self.activation_topic = rospy.get_param(self.ros_data_prefix + "_activation_topic")
-        self.activation_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_activation_msg"))
+        self.activation_message = self.class_from_classname(
+            rospy.get_param(self.ros_data_prefix + "_activation_msg")
+        )
         self.ok_topic = rospy.get_param(self.ros_data_prefix + "_ok_topic")
-        self.ok_message = self.class_from_classname(rospy.get_param(self.ros_data_prefix + "_ok_msg"))
+        self.ok_message = self.class_from_classname(
+            rospy.get_param(self.ros_data_prefix + "_ok_msg")
+        )
         rospy.logdebug("Subscribing to %s...", self.activation_topic)
         rospy.Subscriber(
             self.activation_topic,
@@ -329,8 +365,8 @@ class GoalObjectHeldLeftHand(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_held_with_left_hand(self.ltm.perceptions) and (
-                        not Goal.object_held_with_right_hand(self.ltm.perceptions)
+                    if self.object_held_with_left_hand(self.ltm.perceptions) and (
+                        not self.object_held_with_right_hand(self.ltm.perceptions)
                     ):
                         reward = activation
                         if reward > self.reward:
@@ -348,9 +384,9 @@ class GoalObjectHeldRightHand(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if (not Goal.object_held_with_left_hand(self.ltm.perceptions)) and Goal.object_held_with_right_hand(
-                        self.ltm.perceptions
-                    ):
+                    if (
+                        not self.object_held_with_left_hand(self.ltm.perceptions)
+                    ) and self.object_held_with_right_hand(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -367,9 +403,9 @@ class GoalObjectHeld(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_held(self.ltm.perceptions) and not Goal.object_held_with_two_hands(
+                    if self.object_held(
                         self.ltm.perceptions
-                    ):
+                    ) and not self.object_held_with_two_hands(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -386,7 +422,7 @@ class GoalObjectHeldWithTwoHands(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_held_with_two_hands(self.ltm.perceptions):
+                    if self.object_held_with_two_hands(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -403,7 +439,7 @@ class GoalChangedHands(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.hand_was_changed(self.ltm.perceptions):
+                    if self.hand_was_changed(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -421,9 +457,9 @@ class GoalFrontalObject(Goal):
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
                     if (
-                        Goal.object_pickable_withtwohands(self.ltm.perceptions)
-                        and (not Goal.object_in_close_box(self.ltm.perceptions))
-                        and (not Goal.object_with_robot(self.ltm.perceptions))
+                        self.object_pickable_withtwohands(self.ltm.perceptions)
+                        and (not self.object_in_close_box(self.ltm.perceptions))
+                        and (not self.object_with_robot(self.ltm.perceptions))
                     ):
                         reward = activation
                         if reward > self.reward:
@@ -441,7 +477,7 @@ class GoalObjectInCloseBox(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_in_close_box(self.ltm.perceptions):
+                    if self.object_in_close_box(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -458,7 +494,7 @@ class GoalObjectWithRobot(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_with_robot(self.ltm.perceptions):
+                    if self.object_with_robot(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -475,7 +511,7 @@ class GoalObjectInFarBox(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_in_far_box(self.ltm.perceptions):
+                    if self.object_in_far_box(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -492,7 +528,7 @@ class GoalApproximatedObject(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.object_was_approximated(self.ltm.perceptions):
+                    if self.object_was_approximated(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -509,7 +545,7 @@ class GoalVegetablesInSkillet(Goal):
         if self.ltm.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if Goal.food_in_skillet(self.ltm.perceptions):
+                    if self.food_in_skillet(self.ltm.perceptions):
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -529,19 +565,19 @@ class GoalObjectInBoxStandalone(Goal):
         # or perceptions should be flattened
         for activation in self.activation:
             if (self.ltm.sensorial_changes()) and isclose(activation, 1.0):
-                if Goal.object_in_close_box(perceptions) or Goal.object_in_far_box(perceptions):
+                if self.object_in_close_box(perceptions) or self.object_in_far_box(perceptions):
                     self.reward = 1.0
-                elif Goal.object_held(perceptions):
-                    if Goal.object_held_with_two_hands(perceptions):
+                elif self.object_held(perceptions):
+                    if self.object_held_with_two_hands(perceptions):
                         self.reward = 0.6
-                    elif Goal.ball_and_box_on_the_same_side(perceptions):
+                    elif self.ball_and_box_on_the_same_side(perceptions):
                         self.reward = 0.6
-                    elif not Goal.object_held_before(perceptions):
+                    elif not self.object_held_before(perceptions):
                         self.reward = 0.3
-                elif not Goal.object_held_before(perceptions):
-                    if Goal.object_pickable_withtwohands(perceptions):
+                elif not self.object_held_before(perceptions):
+                    if self.object_pickable_withtwohands(perceptions):
                         self.reward = 0.3
-                    elif Goal.object_was_approximated(perceptions):
+                    elif self.object_was_approximated(perceptions):
                         self.reward = 0.2
         rospy.loginfo("Obtaining reward from " + self.ident + " => " + str(self.reward))
         return self.reward
@@ -556,15 +592,15 @@ class GoalObjectWithRobotStandalone(Goal):
         perceptions = self.ltm.perceptions
         for activation in self.activation:
             if (self.ltm.sensorial_changes()) and isclose(activation, 1.0):
-                if Goal.object_with_robot(perceptions):
+                if self.object_with_robot(perceptions):
                     self.reward = 1.0
-                elif Goal.object_held(perceptions):
-                    if not Goal.object_held_before(perceptions):
+                elif self.object_held(perceptions):
+                    if not self.object_held_before(perceptions):
                         self.reward = 0.6
-                elif not Goal.object_held_before(perceptions):
-                    if Goal.object_pickable_withtwohands(perceptions):
+                elif not self.object_held_before(perceptions):
+                    if self.object_pickable_withtwohands(perceptions):
                         self.reward = 0.3
-                    elif Goal.object_was_approximated(perceptions):
+                    elif self.object_was_approximated(perceptions):
                         self.reward = 0.2
         rospy.loginfo("Obtaining reward from " + self.ident + " => " + str(self.reward))
         return self.reward

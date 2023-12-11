@@ -49,8 +49,28 @@ class LTMSim(object):
     """A very simple events-based simulator for LTM experiments."""
 
     # x = angle, y = distance
-    inner = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3))
-    outer = numpy.poly1d(numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3))
+    normal_inner = numpy.poly1d(
+        numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3)
+    )
+    inner = normal_inner
+    normal_outer = numpy.poly1d(
+        numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3)
+    )
+    short_outer = numpy.poly1d(
+        numpy.polyfit(
+            [0.0, 0.3925, 0.785, 1.1775, 1.57],
+            [1.15 * 0.8, 1.25 * 0.8, 1.325 * 0.8, 1.375 * 0.8, 1.375 * 0.8],
+            3,
+        )
+    )
+    large_outer = numpy.poly1d(
+        numpy.polyfit(
+            [0.0, 0.3925, 0.785, 1.1775, 1.57],
+            [1.15 * 1.2, 1.25 * 1.2, 1.325 * 1.2, 1.375 * 1.2, 1.375 * 1.2],
+            3,
+        )
+    )
+    outer = normal_outer
 
     def __init__(self):
         """Init attributes when a new object is created."""
@@ -74,9 +94,15 @@ class LTMSim(object):
         """Return True if the object is too close to the robot to be caught."""
         return dist < cls.inner(abs(ang))
 
+    # This is really ugly. Because it is used in some scripts, we need this is a class method,
+    # but it depends on the world...
     @classmethod
-    def object_too_far(cls, dist, ang):
+    def object_too_far(cls, dist, ang, world):
         """Return True if the object is out of range of the robot."""
+        if world == World.gripper_and_low_friction.name:
+            cls.outer = cls.normal_outer
+        if world == World.gripper_and_low_friction_large_arm.name:
+            cls.outer = cls.large_outer
         return dist > cls.outer(abs(ang))
 
     @classmethod
@@ -109,8 +135,12 @@ class LTMSim(object):
         return new_dist, 0
 
     @classmethod
-    def send_object_outofreach(cls, ang):
+    def send_object_outofreach(cls, ang, world):
         """Calculate the coordinates of the object when moving it out of reach."""
+        if world == World.gripper_and_low_friction.name:
+            cls.outer = cls.normal_outer
+        if world == World.gripper_and_low_friction_large_arm.name:
+            cls.outer = cls.large_outer
         dist = cls.outer(abs(ang))
         y_coord = dist * math.sin(ang)
         x_coord = dist * math.cos(ang)
@@ -144,7 +174,7 @@ class LTMSim(object):
         """Check if there is an object inside of a box."""
         inside = False
         for box in self.perceptions["boxes"].data:
-            if not LTMSim.object_too_far(box.distance, box.angle):
+            if not self.object_too_far(box.distance, box.angle, self.world):
                 inside = (abs(box.distance - dist) < 0.05) and (abs(box.angle - ang) < 0.05)
                 if inside:
                     break
@@ -154,7 +184,7 @@ class LTMSim(object):
         """Check if there is an object inside of a box."""
         inside = False
         for box in self.perceptions["boxes"].data:
-            if LTMSim.object_too_far(box.distance, box.angle):
+            if self.object_too_far(box.distance, box.angle, self.world):
                 inside = (abs(box.distance - dist) < 0.05) and (abs(box.angle - ang) < 0.05)
                 if inside:
                     break
@@ -163,8 +193,10 @@ class LTMSim(object):
     def object_with_robot(self, dist, ang):
         """Check if there is an object adjacent to the robot."""
         together = False
-        if (not self.perceptions["ball_in_left_hand"].data) and (not self.perceptions["ball_in_right_hand"].data):
-            dist_near, ang_near = LTMSim.calculate_closest_position(ang)
+        if (not self.perceptions["ball_in_left_hand"].data) and (
+            not self.perceptions["ball_in_right_hand"].data
+        ):
+            dist_near, ang_near = self.calculate_closest_position(ang)
             together = (abs(dist - dist_near) < 0.05) and (abs(ang - ang_near) < 0.05)
         return together
 
@@ -211,7 +243,7 @@ class LTMSim(object):
                 if (
                     (cylinder.distance == box.distance)
                     and (cylinder.angle == box.angle)
-                    and LTMSim.object_too_far(box.distance, box.angle)
+                    and self.object_too_far(box.distance, box.angle, self.world)
                 ):
                     self.perceptions["clean_area"].data = True
                     return True
@@ -234,9 +266,9 @@ class LTMSim(object):
             angle = numpy.arctan2(object_y, object_x)
             valid = not self.object_too_close(distance, angle)
             if not in_valid:
-                valid = valid and self.object_too_far(distance, angle)
+                valid = valid and self.object_too_far(distance, angle, self.world)
             if not out_valid:
-                valid = valid and not self.object_too_far(distance, angle)
+                valid = valid and not self.object_too_far(distance, angle, self.world)
             if valid:
                 for box in self.perceptions["boxes"].data:
                     if (abs(box.distance - distance) < 0.15) and (abs(box.angle - angle) < 0.15):
@@ -244,7 +276,9 @@ class LTMSim(object):
                         break
             if valid:
                 for cylinder in self.perceptions["cylinders"].data:
-                    if (abs(cylinder.distance - distance) < 0.15) and (abs(cylinder.angle - angle) < 0.15):
+                    if (abs(cylinder.distance - distance) < 0.15) and (
+                        abs(cylinder.angle - angle) < 0.15
+                    ):
                         valid = False
                         break
         return distance, angle
@@ -253,18 +287,6 @@ class LTMSim(object):
         """Randomize the state of the environment."""
         # Objects
         self.catched_object = None
-        if self.world == World.gripper_and_low_friction:
-            self.outer = numpy.poly1d(
-                numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3)
-            )
-        if self.world == World.gripper_and_low_friction_large_arm:
-            self.outer = numpy.poly1d(
-                numpy.polyfit(
-                    [0.0, 0.3925, 0.785, 1.1775, 1.57],
-                    [1.15 * 1.5, 1.25 * 1.5, 1.325 * 1.5, 1.375 * 1.5, 1.375 * 1.5],
-                    3,
-                )
-            )
         if self.world in [
             World.gripper_and_low_friction,
             World.no_gripper_and_high_friction,
@@ -276,9 +298,15 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = distance
             self.perceptions["boxes"].data[0].angle = angle
             self.perceptions["boxes"].data[0].diameter = 0.12
-            self.perceptions["boxes"].data[0].id = Item.box.value
+            # self.perceptions["boxes"].data[0].id = Item.box.value
             self.perceptions["cylinders"].data = []
-            distance, angle = self.random_position(in_valid=True, out_valid=True)
+            # UGLY HACK TO TEST ONE THING...
+            if self.world == World.gripper_and_low_friction_large_arm:
+                self.inner = self.normal_outer
+                distance, angle = self.random_position(in_valid=True, out_valid=True)
+                self.inner = self.normal_inner
+            else:
+                distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
             self.perceptions["cylinders"].data[0].angle = angle
@@ -286,7 +314,7 @@ class LTMSim(object):
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
-            self.perceptions["cylinders"].data[0].id = Item.cylinder.value
+            # self.perceptions["cylinders"].data[0].id = Item.cylinder.value
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
             object_distance = self.perceptions["cylinders"].data[0].distance
@@ -294,7 +322,7 @@ class LTMSim(object):
             if (
                 (World.gripper_and_low_friction.name in self.world.name)
                 and self.object_is_small(object_distance)
-                and (not self.object_too_far(object_distance, object_angle))
+                and (not self.object_too_far(object_distance, object_angle, self.world))
                 and (numpy.random.uniform() > 0.5)
             ):
                 self.catched_object = self.perceptions["cylinders"].data[0]
@@ -304,7 +332,9 @@ class LTMSim(object):
                 else:
                     self.perceptions["ball_in_left_hand"].data = False
                     self.perceptions["ball_in_right_hand"].data = True
-            if self.object_pickable_withtwohands(distance, angle) and (numpy.random.uniform() > 0.5):
+            if self.object_pickable_withtwohands(distance, angle) and (
+                numpy.random.uniform() > 0.5
+            ):
                 self.catched_object = self.perceptions["cylinders"].data[0]
                 self.perceptions["ball_in_left_hand"].data = True
                 self.perceptions["ball_in_right_hand"].data = True
@@ -315,13 +345,13 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = distance
             self.perceptions["boxes"].data[0].angle = angle
             self.perceptions["boxes"].data[0].diameter = 0.12
-            self.perceptions["boxes"].data[0].id = Item.box.value
+            # self.perceptions["boxes"].data[0].id = Item.box.value
             distance, angle = self.random_position(in_valid=False, out_valid=True)
             self.perceptions["boxes"].data.append(self.base_messages["boxes"]())
             self.perceptions["boxes"].data[1].distance = distance
             self.perceptions["boxes"].data[1].angle = angle
             self.perceptions["boxes"].data[1].diameter = 0.12
-            self.perceptions["boxes"].data[1].id = Item.box.value
+            # self.perceptions["boxes"].data[1].id = Item.box.value
             self.perceptions["cylinders"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=False)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
@@ -331,7 +361,7 @@ class LTMSim(object):
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
-            self.perceptions["cylinders"].data[0].id = Item.cylinder.value
+            # self.perceptions["cylinders"].data[0].id = Item.cylinder.value
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
         elif self.world == World.kitchen:
@@ -340,26 +370,26 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].distance = 0.605
             self.perceptions["boxes"].data[0].angle = 0.0
             self.perceptions["boxes"].data[0].diameter = 0.12
-            self.perceptions["boxes"].data[0].id = Item.skillet.value
+            # self.perceptions["boxes"].data[0].id = Item.skillet.value
             self.perceptions["cylinders"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
             self.perceptions["cylinders"].data[0].angle = angle
             self.perceptions["cylinders"].data[0].diameter = 0.03
-            self.perceptions["cylinders"].data[0].id = Item.carrot.value
+            # self.perceptions["cylinders"].data[0].id = Item.carrot.value
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[1].distance = distance
             self.perceptions["cylinders"].data[1].angle = angle
             self.perceptions["cylinders"].data[1].diameter = 0.03
-            self.perceptions["cylinders"].data[1].id = Item.eggplant.value
+            # self.perceptions["cylinders"].data[1].id = Item.eggplant.value
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[2].distance = distance
             self.perceptions["cylinders"].data[2].angle = angle
             self.perceptions["cylinders"].data[2].diameter = 0.03
-            self.perceptions["cylinders"].data[2].id = Item.orange.value
+            # self.perceptions["cylinders"].data[2].id = Item.orange.value
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
         else:
@@ -373,7 +403,7 @@ class LTMSim(object):
             for cylinder in self.perceptions["cylinders"].data:
                 if (
                     World.gripper_and_low_friction.name in self.world.name
-                    and (not self.object_too_far(cylinder.distance, cylinder.angle))
+                    and (not self.object_too_far(cylinder.distance, cylinder.angle, self.world))
                     and self.object_is_small(cylinder.diameter)
                 ):
                     if cylinder.angle > 0.0:
@@ -398,14 +428,18 @@ class LTMSim(object):
 
     def change_hands_policy(self):
         """Exchange an object from one hand to the other one."""
-        if self.perceptions["ball_in_left_hand"].data and (not self.perceptions["ball_in_right_hand"].data):
+        if self.perceptions["ball_in_left_hand"].data and (
+            not self.perceptions["ball_in_right_hand"].data
+        ):
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = True
             self.catched_object.angle = -self.catched_object.angle
             self.catched_object.distance = self.avoid_reward_by_chance(
                 self.catched_object.distance, self.catched_object.angle
             )
-        elif (not self.perceptions["ball_in_left_hand"].data) and self.perceptions["ball_in_right_hand"].data:
+        elif (not self.perceptions["ball_in_left_hand"].data) and self.perceptions[
+            "ball_in_right_hand"
+        ].data:
             self.perceptions["ball_in_left_hand"].data = True
             self.perceptions["ball_in_right_hand"].data = False
             self.catched_object.angle = -self.catched_object.angle
@@ -417,21 +451,26 @@ class LTMSim(object):
         """Sweep an object to the front of the robot."""
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
-                if not self.object_too_far(cylinder.distance, cylinder.angle):
+                if not self.object_too_far(cylinder.distance, cylinder.angle, self.world):
                     sign = numpy.sign(cylinder.angle)
-                    cylinder.distance, cylinder.angle = self.send_object_twohandsreachable(cylinder.distance)
-                    if (World.gripper_and_low_friction.name in self.world.name) and self.object_is_small(
-                        cylinder.diameter
-                    ):
+                    (
+                        cylinder.distance,
+                        cylinder.angle,
+                    ) = self.send_object_twohandsreachable(cylinder.distance)
+                    if (
+                        World.gripper_and_low_friction.name in self.world.name
+                    ) and self.object_is_small(cylinder.diameter):
                         cylinder.angle = -0.4 * sign
-                    cylinder.distance = self.avoid_reward_by_chance(cylinder.distance, cylinder.angle)
+                    cylinder.distance = self.avoid_reward_by_chance(
+                        cylinder.distance, cylinder.angle
+                    )
                     break
 
     def put_object_in_box_policy(self):
         """Put an object into the box."""
         if self.catched_object:
             for box in self.perceptions["boxes"].data:
-                if (not self.object_too_far(box.distance, box.angle)) and (
+                if (not self.object_too_far(box.distance, box.angle, self.world)) and (
                     ((box.angle > 0.0) and self.perceptions["ball_in_left_hand"].data)
                     or ((box.angle <= 0.0) and self.perceptions["ball_in_right_hand"].data)
                 ):
@@ -461,7 +500,7 @@ class LTMSim(object):
         """Throw an object."""
         if self.catched_object:
             for box in self.perceptions["boxes"].data:
-                if self.object_too_far(box.distance, box.angle) and (
+                if self.object_too_far(box.distance, box.angle, self.world) and (
                     (box.angle > 0.0 and self.perceptions["ball_in_left_hand"].data)
                     or (box.angle <= 0.0 and self.perceptions["ball_in_right_hand"].data)
                 ):
@@ -469,7 +508,7 @@ class LTMSim(object):
                     self.catched_object.angle = box.angle
                     # else:
                     #     self.catched_object.distance, self.catched_object.angle = self.send_object_outofreach(
-                    #         self.catched_object.angle
+                    #         self.catched_object.angle, self.world
                     #     )
                     self.perceptions["ball_in_left_hand"].data = False
                     self.perceptions["ball_in_right_hand"].data = False
@@ -480,7 +519,7 @@ class LTMSim(object):
         """Ask someone to bring the object closer to us."""
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
-                if self.object_too_far(cylinder.distance, cylinder.angle):
+                if self.object_too_far(cylinder.distance, cylinder.angle, self.world):
                     cylinder.distance = self.avoid_reward_by_chance(1.13, cylinder.angle)
                     break
 
@@ -489,12 +528,17 @@ class LTMSim(object):
         rospy.logdebug("Command received...")
         if data.command == "reset_world":
             self.world = World[data.world]
+            if self.world == World.gripper_and_low_friction:
+                self.outer = self.normal_outer
+            if self.world == World.gripper_and_low_friction_large_arm:
+                self.outer = self.large_outer
             self.random_perceptions()
             for ident, publisher in self.publishers.items():
                 rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
                 publisher.publish(self.perceptions[ident])
             if (not self.catched_object) and (
-                self.perceptions["ball_in_left_hand"].data or self.perceptions["ball_in_right_hand"].data
+                self.perceptions["ball_in_left_hand"].data
+                or self.perceptions["ball_in_right_hand"].data
             ):
                 rospy.logerr("Critical error: catched_object is empty and it should not!!!")
 
@@ -507,7 +551,8 @@ class LTMSim(object):
             rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
             publisher.publish(self.perceptions[ident])
         if (not self.catched_object) and (
-            self.perceptions["ball_in_left_hand"].data or self.perceptions["ball_in_right_hand"].data
+            self.perceptions["ball_in_left_hand"].data
+            or self.perceptions["ball_in_right_hand"].data
         ):
             rospy.logerr("Critical error: catched_object is empty and it should not!!!")
 
@@ -536,7 +581,9 @@ class LTMSim(object):
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.new_command_callback)
         topic = rospy.get_param(simulation["executed_policy_prefix"] + "_topic")
-        message = self.class_from_classname(rospy.get_param(simulation["executed_policy_prefix"] + "_msg"))
+        message = self.class_from_classname(
+            rospy.get_param(simulation["executed_policy_prefix"] + "_msg")
+        )
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.new_action_callback)
 

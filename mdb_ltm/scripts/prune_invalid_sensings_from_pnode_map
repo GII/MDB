@@ -5,40 +5,46 @@ MDB.
 https://github.com/GII/MDB
 """
 
+import re
 import argparse
-from mdb_simulator.ltm import LTMSim
+from mdb_simulator.simulator import LTMSim
 
 # TODO: replace add-hoc numbers
 
 
-def valid_perception(headers, perception):
+def valid_perception(headers, perception, world):
     """Check if a given perception is possible or not."""
     is_valid = True
     # Box is outside the table.
     if LTMSim.object_outside_table(
-        perception[headers["box_dist"]] * 1.7 + 0.2, perception[headers["box_ang"]] * 2.8 - 1.4
+        perception[headers["boxes_distance"]] * 1.7 + 0.2,
+        perception[headers["boxes_angle"]] * 2.8 - 1.4,
     ):
         is_valid = False
     # Ball is outside the table.
-    # if LTMSim.object_outside_table(perception[headers['ball_dist']]*1.7+0.2, perception[headers['ball_ang']]*2.8-1.4):
+    # if LTMSim.object_outside_table(perception[headers['cylinders_distance']]*1.7+0.2, perception[headers['cylinders_angle']]*2.8-1.4):
     #     is_valid = False
     # Box is too close.
-    if LTMSim.object_too_close(perception[headers["box_dist"]] * 1.7 + 0.2, perception[headers["box_ang"]] * 2.8 - 1.4):
+    if LTMSim.object_too_close(
+        perception[headers["boxes_distance"]] * 1.7 + 0.2,
+        perception[headers["boxes_angle"]] * 2.8 - 1.4,
+    ):
         is_valid = False
     # Ball is too close.
-    # if LTMSim.object_too_close(perception[headers['ball_dist']]*1.7+0.2, perception[headers['ball_ang']]*2.8-1.4):
+    # if LTMSim.object_too_close(perception[headers['cylinders_distance']]*1.7+0.2, perception[headers['cylinders_angle']]*2.8-1.4):
     #     is_valid = False
     # Ball is caught with the left hand, but the ball is too large, or is too far or it is on the right side.
     if (
         (perception[headers["ball_in_left_hand"]] == 1)
         and (perception[headers["ball_in_right_hand"]] == 0)
         and (
-            (perception[headers["ball_ang"]] * 2.8 - 1.4 <= 0)
-            or (not LTMSim.object_is_small(perception[headers["ball_size"]] * 0.15))
+            (perception[headers["cylinders_angle"]] * 2.8 - 1.4 <= 0)
+            or (not LTMSim.object_is_small(perception[headers["cylinders_diameter"]] * 0.15))
             or (
                 LTMSim.object_too_far(
-                    perception[headers["ball_dist"]] * 1.7 + 0.2,
-                    perception[headers["ball_ang"]] * 2.8 - 1.4,
+                    perception[headers["cylinders_distance"]] * 1.7 + 0.2,
+                    perception[headers["cylinders_angle"]] * 2.8 - 1.4,
+                    world,
                 )
             )
         )
@@ -49,12 +55,13 @@ def valid_perception(headers, perception):
         (perception[headers["ball_in_left_hand"]] == 0)
         and (perception[headers["ball_in_right_hand"]] == 1)
         and (
-            (perception[headers["ball_ang"]] * 2.8 - 1.4 > 0)
-            or (not LTMSim.object_is_small(perception[headers["ball_size"]] * 0.15))
+            (perception[headers["cylinders_angle"]] * 2.8 - 1.4 > 0)
+            or (not LTMSim.object_is_small(perception[headers["cylinders_diameter"]] * 0.15))
             or (
                 LTMSim.object_too_far(
-                    perception[headers["ball_dist"]] * 1.7 + 0.2,
-                    perception[headers["ball_ang"]] * 2.8 - 1.4,
+                    perception[headers["cylinders_distance"]] * 1.7 + 0.2,
+                    perception[headers["cylinders_angle"]] * 2.8 - 1.4,
+                    world,
                 )
             )
         )
@@ -66,13 +73,20 @@ def valid_perception(headers, perception):
         and (perception[headers["ball_in_right_hand"]] == 1)
         and (
             not LTMSim.object_pickable_withtwohands(
-                perception[headers["ball_dist"]] * 1.7 + 0.2,
-                perception[headers["ball_ang"]] * 2.8 - 1.4,
+                perception[headers["cylinders_distance"]] * 1.7 + 0.2,
+                perception[headers["cylinders_angle"]] * 2.8 - 1.4,
             )
         )
     ):
         is_valid = False
     return is_valid
+
+
+def prune_labels(headers):
+    pruned_headers = []
+    for header in headers:
+        pruned_headers.append(re.sub(r"\d_|_data", "", header))
+    return pruned_headers
 
 
 def prune_activation_map():
@@ -81,16 +95,18 @@ def prune_activation_map():
         description="This script delete lines from an activation map that correspond with sensings that cannot happen"
     )
     parser.add_argument("-f", "--file", help="File with the activation map")
+    parser.add_argument("-w", "--world", help="World name used")
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
     file_name = kwargs["file"]
-    if file_name is None:
+    world = kwargs["world"]
+    if file_name is None or world is None:
         parser.print_help()
     else:
         activation_map_file = open(file_name, "r")
         header_line = activation_map_file.readline()
-        print(header_line)
-        header_list = header_line.split()
+        print(header_line, end="")
+        header_list = prune_labels(header_line.split())
         # last position is activation value. Intervals in slices are right open.
         last = len(header_list) - 1
         headers = {}
@@ -99,8 +115,8 @@ def prune_activation_map():
         for line in activation_map_file:
             items = line.split()
             perception = [float(i) for i in items[2:last]]
-            if valid_perception(headers, perception):
-                print(line)
+            if valid_perception(headers, perception, world):
+                print(line, end="")
         activation_map_file.close()
 
 

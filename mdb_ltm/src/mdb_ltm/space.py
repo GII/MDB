@@ -48,7 +48,9 @@ class PointBasedSpace(Space):
         """
         if getattr(perception, "dtype", None):
             if base_dtype:
-                types = [(name, float) for name in perception.dtype.names if name in base_dtype.names]
+                types = [
+                    (name, float) for name in perception.dtype.names if name in base_dtype.names
+                ]
             elif self.parent_space:
                 types = [
                     (name, float)
@@ -123,39 +125,37 @@ class PointBasedSpace(Space):
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
         added_point_pos = -1
-        # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
-        if (confidence > 0.0) or (self.get_probability(perception) > 0.0):
-            if self.parent_space:
-                self.parent_space.add_point(perception, confidence)
-            # Check if we need to initialize the structured numpy array for storing points
-            if self.size == 0:
-                # This first point's dtype sets the space's dtype
-                # In order to relax this restriction, we will probably replace structured arrays with xarrays
-                self.members = self.create_structured_array(perception, None, self.real_size)
-                self.memberships = numpy.zeros(self.real_size)
-            # Create a new structured array for the new perception
-            candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
-            # Check if the perception is compatible with this space
-            if self.members.dtype != candidate_point.dtype:
-                rospy.logerr(
-                    "Trying to add a perception to a NOT compatible space!!!"
-                    "Please, take into account that, at the present time, sensor order in perception matters!!!"
-                )
-                raise RuntimeError("LTM operation cannot continue :-(")
+        if self.parent_space:
+            self.parent_space.add_point(perception, confidence)
+        # Check if we need to initialize the structured numpy array for storing points
+        if self.size == 0:
+            # This first point's dtype sets the space's dtype
+            # In order to relax this restriction, we will probably replace structured arrays with xarrays
+            self.members = self.create_structured_array(perception, None, self.real_size)
+            self.memberships = numpy.zeros(self.real_size)
+        # Create a new structured array for the new perception
+        candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+        # Check if the perception is compatible with this space
+        if self.members.dtype != candidate_point.dtype:
+            rospy.logerr(
+                "Trying to add a perception to a NOT compatible space!!!"
+                "Please, take into account that, at the present time, sensor order in perception matters!!!"
+            )
+            raise RuntimeError("LTM operation cannot continue :-(")
+        else:
+            # Copy the new perception on the structured array
+            self.copy_perception(candidate_point, 0, perception)
+            # Store the new perception if there is a place for it
+            if self.size < self.real_size:
+                self.members[self.size] = candidate_point
+                self.memberships[self.size] = confidence
+                added_point_pos = self.size
+                self.size += 1
             else:
-                # Copy the new perception on the structured array
-                self.copy_perception(candidate_point, 0, perception)
-                # Store the new perception if there is a place for it
-                if self.size < self.real_size:
-                    self.members[self.size] = candidate_point
-                    self.memberships[self.size] = confidence
-                    added_point_pos = self.size
-                    self.size += 1
-                else:
-                    # Points should be replaced when the P-node is full (may be some metric based on number of times
-                    # involved in get_probability)
-                    rospy.logdebug(self.ident + " full!")
-                    raise RuntimeError("LTM operation cannot continue :-(")
+                # Points should be replaced when the P-node is full (may be some metric based on number of times
+                # involved in get_probability)
+                rospy.logdebug(self.ident + " full!")
+                raise RuntimeError("LTM operation cannot continue :-(")
         return added_point_pos
 
     def get_probability(self, perception):
@@ -188,8 +188,22 @@ class PointBasedSpace(Space):
 
     def prune(self, space):
         """Prune sensors that are present only in this space or in the space given for comparison."""
-        common_sensors = [(name, float) for name in self.members.dtype.names if name in space.members.dtype.names]
+        common_sensors = [
+            (name, float) for name in self.members.dtype.names if name in space.members.dtype.names
+        ]
         self.members = require_fields(self.members, common_sensors)
+
+    def aging(self):
+        """Move towards zero the activation for every point or anti-point."""
+        for i in range(self.size):
+            if self.memberships[i] > 0.0:
+                self.memberships[i] -= 0.001
+            elif self.memberships[i] < 0.0:
+                self.memberships[i] += 0.001
+            # This is ugly as it can lead to holes (points that are not really points or antipoints any longer)
+            # If this works well, an index structure to reuse these holes should be implemented.
+            if numpy.isclose(self.memberships[i], 0.0):
+                self.memberships[i] = 0.0
 
 
 class ClosestPointBasedSpace(PointBasedSpace):
@@ -209,7 +223,9 @@ class ClosestPointBasedSpace(PointBasedSpace):
         # Copy the new perception on the structured array
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
-        members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
+        members = structured_to_unstructured(
+            self.members[0 : self.size][list(candidate_point.dtype.names)]
+        )
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
         # Calculate the activation value
@@ -219,7 +235,11 @@ class ClosestPointBasedSpace(PointBasedSpace):
             activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
         else:
             activation = -1
-        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
+        return (
+            min(activation, self.parent_space.get_probability(perception))
+            if self.parent_space
+            else activation
+        )
 
 
 class CentroidPointBasedSpace(PointBasedSpace):
@@ -245,7 +265,9 @@ class CentroidPointBasedSpace(PointBasedSpace):
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
         # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
-        members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
+        members = structured_to_unstructured(
+            self.members[0 : self.size][list(candidate_point.dtype.names)]
+        )
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
         # Calculate the activation value
@@ -264,7 +286,11 @@ class CentroidPointBasedSpace(PointBasedSpace):
                 activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
             else:
                 activation = -1
-        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
+        return (
+            min(activation, self.parent_space.get_probability(perception))
+            if self.parent_space
+            else activation
+        )
 
 
 class NormalCentroidPointBasedSpace(PointBasedSpace):
@@ -291,7 +317,9 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
         # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
-        members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
+        members = structured_to_unstructured(
+            self.members[0 : self.size][list(candidate_point.dtype.names)]
+        )
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
         # Calculate the activation value
@@ -315,7 +343,8 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
                 )
             )
             if (dist_newpoint_centroid < dist_antipoint_centroid) or (
-                numpy.random.uniform() < dist_antipoint_centroid * separation / dist_newpoint_centroid
+                numpy.random.uniform()
+                < dist_antipoint_centroid * separation / dist_newpoint_centroid
             ):
                 distances = distances[memberships > 0.0]
                 pos_closest = numpy.argmin(distances)
@@ -323,7 +352,11 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
                 activation = memberships[pos_closest] / (distances[pos_closest] + 1.0)
             else:
                 activation = -1
-        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
+        return (
+            min(activation, self.parent_space.get_probability(perception))
+            if self.parent_space
+            else activation
+        )
 
 
 class DynamicMembershipPointBasedSpace(PointBasedSpace):
@@ -345,7 +378,9 @@ class DynamicMembershipPointBasedSpace(PointBasedSpace):
             self.copy_perception(new_point, 0, perception)
             # Create views on the structured arrays so they can be used in calculations
             # Be ware, if new_point.dtype is not equal to self.members.dtype, members is a new array!!!
-            members = structured_to_unstructured(self.members[0 : self.size][list(new_point.dtype.names)])
+            members = structured_to_unstructured(
+                self.members[0 : self.size][list(new_point.dtype.names)]
+            )
             point = structured_to_unstructured(new_point)
             memberships = self.memberships[0 : self.size]
             # Update memberships if necessary
@@ -360,11 +395,14 @@ class DynamicMembershipPointBasedSpace(PointBasedSpace):
                     if closest_point_dist < closest_antipoint_dist:
                         memberships[closest_point_pos] = 1.0
                     else:
-                        memberships[closest_antipoint_pos] *= 0.8
-                elif closest_point_dist < closest_antipoint_dist:
-                    memberships[closest_point_pos] *= 0.8
+                        memberships[closest_antipoint_pos] += 0.5
                 else:
-                    memberships[closest_antipoint_pos] = -0.3
+                    if closest_antipoint_dist < closest_point_dist:
+                        memberships[closest_antipoint_pos] = -1.0
+                    else:
+                        memberships[closest_point_pos] -= 0.5
+                # Age points
+                self.aging()
         return super().add_point(perception, confidence)
 
     def get_probability(self, perception):
@@ -375,7 +413,9 @@ class DynamicMembershipPointBasedSpace(PointBasedSpace):
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
         # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
-        members = structured_to_unstructured(self.members[0 : self.size][list(candidate_point.dtype.names)])
+        members = structured_to_unstructured(
+            self.members[0 : self.size][list(candidate_point.dtype.names)]
+        )
         point = structured_to_unstructured(candidate_point)
         memberships = self.memberships[0 : self.size]
         # Calculate the activation value
@@ -389,7 +429,9 @@ class DynamicMembershipPointBasedSpace(PointBasedSpace):
             closest_point_val = memberships[closest_point_pos]
             closest_antipoint_val = memberships[closest_antipoint_pos]
             tot_distance = closest_point_dist + closest_antipoint_dist
-            act = (closest_antipoint_val - closest_point_val) * closest_point_dist / tot_distance + closest_point_val
+            act = (
+                closest_antipoint_val - closest_point_val
+            ) * closest_point_dist / tot_distance + closest_point_val
         else:
             act = 1.0
         return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
@@ -440,4 +482,8 @@ class DNNSpace(Space):
             activation = prediction["probabilities"][1]
         else:
             activation = -1
-        return min(activation, self.parent_space.get_probability(perception)) if self.parent_space else activation
+        return (
+            min(activation, self.parent_space.get_probability(perception))
+            if self.parent_space
+            else activation
+        )

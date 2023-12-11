@@ -14,7 +14,9 @@ def generate_grouped_statistics():
     parser = argparse.ArgumentParser(
         description="This script calculate several statistics for LTM experiments using bunchs of iterations"
     )
-    parser.add_argument("-f", "--file", help="File with statistics for every iteration of an experiment")
+    parser.add_argument(
+        "-f", "--file", help="File with statistics for every iteration of an experiment"
+    )
     parser.add_argument(
         "-n",
         "--iterations",

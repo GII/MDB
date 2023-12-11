@@ -19,10 +19,14 @@ LTM:
             class: mdb_ltm.file.FileGoodness
             file: goodness.txt
         -
+            id: pnodes_success
+            class: mdb_ltm.file.FilePNodesSuccess
+            file: pnodes_success.txt
+        -
             id: pnodes
             class: mdb_ltm.file.FilePNodes
             file: pnodes.txt
-            data: 1000
+            data: 100
         -
             id: goals
             class: mdb_ltm.file.FileGoals
@@ -73,7 +77,7 @@ LTM:
         Perception:
             -
                 id: cylinders
-                class: mdb_ltm.perception.ObjectListPerception
+                class: mdb_ltm.perception.Perception
                 data:
                     distance_min: 0.2
                     distance_max: 1.9
@@ -84,7 +88,7 @@ LTM:
                 ros_data_prefix: /mdb/baxter/sensor/cylinders
             -
                 id: boxes
-                class: mdb_ltm.perception.ObjectListPerception
+                class: mdb_ltm.perception.Perception
                 data:
                     distance_min: 0.2
                     distance_max: 1.9
