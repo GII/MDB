@@ -161,6 +161,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   nodes/mdb_ltm
   scripts/generate_grouped_statistics
+  scripts/generate_grouped_success_statistics
   scripts/generate_pnode_map
   scripts/generate_pnode_map_from_dnn
   scripts/generate_pnode_map_only_valid_perceptions
