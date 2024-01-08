@@ -8,7 +8,7 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
 
-from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
+from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode, SaveConfig
 from core.service_client import ServiceClient
 
 from core.config import saved_data_dir
@@ -73,6 +73,13 @@ class ExecutionNode(Node):
             'execution_node_' + str(self.id) + '/load',
             self.load_node
         )
+
+        # Read All Nodes service for the commander node
+        self.read_all_nodes = self.create_service(
+            ReadNode,
+            'execution_node_' + str(self.id) + '/read_all_nodes',
+            self.read_all_nodes
+        )
     
     def create_node(self, request, response):
         """
@@ -95,9 +102,7 @@ class ExecutionNode(Node):
             parameters = yaml.safe_load(yaml_parameters)
         else:
             parameters = {}
-
-        print("params: " + str(parameters))
-        
+      
         self.get_logger().info('Creating new ' + str(class_name) + ' ' + str(name) + '...')
 
         new_node = class_from_classname(class_name)(name, **parameters)
@@ -206,51 +211,26 @@ class ExecutionNode(Node):
             self.get_logger().info('Loaded node: ' + str(name))
             response.loaded = True
         return response
+    
+    def read_all_nodes(self, request, response):
+        """
+        Returns a list of nodes with the data of all the nodes in this execution node.
+        """
 
-    # def handle_command(self, request, response):
-    #     """
-    #     Handle command requests.
+        self.get_logger().info(f'Reading all the nodes from execution node {self.id}')
 
-    #     :param request: The command request.
-    #     :type request: core_interfaces.srv.SendToExecutor_Request
-    #     :param response: The response to the command.
-    #     :type response: core_interfaces.srv.SendToExecutor_Response
-    #     :return: The response to the command.
-    #     :rtype: core_interfaces.srv.SendToExecutor_Response
-    #     """        
-    #     command = str(request.command)
-    #     name = str(request.name)
+        nodes = []
+
+        for name in self.nodes:
             
-    #     self.get_logger().info('Received request: ' + command)
-        
-    #     if(command == 'create'):
-    #         type = str(request.type)
-    #         self.create_node(name, type)
-    #         response.msg = 'Node created: ' + name
-        
-    #     elif (command == 'read'):
-    #         read_node = self.read_node(name)
-    #         if read_node is not None:
-    #             response.msg = str(read_node)
-    #         else:
-    #             response.msg = 'Couldnt read node ' + name + '.'
+            node = self.nodes.get(name)
+            nodes.append(node.get_data())
 
-    #     elif (command == 'delete'):
-    #         self.delete_node(name)
-    #         response.msg = 'Node deleted: ' + name
+        response.data = str(nodes)
 
-    #     elif (command == 'save'):
-    #         self.save_node(name)
-    #         response.msg = 'Node saved: ' + name
+        print(response.data)
 
-    #     elif (command == 'load'):
-    #         self.load_node(name)
-    #         response.msg = 'Node loaded: ' + name
-    #     else:
-    #         self.get_logger().info('Wrong command.')
-    #         response.msg = 'Wrong request: ' + command
-    #     return response
-
+        return response
     
 # single threaded executor
 def main(args=None):

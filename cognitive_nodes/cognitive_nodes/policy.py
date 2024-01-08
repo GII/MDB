@@ -4,7 +4,9 @@ from core.cognitive_node import CognitiveNode
 import random
 
 from std_msgs.msg import Int64
+from core.service_client import ServiceClient
 from cognitive_node_interfaces.srv import SetActivation, Execute
+from cognitive_node_interfaces.srv import GetActivation
 
 class Policy(CognitiveNode):
     """
@@ -44,11 +46,14 @@ class Policy(CognitiveNode):
 
         This activation value is the maximum of the connected c-nodes.
         """
-        cnodes = [node for node in self.neighbors if node.type == "CNode"]
+        cnodes = [node for node in self.neighbors if node["type"] == "CNode"]
         if cnodes:
-            cnode = max(cnodes, key=attrgetter("activation"))
-            self.perception = cnode.perception
-            self.activation = cnode.activation
+            for cnode in cnodes:
+                service_name = 'cognitive_node/' + str(cnode["name"]) + '/get_activation'
+                get_activation_client = ServiceClient(GetActivation, service_name)
+                response = get_activation_client.send_request()
+                activation = response.activation
+
         else:
             self.perception = []
             self.activation = 0.0

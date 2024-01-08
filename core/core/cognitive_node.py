@@ -33,9 +33,9 @@ class CognitiveNode(ABC, Node):
         self.activation = 0.0
 
         # self.threshold = threshold
-        self.neighbors = []
+        self.neighbors = [] # List of dics, like [{"name": "pnode1", "node_type": "PNode"}, {"name": "cnode1", "node_type": "CNode"}]
 
-        self.activation_topic = False
+        self.publish_activation = False
         self.last_activation = 0.0
 
         # Publish node activation topic (when SetActivationTopic is true)
@@ -77,12 +77,17 @@ class CognitiveNode(ABC, Node):
         :return: A dictionary with node data.
         :rtype: dict
         """
+
         node_data = self.__dict__.copy()
-        keys_to_delete = [key for key in node_data.keys() if key.startswith('_') or 'service' in key]
+        keys_to_delete = [key for key in node_data.keys() if key.startswith('_') or 'service' in key or 'topic' in key]
         for key in keys_to_delete:
             del node_data[key]
-        del node_data['subscription']
-        # del node_data['calculate_activations_service']
+
+        optional_keys_to_delete = ['subscription']
+        for key in optional_keys_to_delete:
+            if key in node_data:
+                del node_data[key]
+
         return node_data
     
     def register_in_LTM(self, data_dic):
@@ -128,9 +133,9 @@ class CognitiveNode(ABC, Node):
         activation_topic = request.activation_topic
         self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
         if activation_topic:
-            self.activation_topic = True
+            self.publish_activation = True
         else:
-            self.activation_topic = False
+            self.publish_activation = False
         response.activation_topic = activation_topic
         return response
     

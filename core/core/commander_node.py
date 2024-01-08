@@ -4,11 +4,12 @@ import rclpy
 import yaml
 import random
 from rclpy.node import Node
+from core.config import saved_data_dir
 
 from core.service_client import ServiceClient
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
-from core_interfaces.srv import SaveConfig, LoadConfig
+from core_interfaces.srv import SaveConfig, LoadConfig, SaveConfig
 
 class CommanderNode(Node):
     """
@@ -94,6 +95,7 @@ class CommanderNode(Node):
         """
         name = str(request.name)
         class_name = str(request.class_name)
+        parameters = str(request.parameters)
         self.get_logger().info('Creating new ' + class_name + ' ' + name + '...')
         if self.node_exists(name):
             self.get_logger().info('Node ' + str(name) + ' already exists.')
@@ -102,7 +104,7 @@ class CommanderNode(Node):
            
             ex = self.get_lowest_load_executor()
             
-            executor_response = self.send_create_request_to_executor(ex, name, class_name)
+            executor_response = self.send_create_request_to_executor(ex, name, class_name, parameters)
             
             self.register_node(ex, name)
             
@@ -262,7 +264,6 @@ class CommanderNode(Node):
                     else:
                         parameters = ''
                     self.get_logger().info('Creating new ' + class_name + ' ' + name + '...')
-                    print("parameters: " + str(parameters))
 
                     if self.node_exists(name):
                         self.get_logger().info('Node ' + str(name) + ' already exists.')
@@ -281,9 +282,37 @@ class CommanderNode(Node):
                    
         return response
       
-    # TODO: implement this method
     def save_config(self, request, response):
-        pass
+        response.saved = True
+        
+        file_name = str(request.file)
+        file_path = os.path.join(saved_data_dir, file_name + '.yaml')
+
+        data_to_save = {}
+        nodes_dict = {'Perception': [], 'Need': [], 'Goal': [], 'Drive': [], 'UtilityModel': [], 'WorldModel': [], 'Policy': [], 'PNode': []}
+        data_to_save['LTM'] = {'Nodes': nodes_dict}
+
+        self.get_logger().info(f'Saving config to {file_path}')
+
+        node_list = []
+
+        for ex in self.executor_ids:
+            self.get_logger().info(f'Reading data from execution node {ex}')
+            executor_response = self.send_read_all_nodes_request_to_executor(ex)
+            self.get_logger().info(f'Data from execution node {ex} read.')
+
+            node_list.extend(yaml.load(executor_response.data))
+
+        self.get_logger().info(f'Node list: {node_list}')
+
+        for node in node_list:
+            data_to_save['LTM']['Nodes'][node['node_type']].append(node)
+      
+        with open(file_path, 'w') as file:
+            yaml.dump(data_to_save, file)
+
+        return response
+
     
     # TODO: implement this method with load balancing
     def get_lowest_load_executor(self):
@@ -434,6 +463,13 @@ class CommanderNode(Node):
         load_client = ServiceClient(LoadNode, service_name)
         executor_response = load_client.send_request(name=name)
         load_client.destroy_node()
+        return executor_response
+
+    def send_read_all_nodes_request_to_executor(self, executor_id):
+        service_name = 'execution_node_' + str(executor_id) + '/read_all_nodes'
+        read_all_nodes_client = ServiceClient(ReadNode, service_name)
+        executor_response = read_all_nodes_client.send_request()
+        read_all_nodes_client.destroy_node()
         return executor_response
 
 def main(args=None):
