@@ -103,14 +103,14 @@ class ExecutionNode(Node):
         else:
             parameters = {}
       
-        self.get_logger().info('Creating new ' + str(class_name) + ' ' + str(name) + '...')
+        self.get_logger().info(f'Creating new {class_name} {name}...')
 
         new_node = class_from_classname(class_name)(name, **parameters)
 
         self.nodes[name] = new_node
         self.executor.add_node(new_node)
 
-        self.get_logger().info('Added node: ' + str(new_node.get_name()))
+        self.get_logger().info(f'Added node: {name}.')
         response.created = True
         return response
 
@@ -125,7 +125,7 @@ class ExecutionNode(Node):
         """
         name = str(request.name)
         
-        self.get_logger().info('Reading node: ' + name + '...')
+        self.get_logger().info(f'Reading node: {name}...')
 
         if name in self.nodes:
             response.data = str(self.nodes.get(name))
@@ -142,16 +142,17 @@ class ExecutionNode(Node):
         """
         name = str(request.name)
 
-        self.get_logger().info('Deleting node: ' + name + '...')
+        self.get_logger().info(f'Deleting node: {name}...')
 
         if name in self.nodes:
             node_to_delete = self.nodes.pop(name)
             self.executor.remove_node(node_to_delete)
+            # node_to_delete.delete_from_LTM()
             node_to_delete.destroy_node()
-            self.get_logger().info('Deleted node: ' + name + '.')
+            self.get_logger().info(f'Deleted node: {name}.')
             response.deleted = True
         else:
-            self.get_logger().info('Node with name ' + name + ' not found.')
+            self.get_logger().info(f'Node {name} not found.')
             response.deleted = False
         return response
 
@@ -165,7 +166,7 @@ class ExecutionNode(Node):
 
         name = str(request.name)
         
-        self.get_logger().info('Saving node: ' + name + '...')
+        self.get_logger().info(f'Saving node: {name} ...')
 
         node_to_save = self.nodes.get(name)
         
@@ -174,14 +175,14 @@ class ExecutionNode(Node):
             data_to_save = node_to_save.get_data()
             with open(state_file, 'w') as file:
                 yaml.dump(data_to_save, file)
-            self.get_logger().info('Saved node: ' + name + '.')
+            self.get_logger().info(f'Saved node {name}.')
             response.saved = True
         else:
-            self.get_logger().info('Node with name ' + name + ' not found.')         
+            self.get_logger().info(f'Node {name} not found.')         
             response.saved = False
         return response
 
-    def load_node(self, request, response): # TODO: Check that it doesn't already exists a node with that name
+    def load_node(self, request, response):
         """
         Load the state of a node from a YAML file and create the node.
 
@@ -192,27 +193,37 @@ class ExecutionNode(Node):
         """        
         
         name = str(request.name)
+        response.loaded = False
 
-        self.get_logger().info('Loading node: ' + name + '...')
+        node_to_load = self.nodes.get(name)
+        
+        if node_to_load is None:
 
-        state_file = os.path.join(saved_data_dir, name + '.yaml')
-        if os.path.exists(state_file):
-            with open(state_file, 'r') as file:
-                data = yaml.load(file, Loader=yaml.FullLoader)
-            
-            class_name = data['class_name']
-            del data['node_type']
-            
-            loaded_node = class_from_classname(class_name)(**data)
+            self.get_logger().info(f'Loading node: {name} ...')
 
-            self.nodes[name] = loaded_node
-            self.executor.add_node(loaded_node)
+            state_file = os.path.join(saved_data_dir, name + '.yaml')
+            if os.path.exists(state_file):
+                with open(state_file, 'r') as file:
+                    data = yaml.load(file, Loader=yaml.FullLoader)
+                
+                class_name = data['class_name']
+                del data['node_type']
+                
+                loaded_node = class_from_classname(class_name)(**data)
 
-            self.get_logger().info('Loaded node: ' + str(name))
-            response.loaded = True
+                self.nodes[name] = loaded_node
+                self.executor.add_node(loaded_node)
+
+                self.get_logger().info(f'Loaded node: {name}')
+                response.loaded = True
+            else:
+                self.get_logger().info(f"File {state_file} not found. Couldn't load node.")
+        else:
+            self.get_logger().info(f"Node {name} already exists. Couldn't load node.")
+
         return response
     
-    def read_all_nodes(self, request, response):
+    def read_all_nodes(self, _, response):
         """
         Returns a list of nodes with the data of all the nodes in this execution node.
         """
@@ -227,8 +238,6 @@ class ExecutionNode(Node):
             nodes.append(node.get_data())
 
         response.data = str(nodes)
-
-        print(response.data)
 
         return response
     

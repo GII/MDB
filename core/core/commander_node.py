@@ -7,7 +7,6 @@ from rclpy.node import Node
 from core.config import saved_data_dir
 
 from core.service_client import ServiceClient
-from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 from core_interfaces.srv import SaveConfig, LoadConfig, SaveConfig
 
@@ -72,7 +71,7 @@ class CommanderNode(Node):
         self.load_config_service = self.create_service(
             LoadConfig,
             'commander/load_config',
-            self.load_config
+            self.load_experiment
         )
 
         # Save Config Service for the user
@@ -96,10 +95,13 @@ class CommanderNode(Node):
         name = str(request.name)
         class_name = str(request.class_name)
         parameters = str(request.parameters)
-        self.get_logger().info('Creating new ' + class_name + ' ' + name + '...')
+
+        self.get_logger().info(f'Creating new {class_name} {name}...')
+        
         if self.node_exists(name):
-            self.get_logger().info('Node ' + str(name) + ' already exists.')
+            self.get_logger().info(f'Node {name} already exists.')
             response.created = False
+        
         else:
            
             ex = self.get_lowest_load_executor()
@@ -108,7 +110,7 @@ class CommanderNode(Node):
             
             self.register_node(ex, name)
             
-            self.get_logger().info('Node ' + str(name) + ' created in executor ' + str(ex) + '.')
+            self.get_logger().info(f'Node {name} created in executor {ex}.')
 
             response = executor_response
         return response
@@ -126,18 +128,20 @@ class CommanderNode(Node):
         """        
         name = str(request.name)
         
-        self.get_logger().info('Reading node ' + name + '...')
+        self.get_logger().info(f'Reading node {name}...')
 
         if not self.node_exists(name):
             response.data = ''
-            self.get_logger().info('Node ' + name + ' does not exist.')
+            self.get_logger().info(f'Node {name} does not exist.')
         
         else:
             ex = self.get_executor_for_node(name)
 
             executor_response = self.send_read_request_to_executor(ex, name)
 
-            self.get_logger().info('Read node ' + str(name) + ': ' + str(executor_response.data) + '.')
+            node_data = yaml.load(executor_response.data)
+
+            self.get_logger().info(f'Read node {name}: {node_data}.')
 
             response = executor_response
         return response
@@ -155,7 +159,6 @@ class CommanderNode(Node):
         """        
         name = str(request.name)
         class_name = str(request.class_name)
-
         self.get_logger().info(f"Deleting node {name}...")
         
         if not self.node_exists(name):
@@ -168,11 +171,6 @@ class CommanderNode(Node):
             ex = self.get_executor_for_node(name)
 
             executor_response = self.send_delete_request_to_executor(ex, name, class_name)
-
-            service_name = 'ltm_0' + '/delete_node' # TODO: choose the ltm ID
-            delete_node_client = ServiceClient(DeleteNodeFromLTM, service_name)
-            ltm_response = delete_node_client.send_request(name=name)
-            delete_node_client.destroy_node()
           
             self.remove_node_from_executor(ex, name)
             self.get_logger().info(f"Node {name} deleted from executor {ex}")
@@ -195,7 +193,7 @@ class CommanderNode(Node):
         name = str(request.name)
                 
         if not self.node_exists(name):
-            self.get_logger().info('Node ' + str(name) + ' does not exist.')
+            self.get_logger().info(f'Node {name} does not exist.')
             response.saved = False
         
         else:
@@ -203,7 +201,7 @@ class CommanderNode(Node):
 
             executor_response = self.send_save_request_to_executor(ex, name)
             if executor_response.saved:
-                self.get_logger().info('Node ' + str(name) + ' saved.')
+                self.get_logger().info(f'Node {name} saved.')
 
             response = executor_response
 
@@ -223,6 +221,7 @@ class CommanderNode(Node):
         name = str(request.name)
 
         if self.node_exists(name):
+            self.get_logger().info(f'Node {name} already exists.')
             response.loaded = False
         
         else:
@@ -234,24 +233,26 @@ class CommanderNode(Node):
             self.register_node(ex, name)
             
             if executor_response.loaded:
-                self.get_logger().info('Node ' + str(name) + ' loaded in executor ' + str(ex) + '.')
+                self.get_logger().info(f'Node {name} loaded in executor {ex}.')
 
             response = executor_response
                     
         return response
     
-    def load_config(self, request, response):
+    def load_experiment(self, request, response):
 
-        config_file = str(request.file)
+        experiment_file = str(request.file)
 
-        if not os.path.exists(config_file):
+        if not os.path.exists(experiment_file):
+
+            self.get_logger().info(f"Couldn't load experiment. File {experiment_file} not found")
             response.loaded = False
         
         else:
             
-            with open(config_file, 'r') as file:
+            with open(experiment_file, 'r') as file:
                 data = yaml.load(file, Loader=yaml.FullLoader)
-            self.get_logger().info('Loading file...')
+            self.get_logger().info(f'Loading file {experiment_file}')
 
             nodes = data['LTM']['Nodes']
             
@@ -263,10 +264,10 @@ class CommanderNode(Node):
                         parameters = str(node['parameters'])
                     else:
                         parameters = ''
-                    self.get_logger().info('Creating new ' + class_name + ' ' + name + '...')
+                    self.get_logger().info(f"Loading {class_name} {name}...")
 
                     if self.node_exists(name):
-                        self.get_logger().info('Node ' + str(name) + ' already exists.')
+                        self.get_logger().info(f"Node {name} already exists.")
 
                     else:
                     
@@ -276,7 +277,7 @@ class CommanderNode(Node):
                         
                         self.register_node(ex, name)
                         
-                        self.get_logger().info('Node ' + str(name) + ' created in executor ' + str(ex) + '.')
+                        self.get_logger().info(f'Node {name} created in executor {ex}.')
 
             response.loaded = True
                    

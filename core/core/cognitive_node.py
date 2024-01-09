@@ -3,7 +3,7 @@ import yaml
 from rclpy.node import Node
 
 from core.service_client import ServiceClient
-from core_interfaces.srv import AddNodeToLTM
+from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
 
@@ -91,6 +91,9 @@ class CognitiveNode(ABC, Node):
         return node_data
     
     def register_in_LTM(self, data_dic):
+        """
+        Registers the node in the LTM
+        """
 
         data = yaml.dump({**data_dic, 'activation': self.activation, 'perception': self.perception})
 
@@ -99,6 +102,17 @@ class CognitiveNode(ABC, Node):
         ltm_response = add_node_to_LTM_client.send_request(name=self.name, node_type=self.node_type, data=data)
         add_node_to_LTM_client.destroy_node()
         return ltm_response
+    
+    def remove_from_LTM(self):
+        """
+        Removes the node from the LTM. Returns true if the operation was succesful, false otherwise.
+        """
+        
+        service_name = 'ltm_0' + '/delete_node' # TODO: choose the ltm ID
+        delete_node_client = ServiceClient(DeleteNodeFromLTM, service_name)
+        ltm_response = delete_node_client.send_request(name=self.name)
+        delete_node_client.destroy_node()
+        return ltm_response.deleted
    
     def calculate_activation(self, perception):
         """
