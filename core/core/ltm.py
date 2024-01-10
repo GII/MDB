@@ -33,7 +33,7 @@ class LTM(Node):
         :param id: The identifier for this LTM instance.
         :type id: str
         """        
-        super().__init__('LTM')
+        super().__init__('ltm_' + str(id))
         self.id = id
         self.changes_topic = True
         # TODO Remove ANode and BNode
@@ -274,7 +274,7 @@ class LTM(Node):
         for node_type in self.cognitive_nodes:
             if name in self.cognitive_nodes[node_type]:
                 self.delete_node(node_type, name)
-                self.get_logger().info(f"{node_type} {name} deleted.")
+                self.get_logger().info(f"{node_type} {name} deleted from LTM.")
                 response.deleted = True
                 return response
 

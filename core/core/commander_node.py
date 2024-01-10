@@ -8,7 +8,7 @@ from core.config import saved_data_dir
 
 from core.service_client import ServiceClient
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
-from core_interfaces.srv import SaveConfig, LoadConfig, SaveConfig
+from core_interfaces.srv import SaveConfig, LoadConfig, StopExecution
 
 class CommanderNode(Node):
     """
@@ -25,7 +25,7 @@ class CommanderNode(Node):
 
         Creates a ROS 2 node named 'commander node' and a service for the user to send commands.
         """
-        super().__init__('commander_node')
+        super().__init__('commander')
         self.executor_ids = [0, 1] # TODO configure this from file
         self.nodes = {}
 
@@ -79,6 +79,13 @@ class CommanderNode(Node):
             SaveConfig,
             'commander/save_config',
             self.save_config
+        )
+
+        # Stop Execution Service for the user
+        self.stop_execution_service = self.create_service(
+            StopExecution,
+            'commander/stop_execution',
+            self.stop_execution
         )
 
     def create_node(self, request, response):
@@ -139,7 +146,7 @@ class CommanderNode(Node):
 
             executor_response = self.send_read_request_to_executor(ex, name)
 
-            node_data = yaml.load(executor_response.data)
+            node_data = yaml.load(executor_response.data, Loader=yaml.FullLoader)
 
             self.get_logger().info(f'Read node {name}: {node_data}.')
 
@@ -302,7 +309,7 @@ class CommanderNode(Node):
             executor_response = self.send_read_all_nodes_request_to_executor(ex)
             self.get_logger().info(f'Data from execution node {ex} read.')
 
-            node_list.extend(yaml.load(executor_response.data))
+            node_list.extend(yaml.load(executor_response.data, Loader=yaml.FullLoader))
 
         self.get_logger().info(f'Node list: {node_list}')
 
@@ -314,7 +321,18 @@ class CommanderNode(Node):
 
         return response
 
-    
+    def stop_execution(self, request, response):
+        
+        self.get_logger().info(f'Stopping execution...')
+
+        for ex in self.executor_ids:
+            self.get_logger().info(f'Stopping execution from execution node {ex}')
+            executor_response = self.send_stop_request_to_executor(ex)
+            self.nodes[ex] = []
+            self.get_logger().info(f'Execution from execution node {ex} stopped.')
+        
+        self.get_logger().info(f'Execution stopped.')
+
     # TODO: implement this method with load balancing
     def get_lowest_load_executor(self):
         """
@@ -471,6 +489,13 @@ class CommanderNode(Node):
         read_all_nodes_client = ServiceClient(ReadNode, service_name)
         executor_response = read_all_nodes_client.send_request()
         read_all_nodes_client.destroy_node()
+        return executor_response
+    
+    def send_stop_request_to_executor(self, executor_id):
+        service_name = 'execution_node_' + str(executor_id) + '/stop_execution'
+        stop_execution_client = ServiceClient(StopExecution, service_name)
+        executor_response = stop_execution_client.send_request()
+        stop_execution_client.destroy_node()
         return executor_response
 
 def main(args=None):

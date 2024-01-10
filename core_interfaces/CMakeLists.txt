@@ -27,6 +27,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SendToCommander.srv"
   "srv/SendToExecutor.srv"
   "srv/SetChangesTopic.srv"
+  "srv/StopExecution.srv"  
 )
 
 if(BUILD_TESTING)

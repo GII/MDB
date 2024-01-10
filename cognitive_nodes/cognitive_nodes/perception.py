@@ -9,9 +9,9 @@ import random
 
 class Perception(CognitiveNode):
 
-    def __init__(self, name='perception', class_name = 'cognitive_nodes.perception.Perception'):
+    def __init__(self, name='perception', class_name = 'cognitive_nodes.perception.Perception', **params):
 
-        super().__init__(name, class_name)
+        super().__init__(name, class_name, **params)
         self.register_in_LTM({})
 
         #N: Value topic

@@ -8,9 +8,9 @@ import random
 
 class Drive(CognitiveNode):
 
-    def __init__(self, name='drive', class_name = 'cognitive_nodes.drive.Drive'):
+    def __init__(self, name='drive', class_name = 'cognitive_nodes.drive.Drive', **params):
 
-        super().__init__(name, class_name)
+        super().__init__(name, class_name, **params)
         self.register_in_LTM({})
 
         # N: Set Activation Service

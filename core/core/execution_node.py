@@ -8,7 +8,7 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
 
-from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode, SaveConfig
+from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode, SaveConfig, StopExecution
 from core.service_client import ServiceClient
 
 from core.config import saved_data_dir
@@ -32,7 +32,7 @@ class ExecutionNode(Node):
         :type id: int
         """
         
-        super().__init__('execution_node_' + str(id))
+        super().__init__('ex_' + str(id))
         self.get_logger().info('Creating execution node')
         
         self.id = id
@@ -80,6 +80,13 @@ class ExecutionNode(Node):
             'execution_node_' + str(self.id) + '/read_all_nodes',
             self.read_all_nodes
         )
+
+        # Stop Execution service for the commander node
+        self.stop_execution = self.create_service(
+            StopExecution,
+            'execution_node_' + str(self.id) + '/stop_execution',
+            self.stop_execution
+        )
     
     def create_node(self, request, response):
         """
@@ -108,6 +115,7 @@ class ExecutionNode(Node):
         new_node = class_from_classname(class_name)(name, **parameters)
 
         self.nodes[name] = new_node
+
         self.executor.add_node(new_node)
 
         self.get_logger().info(f'Added node: {name}.')
@@ -147,7 +155,7 @@ class ExecutionNode(Node):
         if name in self.nodes:
             node_to_delete = self.nodes.pop(name)
             self.executor.remove_node(node_to_delete)
-            # node_to_delete.delete_from_LTM()
+            node_to_delete.remove_from_LTM()
             node_to_delete.destroy_node()
             self.get_logger().info(f'Deleted node: {name}.')
             response.deleted = True
@@ -241,6 +249,21 @@ class ExecutionNode(Node):
 
         return response
     
+    def stop_execution(self, request, response):
+        """
+        Stops the execution of every node in this executor
+        """
+
+        self.get_logger().info(f'Stopping execution from execution node {self.id}')
+
+        for name in self.nodes:
+            self.get_logger().info(f'Deleting node: {name}...')
+            node_to_delete = self.nodes.pop(name)
+            node_to_delete.destroy_node()
+            self.get_logger().info(f'Deleted node: {name}.')
+
+        return response
+
 # single threaded executor
 def main(args=None):
     rclpy.init(args=args)

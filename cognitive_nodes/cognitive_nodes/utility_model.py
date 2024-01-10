@@ -8,9 +8,9 @@ import random
 
 class UtilityModel(CognitiveNode):
 
-    def __init__(self, name='utility_model', class_name = 'cognitive_nodes.utility_model.UtilityModel'):
+    def __init__(self, name='utility_model', class_name = 'cognitive_nodes.utility_model.UtilityModel', **params):
 
-        super().__init__(name, class_name)
+        super().__init__(name, class_name, **params)
         self.register_in_LTM({})
         
         # N: Set Activation Service

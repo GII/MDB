@@ -17,7 +17,7 @@ class CognitiveNode(ABC, Node):
     :param name: The name of the node.
     """
 
-    def __init__(self, name, class_name):   # TODO: add state
+    def __init__(self, name, class_name, **params):
         """
         Initialize a CognitiveNode.
 
@@ -37,6 +37,9 @@ class CognitiveNode(ABC, Node):
 
         self.publish_activation = False
         self.last_activation = 0.0
+
+        for key, value in params.items():
+            setattr(self, key, value)
 
         # Publish node activation topic (when SetActivationTopic is true)
         self.publish_activation_topic = self.create_publisher(
@@ -107,7 +110,7 @@ class CognitiveNode(ABC, Node):
         """
         Removes the node from the LTM. Returns true if the operation was succesful, false otherwise.
         """
-        
+
         service_name = 'ltm_0' + '/delete_node' # TODO: choose the ltm ID
         delete_node_client = ServiceClient(DeleteNodeFromLTM, service_name)
         ltm_response = delete_node_client.send_request(name=self.name)
