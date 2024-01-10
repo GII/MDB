@@ -5,7 +5,7 @@ Experiment:
     trials: 50
     worlds:
         - gripper_and_low_friction
-        - gripper_and_low_friction_large_arm
+        - gripper_and_low_friction_short_arm
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control
@@ -40,7 +40,7 @@ LTM:
     Connectors:
         -
             data: Space
-            default_class: mdb_ltm.space.DynamicMembershipPointBasedSpace
+            default_class: mdb_ltm.space.SVMSpace
         -
             data: Perception
             ros_node_prefix: /mdb/perception
