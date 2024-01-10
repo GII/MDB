@@ -10,7 +10,8 @@ from math import isclose
 # Library imports
 import numpy
 from numpy.lib.recfunctions import structured_to_unstructured, require_fields
-import pandas as pd
+from sklearn import svm
+import pandas
 import tensorflow as tf
 import rospy
 
@@ -316,7 +317,7 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
         # Copy the new perception on the structured array
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
-        # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
+        # Beware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!
         members = structured_to_unstructured(
             self.members[0 : self.size][list(candidate_point.dtype.names)]
         )
@@ -359,51 +360,105 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
         )
 
 
-class DynamicMembershipPointBasedSpace(PointBasedSpace):
+class SVMSpace(PointBasedSpace):
     """
-    Calculate the new activation value.
+    Use a SVM to calculate activations.
+    """
 
-    This activation value is for a given perception and it is calculated as follows:
-    - Calculate the closest point and antipoint to the new point.
-    - Calculate the activation as the value of the equation of a line passing through (0, closest_point_activation)
-    and (closest_point_distance + closest_antipoint_distance, closest_antipoint_activation) for x = closest_point_distance
-    """
+    def __init__(self, **kwargs):
+        """Init attributes when a new object is created."""
+        self.model = svm.SVC(kernel="poly", degree=32, max_iter=200000)
+        self.there_are_points = False
+        self.there_are_antipoints = False
+        super().__init__(**kwargs)
+
+    def prune_points(self, score, memberships):
+        if numpy.isclose(score, 1.0):
+            self.size = len(self.model.support_vectors_)
+            for i, vector in zip(self.model.support_, self.model.support_vectors_):
+                self.members[i] = tuple(vector)
+                self.memberships[i] = memberships[i]
+
+    def fit_and_score(self):
+        members = structured_to_unstructured(
+            self.members[0 : self.size][list(self.members.dtype.names)]
+        )
+        memberships = self.memberships[0 : self.size].copy()
+        memberships[memberships > 0] = 1
+        memberships[memberships <= 0] = 0
+        self.model.fit(members, memberships)
+        score = self.model.score(members, memberships)
+        rospy.logdebug(
+            "SVM: iteraciones "
+            + str(self.model.n_iter_)
+            + " support vectors "
+            + str(len(self.model.support_vectors_))
+            + " score "
+            + str(score)
+            + " points "
+            + str(len(members))
+        )
+        return score
+
+    def remove_close_points(self):
+        threshold = 0
+        previous_size = self.size
+        members = self.members[0 : self.size].copy()
+        umembers = structured_to_unstructured(members[list(self.members.dtype.names)])
+        memberships = self.memberships[0 : self.size].copy()
+        score = 0.0
+        while score < 1.0:
+            threshold += 0.1
+            distances = numpy.linalg.norm(umembers - umembers[previous_size - 1], axis=1)
+            indexes = distances > threshold
+            filtered_members = members[indexes]
+            filtered_memberships = memberships[indexes]
+            self.size = len(filtered_members)
+            if self.size < previous_size - 1:
+                for i in range(self.size):
+                    self.members[i] = filtered_members[i]
+                    self.memberships[i] = filtered_memberships[i]
+                self.members[self.size] = members[previous_size - 1]
+                self.memberships[self.size] = memberships[previous_size - 1]
+                self.size += 1
+                score = self.fit_and_score()
+        rospy.logdebug(
+            self.ident + ": throwing away " + str(previous_size - self.size) + " points."
+        )
 
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
-        if self.size > 0:
-            # Create a new structured array for the new point
-            new_point = self.create_structured_array(perception, self.members.dtype, 1)
-            # Copy the new point on the structured array
-            self.copy_perception(new_point, 0, perception)
+        pos = None
+        if self.there_are_points and self.there_are_antipoints:
+            # Create a new structured array for the new perception
+            candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+            # Copy the new perception on the structured array
+            self.copy_perception(candidate_point, 0, perception)
             # Create views on the structured arrays so they can be used in calculations
-            # Be ware, if new_point.dtype is not equal to self.members.dtype, members is a new array!!!
-            members = structured_to_unstructured(
-                self.members[0 : self.size][list(new_point.dtype.names)]
-            )
-            point = structured_to_unstructured(new_point)
-            memberships = self.memberships[0 : self.size]
-            # Update memberships if necessary
-            (
-                closest_point_pos,
-                closest_point_dist,
-                closest_antipoint_pos,
-                closest_antipoint_dist,
-            ) = self.get_closest_point_and_antipoint_info(members, memberships, point)
-            if closest_antipoint_pos != None:
-                if confidence > 0.0:
-                    if closest_point_dist < closest_antipoint_dist:
-                        memberships[closest_point_pos] = 1.0
-                    else:
-                        memberships[closest_antipoint_pos] += 0.5
-                else:
-                    if closest_antipoint_dist < closest_point_dist:
-                        memberships[closest_antipoint_pos] = -1.0
-                    else:
-                        memberships[closest_point_pos] -= 0.5
-                # Age points
-                self.aging()
-        return super().add_point(perception, confidence)
+            # Beware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!
+            point = structured_to_unstructured(candidate_point)
+            prediction = self.model.predict(point)[0]
+            if ((confidence > 0.0) and (prediction <= 0.0)) or (
+                (confidence <= 0.0) and (prediction > 0.0)
+            ):
+                pos = super().add_point(perception, confidence)
+                if self.fit_and_score() < 1.0:
+                    self.remove_close_points()
+        else:
+            pos = super().add_point(perception, confidence)
+            if confidence > 0.0:
+                self.there_are_points = True
+            else:
+                self.there_are_antipoints = True
+            if self.there_are_points and self.there_are_antipoints:
+                members = structured_to_unstructured(
+                    self.members[0 : self.size][list(self.members.dtype.names)]
+                )
+                memberships = self.memberships[0 : self.size].copy()
+                memberships[memberships > 0] = 1
+                memberships[memberships <= 0] = 0
+                self.model.fit(members, memberships)
+        return pos
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
@@ -412,28 +467,16 @@ class DynamicMembershipPointBasedSpace(PointBasedSpace):
         # Copy the new perception on the structured array
         self.copy_perception(candidate_point, 0, perception)
         # Create views on the structured arrays so they can be used in calculations
-        # Be ware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!!!
-        members = structured_to_unstructured(
-            self.members[0 : self.size][list(candidate_point.dtype.names)]
-        )
+        # Beware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!
         point = structured_to_unstructured(candidate_point)
-        memberships = self.memberships[0 : self.size]
         # Calculate the activation value
-        (
-            closest_point_pos,
-            closest_point_dist,
-            closest_antipoint_pos,
-            closest_antipoint_dist,
-        ) = self.get_closest_point_and_antipoint_info(members, memberships, point)
-        if closest_antipoint_pos != None:
-            closest_point_val = memberships[closest_point_pos]
-            closest_antipoint_val = memberships[closest_antipoint_pos]
-            tot_distance = closest_point_dist + closest_antipoint_dist
-            act = (
-                closest_antipoint_val - closest_point_val
-            ) * closest_point_dist / tot_distance + closest_point_val
+        if self.there_are_points:
+            if self.there_are_antipoints:
+                act = self.model.predict(point)[0]
+            else:
+                act = 1.0
         else:
-            act = 1.0
+            act = 0.0
         return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
 
 
@@ -468,7 +511,7 @@ class DNNSpace(Space):
 
     def get_probability(self, perception):
         """Calculate the new activation value."""
-        predict_data = pd.DataFrame([perception], columns=self.headers)
+        predict_data = pandas.DataFrame([perception], columns=self.headers)
         predict_input_fn = tf.estimator.inputs.pandas_input_fn(
             x=predict_data,
             batch_size=1,
