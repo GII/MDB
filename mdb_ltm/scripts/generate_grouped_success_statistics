@@ -40,7 +40,9 @@ def generate_grouped_statistics():
             iteration = int(iteration)
             if iteration >= frontier:
                 for pnode in pnodes_success:
-                    print(f"{frontier}\t{pnode}\t{pnodes_success[pnode]}\t{pnodes_activations[pnode]}\t{round(100.0 * pnodes_success[pnode] / pnodes_activations[pnode])}")
+                    print(
+                        f"{frontier}\t{pnode}\t{pnodes_success[pnode]}\t{pnodes_activations[pnode]}\t{round(100.0 * pnodes_success[pnode] / pnodes_activations[pnode])}"
+                    )
                 pnodes_activations = {}
                 pnodes_success = {}
                 frontier += iterations

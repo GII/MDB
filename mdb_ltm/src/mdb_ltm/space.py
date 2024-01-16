@@ -126,6 +126,9 @@ class PointBasedSpace(Space):
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
         added_point_pos = -1
+        if self.size > 1:
+            if (confidence <= 0.0) and (self.get_probability(perception) <= 0.0):
+                return added_point_pos
         if self.parent_space:
             self.parent_space.add_point(perception, confidence)
         # Check if we need to initialize the structured numpy array for storing points
@@ -368,9 +371,13 @@ class SVMSpace(PointBasedSpace):
     def __init__(self, **kwargs):
         """Init attributes when a new object is created."""
         self.model = svm.SVC(kernel="poly", degree=32, max_iter=200000)
-        self.there_are_points = False
-        self.there_are_antipoints = False
         super().__init__(**kwargs)
+
+    def learnable(self):
+        for i in self.memberships[0 : self.size]:
+            if numpy.isclose(i, -1.0):
+                return True
+        return False
 
     def prune_points(self, score, memberships):
         if numpy.isclose(score, 1.0):
@@ -406,7 +413,7 @@ class SVMSpace(PointBasedSpace):
         members = self.members[0 : self.size].copy()
         umembers = structured_to_unstructured(members[list(self.members.dtype.names)])
         memberships = self.memberships[0 : self.size].copy()
-        score = 0.0
+        score = 0.3
         while score < 1.0:
             threshold += 0.1
             distances = numpy.linalg.norm(umembers - umembers[previous_size - 1], axis=1)
@@ -428,36 +435,15 @@ class SVMSpace(PointBasedSpace):
 
     def add_point(self, perception, confidence):
         """Add a new point to the p-node."""
-        pos = None
-        if self.there_are_points and self.there_are_antipoints:
-            # Create a new structured array for the new perception
-            candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
-            # Copy the new perception on the structured array
-            self.copy_perception(candidate_point, 0, perception)
-            # Create views on the structured arrays so they can be used in calculations
-            # Beware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!
-            point = structured_to_unstructured(candidate_point)
-            prediction = self.model.predict(point)[0]
-            if ((confidence > 0.0) and (prediction <= 0.0)) or (
-                (confidence <= 0.0) and (prediction > 0.0)
-            ):
-                pos = super().add_point(perception, confidence)
-                if self.fit_and_score() < 1.0:
-                    self.remove_close_points()
-        else:
-            pos = super().add_point(perception, confidence)
-            if confidence > 0.0:
-                self.there_are_points = True
-            else:
-                self.there_are_antipoints = True
-            if self.there_are_points and self.there_are_antipoints:
-                members = structured_to_unstructured(
-                    self.members[0 : self.size][list(self.members.dtype.names)]
-                )
-                memberships = self.memberships[0 : self.size].copy()
-                memberships[memberships > 0] = 1
-                memberships[memberships <= 0] = 0
-                self.model.fit(members, memberships)
+        pos = super().add_point(perception, confidence)
+        if self.learnable():
+            self.fit_and_score()
+        prediction = self.get_probability(perception)
+        if ((confidence > 0.0) and (prediction <= 0.0)) or (
+            (confidence <= 0.0) and (prediction > 0.0)
+        ):
+            if self.fit_and_score() < 1.0:
+                self.remove_close_points()
         return pos
 
     def get_probability(self, perception):
@@ -470,13 +456,10 @@ class SVMSpace(PointBasedSpace):
         # Beware, if candidate_point.dtype is not equal to self.members.dtype, members is a new array!
         point = structured_to_unstructured(candidate_point)
         # Calculate the activation value
-        if self.there_are_points:
-            if self.there_are_antipoints:
-                act = self.model.predict(point)[0]
-            else:
-                act = 1.0
+        if self.learnable():
+            act = self.model.decision_function(point)[0]
         else:
-            act = 0.0
+            act = 1.0
         return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
 
 
