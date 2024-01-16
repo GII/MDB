@@ -524,7 +524,7 @@ class LTMSim(object):
                 if self.object_too_far(cylinder.distance, cylinder.angle, self.world.name):
                     rospy.logdebug("Object too far in " + self.world.name)
                     cylinder.distance = self.avoid_reward_by_chance(
-                        LTMSim.outer(abs(cylinder.angle)) - 0.02, cylinder.angle
+                        LTMSim.outer(abs(cylinder.angle)) - 0.1, cylinder.angle
                     )
                     break
 
