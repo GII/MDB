@@ -74,6 +74,7 @@ class LTMSim(object):
 
     def __init__(self):
         """Init attributes when a new object is created."""
+        self.rng = None
         self.ident = None
         self.world = None
         self.base_messages = {}
@@ -260,8 +261,8 @@ class LTMSim(object):
         """Return a random position in the table."""
         valid = False
         while not valid:
-            object_y = numpy.random.uniform(low=-1.07, high=1.07)
-            object_x = numpy.random.uniform(low=0.37, high=1.27)
+            object_y = self.rng.uniform(low=-1.07, high=1.07)
+            object_x = self.rng.uniform(low=0.37, high=1.27)
             distance = numpy.linalg.norm([object_y, object_x])
             angle = numpy.arctan2(object_y, object_x)
             valid = not self.object_too_close(distance, angle)
@@ -310,7 +311,7 @@ class LTMSim(object):
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
             self.perceptions["cylinders"].data[0].angle = angle
-            if numpy.random.uniform() > 0.5:
+            if self.rng.uniform() > 0.5:
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
@@ -323,7 +324,7 @@ class LTMSim(object):
                 (World.gripper_and_low_friction.name in self.world.name)
                 and self.object_is_small(object_distance)
                 and (not self.object_too_far(object_distance, object_angle, self.world.name))
-                and (numpy.random.uniform() > 0.5)
+                and (self.rng.uniform() > 0.5)
             ):
                 self.catched_object = self.perceptions["cylinders"].data[0]
                 if object_angle > 0:
@@ -332,9 +333,7 @@ class LTMSim(object):
                 else:
                     self.perceptions["ball_in_left_hand"].data = False
                     self.perceptions["ball_in_right_hand"].data = True
-            if self.object_pickable_withtwohands(distance, angle) and (
-                numpy.random.uniform() > 0.5
-            ):
+            if self.object_pickable_withtwohands(distance, angle) and (self.rng.uniform() > 0.5):
                 self.catched_object = self.perceptions["cylinders"].data[0]
                 self.perceptions["ball_in_left_hand"].data = True
                 self.perceptions["ball_in_right_hand"].data = True
@@ -357,7 +356,7 @@ class LTMSim(object):
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
             self.perceptions["cylinders"].data[0].angle = angle
-            if numpy.random.uniform() > 0.5:
+            if self.rng.uniform() > 0.5:
                 self.perceptions["cylinders"].data[0].diameter = 0.03
             else:
                 self.perceptions["cylinders"].data[0].diameter = 0.07
@@ -595,7 +594,7 @@ class LTMSim(object):
         rospy.logdebug("Subscribing to %s...", topic)
         rospy.Subscriber(topic, message, callback=self.new_action_callback)
 
-    def load_configuration(self, log_level, config_file):
+    def load_configuration(self, random_seed, log_level, config_file):
         """Load configuration from a file."""
         rospy.init_node("ltm_simulator", log_level=getattr(rospy, log_level))
         if config_file is None:
@@ -612,10 +611,15 @@ class LTMSim(object):
                 self.setup_perceptions(config["SimulatedBaxter"]["Perceptions"])
                 # Be ware, we can not subscribe to control channel before creating all sensor publishers.
                 self.setup_control_channel(config["Control"])
+        if random_seed:
+            self.rng = numpy.random.default_rng(random_seed)
+            rospy.loginfo(f"Setting random number generator with seed {random_seed}")
+        else:
+            self.rng = numpy.random.default_rng()
 
-    def run(self, log_level="INFO", config_file=None):
+    def run(self, random_seed=None, log_level="INFO", config_file=None):
         """Start the LTM simulator."""
-        self.load_configuration(log_level, config_file)
+        self.load_configuration(random_seed, log_level, config_file)
         rospy.loginfo("Starting LTM Simulator...")
         rospy.spin()
         rospy.loginfo("Ending LTM Simulator...")

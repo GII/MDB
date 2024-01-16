@@ -347,7 +347,7 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
                 )
             )
             if (dist_newpoint_centroid < dist_antipoint_centroid) or (
-                numpy.random.uniform()
+                self.ltm.rng.uniform()
                 < dist_antipoint_centroid * separation / dist_newpoint_centroid
             ):
                 distances = distances[memberships > 0.0]

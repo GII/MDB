@@ -7,7 +7,6 @@ https://github.com/GII/MDB
 # Standard imports
 import importlib
 import os.path
-import random
 import sys
 from copy import copy
 from operator import attrgetter
@@ -33,6 +32,7 @@ class LTM(object):
 
     def __init__(self):
         """Init attributes when a new object is created."""
+        self.rng = None
         self.file_name = None
         self.files = []
         self.nodes = dict(Perception={}, PNode=[], CNode=[], Goal=[], ForwardModel=[], Policy=[])
@@ -370,7 +370,7 @@ class LTM(object):
         self.current_world = self.worlds[0]
         self.reset_world()
 
-    def setup(self, log_level, file_name):
+    def setup(self, log_level, random_seed, file_name):
         """Init LTM: read ROS parameters, init ROS subscribers and load initial nodes."""
         rospy.init_node("ltm", log_level=getattr(rospy, log_level))
         rospy.loginfo("Starting LTM at iteration " + str(self.iteration) + "...")
@@ -392,6 +392,11 @@ class LTM(object):
                 self.setup_control_channel(configuration["Control"])
                 self.setup_experiment(configuration["Experiment"])
                 rospy.on_shutdown(self.shutdown)
+        if random_seed:
+            self.rng = numpy.random.default_rng(random_seed)
+            rospy.loginfo(f"Setting random number generator with seed {random_seed}")
+        else:
+            self.rng = numpy.random.default_rng()
 
     def read_perceptions(self):
         """Update the value of every perception."""
@@ -534,7 +539,7 @@ class LTM(object):
         """Select a random policy. In order to avoid problems with random numbers' generation, we use a pool."""
         if self.policies_to_test == []:
             self.policies_to_test = copy(self.policies)
-        policy = self.policies_to_test[numpy.random.randint(len(self.policies_to_test))]
+        policy = self.policies_to_test[self.rng.integers(0, len(self.policies_to_test))]
         return policy
 
     def select_policy(self, sensing):
@@ -586,7 +591,7 @@ class LTM(object):
                 if not policy.activation:
                     feasible_goals = self.get_feasible_goals()
                     if feasible_goals:
-                        goal = random.choice(feasible_goals)
+                        goal = self.rng.choice(feasible_goals)
                         goal.new_activation = 1.0
                         self.update_activations(sensing, new_sensings=False)
                         policy = max(self.policies, key=attrgetter("activation"))
@@ -1026,11 +1031,11 @@ class LTM(object):
             )
         return changed
 
-    def run(self, seed=None, log_level="INFO"):
+    def run(self, random_seed=None, seed=None, log_level="INFO"):
         """Start the LTM part of the brain."""
         self.check_versions()
         try:
-            self.setup(log_level, seed)
+            self.setup(log_level, random_seed, seed)
             rospy.loginfo("Running LTM...")
             sensing = self.read_perceptions()
             stm = []
