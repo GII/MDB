@@ -16,9 +16,9 @@
     <node name="relay_node" pkg="topic_tools" type="relay" args="/robot/joint_states /joint_states" unless="$(arg event_sim)"/>
 
     <group ns="mdb">
-        <arg name="random_seed" default="False"/>
-        <arg name="random_seed_arg" value="" unless="$(arg random_seed)"/>
-        <arg name="random_seed_arg" value="-rs $(arg random_seed)" if="$(arg random_seed)"/>
+        <arg name="use_random_seed" default="False"/>
+        <arg name="random_seed_arg" value="" unless="$(arg use_random_seed)"/>
+        <arg name="random_seed_arg" value="-rs $(arg random_seed)" if="$(arg use_random_seed)"/>
 
         <arg name="config_file" default="$(find mdb_common)/config/ball_in_box_one_world_adapting_pnodes.yaml"/>
 
