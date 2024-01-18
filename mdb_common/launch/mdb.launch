@@ -16,7 +16,9 @@
     <node name="relay_node" pkg="topic_tools" type="relay" args="/robot/joint_states /joint_states" unless="$(arg event_sim)"/>
 
     <group ns="mdb">
-        <arg name="random_seed"/>
+        <arg name="random_seed" default="False"/>
+        <arg name="random_seed_arg" value="" unless="$(arg random_seed)"/>
+        <arg name="random_seed_arg" value="-rs $(arg random_seed)" if="$(arg random_seed)"/>
 
         <arg name="config_file" default="$(find mdb_common)/config/ball_in_box_one_world_adapting_pnodes.yaml"/>
 
@@ -28,11 +30,11 @@
 
         <node name="motiven" pkg="mdb_motiven" type="mdb_motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" launch-prefix="$(arg launch-prefix)" if="$(arg motiven)"/>
 
-        <node name="ltm" pkg="mdb_ltm" type="mdb_ltm" args="-rs $(arg random_seed) -b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg ltm)"/>
+        <node name="ltm" pkg="mdb_ltm" type="mdb_ltm" args="$(arg random_seed_arg) -b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg ltm)"/>
 
         <arg name="save_dir" default="$(find mdb_view)" if="$(arg view)"/>
         <node name="view" pkg="mdb_view" type="mdb_view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)" launch-prefix="$(arg launch-prefix)" if="$(arg view)"/>
 
-        <node name="event_sim" pkg="mdb_simulator" type="mdb_simulator" args="-rs $(arg random_seed) -c $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg event_sim)"/>
+        <node name="event_sim" pkg="mdb_simulator" type="mdb_simulator" args="$(arg random_seed_arg) -c $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg event_sim)"/>
     </group>
 </launch>
