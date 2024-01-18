@@ -1072,3 +1072,5 @@ class LTM(object):
                     self.iteration += 1
         except rospy.ROSInterruptException:
             rospy.logerr("Exception caught! Or you pressed CTRL+C or something went wrong...")
+        finally:
+            self.control_publisher.publish(command="end")

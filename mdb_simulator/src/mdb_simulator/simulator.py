@@ -548,6 +548,8 @@ class LTMSim(object):
                 or self.perceptions["ball_in_right_hand"].data
             ):
                 rospy.logerr("Critical error: catched_object is empty and it should not!!!")
+        elif data.command == "end":
+            rospy.signal_shutdown("Ending simulator as requested by LTM...")
 
     def new_action_callback(self, data):
         """Execute a policy and publish new perceptions."""
