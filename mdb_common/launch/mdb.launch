@@ -30,7 +30,7 @@
 
         <node name="motiven" pkg="mdb_motiven" type="mdb_motiven" args="-b motiven.$(arg backup) -l $(arg log_level) $(arg standalone_arg)" launch-prefix="$(arg launch-prefix)" if="$(arg motiven)"/>
 
-        <node name="ltm" pkg="mdb_ltm" type="mdb_ltm" args="$(arg random_seed_arg) -b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" if="$(arg ltm)"/>
+        <node name="ltm" pkg="mdb_ltm" type="mdb_ltm" args="$(arg random_seed_arg) -b ltm.$(arg backup) -s $(arg config_file) -l $(arg log_level)" launch-prefix="$(arg launch-prefix)" required="True" if="$(arg ltm)"/>
 
         <arg name="save_dir" default="$(find mdb_view)" if="$(arg view)"/>
         <node name="view" pkg="mdb_view" type="mdb_view" args="-s $(arg config_file) -l $(arg log_level) -d $(arg save_dir)" launch-prefix="$(arg launch-prefix)" if="$(arg view)"/>
