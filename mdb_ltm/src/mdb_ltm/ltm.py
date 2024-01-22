@@ -748,21 +748,24 @@ class LTM(object):
         ware!!!
 
         """
+        forward_model = max(self.forward_models, key=attrgetter("max_activation"))
+        ident = forward_model.ident + "__" + goal.ident + "__" + policy.ident
         space = candidate_cnode.p_node.space.specialize() if candidate_cnode else None
         p_node = self.add_node(
             node_type="PNode",
             class_name=self.default_class["PNode"],
+            ident="pnode_" + ident,
             ros_node_prefix=self.default_ros_node_prefix["PNode"],
             ros_data_prefix=self.default_ros_data_prefix["PNode"],
             space_class=self.default_class["Space"],
             space=space,
         )
         p_node.add_perception(perception, 1.0)
-        forward_model = max(self.forward_models, key=attrgetter("max_activation"))
         neighbors = [p_node, forward_model, goal, policy]
         c_node = self.add_node(
             node_type="CNode",
             class_name="mdb_ltm.cnode.CNode",
+            ident="pnode_" + ident,
             ros_node_prefix=self.default_ros_node_prefix["CNode"],
             ros_data_prefix=self.default_ros_data_prefix["CNode"],
             neighbors=neighbors,
