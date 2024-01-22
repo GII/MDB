@@ -4,8 +4,8 @@ Experiment:
     period: 6000
     trials: 50
     worlds:
-        - gripper_and_low_friction
-        - gripper_and_low_friction_short_arm
+        - GRIPPER_AND_LOW_FRICTION
+        - GRIPPER_AND_LOW_FRICTION_SHORT_ARM
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control
@@ -128,7 +128,7 @@ LTM:
                     period: 3000
         ForwardModel:
             -
-                id: gripper_and_low_friction
+                id: GRIPPER_AND_LOW_FRICTION
                 class: mdb_ltm.forward_model.ForwardModel
         Policy:
             -

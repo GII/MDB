@@ -20,29 +20,30 @@ import rospy
 class World(Enum):
     """Worlds to be simulated."""
 
-    gripper_and_low_friction = 1
-    no_gripper_and_high_friction = 2
-    gripper_and_low_friction_two_boxes = 3
-    kitchen = 4
-    gripper_and_low_friction_short_arm = 5
+    GRIPPER_AND_LOW_FRICTION = 1
+    NO_GRIPPER_AND_HIGH_FRICTION = 2
+    GRIPPER_AND_LOW_FRICTION_TWO_BOXES = 3
+    KITCHEN = 4
+    GRIPPER_AND_LOW_FRICTION_SHORT_ARM = 5
+    GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO = 6
 
 
 class Item(Enum):
     """Types of objects."""
 
-    cylinder = 1
-    box = 2
-    skillet = 3
-    grapes = 4
-    apple = 5
-    tomato = 6
-    orange = 7
-    carrot = 8
-    lettuce = 9
-    pineapple = 10
-    watermelon = 11
-    eggplant = 12
-    banana = 13
+    CYLINDER = 1
+    BOX = 2
+    SKILLET = 3
+    GRAPES = 4
+    APPLE = 5
+    TOMATO = 6
+    ORANGE = 7
+    CARROT = 8
+    LETTUCE = 9
+    PINEAPPLE = 10
+    WATERMELON = 11
+    EGGPLANT = 12
+    BANANA = 13
 
 
 class LTMSim(object):
@@ -100,11 +101,16 @@ class LTMSim(object):
     @classmethod
     def object_too_far(cls, dist, ang, world):
         """Return True if the object is out of range of the robot."""
-        if world == World.gripper_and_low_friction.name:
+        if world == World.GRIPPER_AND_LOW_FRICTION.name:
             cls.outer = cls.normal_outer
-        if world == World.gripper_and_low_friction_short_arm.name:
+            too_far = dist > cls.outer(abs(ang))
+        if world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
             cls.outer = cls.short_outer
-        return dist > cls.outer(abs(ang))
+            too_far = dist > cls.outer(abs(ang))
+        if world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO.name:
+            cls.outer = cls.normal_outer
+            too_far = (dist > cls.outer(abs(ang))) or (ang > (0.8 * numpy.arctan2(1.07, 0.37)))
+        return too_far
 
     @classmethod
     def object_outside_table(cls, dist, ang):
@@ -138,9 +144,9 @@ class LTMSim(object):
     @classmethod
     def send_object_outofreach(cls, ang, world):
         """Calculate the coordinates of the object when moving it out of reach."""
-        if world == World.gripper_and_low_friction.name:
+        if world == World.GRIPPER_AND_LOW_FRICTION.name:
             cls.outer = cls.normal_outer
-        if world == World.gripper_and_low_friction_short_arm.name:
+        if world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
             cls.outer = cls.short_outer
         dist = cls.outer(abs(ang))
         y_coord = dist * math.sin(ang)
@@ -289,9 +295,10 @@ class LTMSim(object):
         # Objects
         self.catched_object = None
         if self.world in [
-            World.gripper_and_low_friction,
-            World.no_gripper_and_high_friction,
-            World.gripper_and_low_friction_short_arm,
+            World.GRIPPER_AND_LOW_FRICTION,
+            World.NO_GRIPPER_AND_HIGH_FRICTION,
+            World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM,
+            World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO,
         ]:
             self.perceptions["boxes"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=True)
@@ -321,7 +328,7 @@ class LTMSim(object):
             object_distance = self.perceptions["cylinders"].data[0].distance
             object_angle = self.perceptions["cylinders"].data[0].angle
             if (
-                (World.gripper_and_low_friction.name in self.world.name)
+                (World.GRIPPER_AND_LOW_FRICTION.name in self.world.name)
                 and self.object_is_small(object_distance)
                 and (not self.object_too_far(object_distance, object_angle, self.world.name))
                 and (self.rng.uniform() > 0.5)
@@ -337,7 +344,7 @@ class LTMSim(object):
                 self.catched_object = self.perceptions["cylinders"].data[0]
                 self.perceptions["ball_in_left_hand"].data = True
                 self.perceptions["ball_in_right_hand"].data = True
-        elif self.world == World.gripper_and_low_friction_two_boxes:
+        elif self.world == World.GRIPPER_AND_LOW_FRICTION_TWO_BOXES:
             self.perceptions["boxes"].data = []
             distance, angle = self.random_position(in_valid=True, out_valid=False)
             self.perceptions["boxes"].data.append(self.base_messages["boxes"]())
@@ -363,7 +370,7 @@ class LTMSim(object):
             # self.perceptions["cylinders"].data[0].id = Item.cylinder.value
             self.perceptions["ball_in_left_hand"].data = False
             self.perceptions["ball_in_right_hand"].data = False
-        elif self.world == World.kitchen:
+        elif self.world == World.KITCHEN:
             self.perceptions["boxes"].data = []
             self.perceptions["boxes"].data.append(self.base_messages["boxes"]())
             self.perceptions["boxes"].data[0].distance = 0.605
@@ -401,7 +408,7 @@ class LTMSim(object):
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
                 if (
-                    World.gripper_and_low_friction.name in self.world.name
+                    World.GRIPPER_AND_LOW_FRICTION.name in self.world.name
                     and (
                         not self.object_too_far(cylinder.distance, cylinder.angle, self.world.name)
                     )
@@ -419,7 +426,7 @@ class LTMSim(object):
         if not self.catched_object:
             for cylinder in self.perceptions["cylinders"].data:
                 if (self.object_pickable_withtwohands(cylinder.distance, cylinder.angle)) and (
-                    (World.no_gripper_and_high_friction.name in self.world.name)
+                    (World.NO_GRIPPER_AND_HIGH_FRICTION.name in self.world.name)
                     or (not self.object_is_small(cylinder.diameter))
                 ):
                     self.perceptions["ball_in_left_hand"].data = True
@@ -459,7 +466,7 @@ class LTMSim(object):
                         cylinder.angle,
                     ) = self.send_object_twohandsreachable(cylinder.distance)
                     if (
-                        World.gripper_and_low_friction.name in self.world.name
+                        World.GRIPPER_AND_LOW_FRICTION.name in self.world.name
                     ) and self.object_is_small(cylinder.diameter):
                         cylinder.angle = -0.4 * sign
                     cylinder.distance = self.avoid_reward_by_chance(
@@ -535,10 +542,10 @@ class LTMSim(object):
             # so we use always a class attribute to avoid problems.
             # This should be changed, but it implies several modifications.
             self.world = World[data.world]
-            if self.world == World.gripper_and_low_friction:
-                LTMSim.outer = LTMSim.normal_outer
-            if self.world == World.gripper_and_low_friction_short_arm:
+            if self.world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM:
                 LTMSim.outer = LTMSim.short_outer
+            else:
+                LTMSim.outer = LTMSim.normal_outer
             self.random_perceptions()
             for ident, publisher in self.publishers.items():
                 rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
