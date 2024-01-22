@@ -51,7 +51,7 @@ def generate_grouped_statistics():
                     for pnode, pnode_success in pnodes_success.items():
                         print(
                             f"{frontier}\t{pnode}\t{pnode_success}\t{pnodes_activations[pnode]}"
-                            "\t{round(100.0 * pnode_success / pnodes_activations[pnode])}"
+                            f"\t{round(100.0 * pnode_success / pnodes_activations[pnode])}"
                         )
                     pnodes_activations = {}
                     pnodes_success = {}
