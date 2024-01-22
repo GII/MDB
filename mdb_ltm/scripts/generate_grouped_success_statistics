@@ -6,13 +6,22 @@ https://github.com/GII/MDB
 """
 
 import argparse
-from distutils.util import strtobool
+
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0)."""
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    if val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    raise ValueError(f"invalid truth value {val}")
 
 
 def generate_grouped_statistics():
     """Calculate several statistics using bunchs of iterations."""
     parser = argparse.ArgumentParser(
-        description="This script calculate several statistics for LTM experiments using bunchs of iterations"
+        description="Calculate several statistics for LTM experiments using bunchs of iterations"
     )
     parser.add_argument(
         "-f", "--file", help="File with statistics for every iteration of an experiment"
@@ -23,7 +32,7 @@ def generate_grouped_statistics():
         type=int,
         help="Number of consecutive iterations used to calculate the statistics",
     )
-    args, _ = parser.parse_known_args()
+    args = parser.parse_args()
     kwargs = vars(args)
     iterations = kwargs["iterations"]
     frontier = iterations
@@ -31,27 +40,28 @@ def generate_grouped_statistics():
     if (iterations is None) or (file_name is None):
         parser.print_help()
     else:
-        stat_file = open(file_name, "r")
-        stat_file.readline()
-        pnodes_activations = {}
-        pnodes_success = {}
-        for line in stat_file:
-            iteration, pnode, success = line.split()
-            iteration = int(iteration)
-            if iteration >= frontier:
-                for pnode in pnodes_success:
-                    print(
-                        f"{frontier}\t{pnode}\t{pnodes_success[pnode]}\t{pnodes_activations[pnode]}\t{round(100.0 * pnodes_success[pnode] / pnodes_activations[pnode])}"
-                    )
-                pnodes_activations = {}
-                pnodes_success = {}
-                frontier += iterations
-            if not pnode in pnodes_activations:
-                pnodes_activations[pnode] = 0
-                pnodes_success[pnode] = 0
-            pnodes_activations[pnode] += 1
-            if strtobool(success):
-                pnodes_success[pnode] += 1
+        with open(file_name, "r", encoding="utf-8") as stat_file:
+            stat_file.readline()
+            pnodes_activations = {}
+            pnodes_success = {}
+            for line in stat_file:
+                iteration, pnode, success = line.split()
+                iteration = int(iteration)
+                if iteration >= frontier:
+                    for pnode, pnode_success in pnodes_success.items():
+                        print(
+                            f"{frontier}\t{pnode}\t{pnode_success}\t{pnodes_activations[pnode]}"
+                            "\t{round(100.0 * pnode_success / pnodes_activations[pnode])}"
+                        )
+                    pnodes_activations = {}
+                    pnodes_success = {}
+                    frontier += iterations
+                if pnode not in pnodes_activations:
+                    pnodes_activations[pnode] = 0
+                    pnodes_success[pnode] = 0
+                pnodes_activations[pnode] += 1
+                if strtobool(success):
+                    pnodes_success[pnode] += 1
 
 
 if __name__ == "__main__":

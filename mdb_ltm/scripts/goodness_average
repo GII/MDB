@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+"""
+MDB.
+
+https://github.com/GII/MDB
+"""
+
+import argparse
+import pandas
+import matplotlib.pyplot as plt
+import seaborn
+
+
+def goodness_average():
+    """Merge goodness files."""
+    parser = argparse.ArgumentParser(description="Merge goodness files")
+    parser.add_argument("files", nargs="+", help="File names to merge")
+    args = parser.parse_args()
+    data = []
+    for file_name in args.files:
+        data.append(
+            pandas.read_csv(
+                file_name,
+                sep="\t",
+                names=(
+                    "Iteration",
+                    "Average reward",
+                    "Iterations with no change",
+                    "Rewarded iterations",
+                ),
+                index_col=(0, 1),
+            )
+        )
+    data = pandas.concat(data).groupby(by=["Iteration"])["Rewarded iterations"].agg(["mean", "std"])
+    seaborn.set_theme()
+    seaborn.relplot(data=data, x="Iteration", y="mean", kind="line").set_axis_labels(
+        "Iteration", "% rewarded iterations"
+    )
+    plt.show()
+    # data.to_excel("pnodes_grouped_success_average.xlsx", index=False)
+
+
+if __name__ == "__main__":
+    goodness_average()
