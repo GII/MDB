@@ -1,12 +1,15 @@
 import os
-import sys
 import rclpy
 import yaml
 import random
+
 from rclpy.node import Node
 from core.config import saved_data_dir
 
+from std_msgs.msg import String
 from core.service_client import ServiceClient
+
+from core_interfaces.srv import AddExecutionNode
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 from core_interfaces.srv import SaveConfig, LoadConfig, StopExecution
 
@@ -25,13 +28,23 @@ class CommanderNode(Node):
 
         Creates a ROS 2 node named 'commander node' and a service for the user to send commands.
         """
+        
         super().__init__('commander')
-        self.executor_ids = [0, 1] # TODO configure this from file
+
+        self.last_id = 0
+        self.executor_ids = []
         self.nodes = {}
 
         for executor_id in self.executor_ids:
             self.nodes[executor_id] = []
-                
+            
+        # Add Execution Node Service for the Execution Nodes
+        self.add_execution_node_service = self.create_service(
+            AddExecutionNode,
+            'commander/add_executor',
+            self.add_execution_node
+        )
+
         # Create Node Service for the user
         self.create_node_service = self.create_service(
             CreateNode,
@@ -87,6 +100,25 @@ class CommanderNode(Node):
             'commander/stop_execution',
             self.stop_execution
         )
+
+        # Stop Execution Topic
+        self.stop_execution_node_publisher = self.create_publisher(
+           String,
+           'stop_execution_node',
+           10 
+        )
+
+    def add_execution_node(self, request, response):
+        self.last_id += 1
+        new_id = self.last_id
+        
+        self.get_logger().info(f"Adding new execution node with id {new_id}.")
+
+        self.executor_ids.append(new_id)
+        self.nodes[new_id] = []
+        
+        response.id = str(new_id)
+        return response
 
     def create_node(self, request, response):
         """
@@ -165,7 +197,6 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.DeleteNode_Response
         """        
         name = str(request.name)
-        class_name = str(request.class_name)
         self.get_logger().info(f"Deleting node {name}...")
         
         if not self.node_exists(name):
@@ -177,7 +208,7 @@ class CommanderNode(Node):
 
             ex = self.get_executor_for_node(name)
 
-            executor_response = self.send_delete_request_to_executor(ex, name, class_name)
+            executor_response = self.send_delete_request_to_executor(ex, name)
           
             self.remove_node_from_executor(ex, name)
             self.get_logger().info(f"Node {name} deleted from executor {ex}")
@@ -326,12 +357,15 @@ class CommanderNode(Node):
         self.get_logger().info(f'Stopping execution...')
 
         for ex in self.executor_ids:
-            self.get_logger().info(f'Stopping execution from execution node {ex}')
             executor_response = self.send_stop_request_to_executor(ex)
             self.nodes[ex] = []
-            self.get_logger().info(f'Execution from execution node {ex} stopped.')
+            stop_msg = String()
+            stop_msg.data = str(ex)
+            self.stop_execution_node_publisher.publish(stop_msg)
+            self.get_logger().info(f'Execution of execution node {ex} stopped.')
         
         self.get_logger().info(f'Execution stopped.')
+        return executor_response
 
     # TODO: implement this method with load balancing
     def get_lowest_load_executor(self):
@@ -341,7 +375,9 @@ class CommanderNode(Node):
         :return: The executor with the lowest load.
         :rtype: int
         """
-        ex = random.randint(0, self.executor_ids.__len__() -1)
+        pos = random.randint(0, self.executor_ids.__len__() -1)
+
+        ex = self.executor_ids[pos]
         self.get_logger().info('Lowest load executor: ' + str(ex))
         return ex
     
@@ -431,7 +467,7 @@ class CommanderNode(Node):
         read_client.destroy_node()
         return executor_response
 
-    def send_delete_request_to_executor(self, executor_id, name, class_name):
+    def send_delete_request_to_executor(self, executor_id, name):
         """
         Send a 'delete' request to an executor.
 
@@ -446,7 +482,7 @@ class CommanderNode(Node):
         """
         service_name = 'execution_node_' + str(executor_id) + '/delete'
         delete_client = ServiceClient(DeleteNode, service_name)
-        executor_response = delete_client.send_request(name=name, class_name=class_name)
+        executor_response = delete_client.send_request(name=name)
         delete_client.destroy_node()
         return executor_response
 

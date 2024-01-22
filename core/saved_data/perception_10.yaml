@@ -1,0 +1,13 @@
+activation: 6.4
+class_name: cognitive_nodes.perception.Perception
+last_activation: 0.0
+my_param: abcd
+name: perception_10
+neighbors:
+- name: pnode1
+  node_type: PNode
+- name: cnode1
+  node_type: CNode
+node_type: Perception
+perception: null
+publish_activation: true

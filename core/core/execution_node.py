@@ -8,6 +8,10 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor
 # from rclpy.executors import MultiThreadedExecutor
 
+from core.service_client import ServiceClient
+
+from std_msgs.msg import String
+from core_interfaces.srv import AddExecutionNode
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode, SaveConfig, StopExecution
 from core.service_client import ServiceClient
 
@@ -22,7 +26,7 @@ class ExecutionNode(Node):
 
     # TODO: Transform all the IDs into strings
 
-    def __init__(self, executor, id):
+    def __init__(self, executor):
         """
         Constructor for the ExecutionNode class.
 
@@ -31,13 +35,21 @@ class ExecutionNode(Node):
         :param id: The identifier of the execution node.
         :type id: int
         """
+
+        service_name = 'commander/add_executor'
+        add_execution_node_client = ServiceClient(AddExecutionNode, service_name)
+        commander_response = add_execution_node_client.send_request()       
+        add_execution_node_client.destroy_node()
+        id = commander_response.id
         
-        super().__init__('ex_' + str(id))
+        super().__init__('execution_node_' + str(id))
         self.get_logger().info('Creating execution node')
         
         self.id = id
         self.nodes = {}
         self.executor = executor
+
+        self.get_logger().info('Creating execution services')
                 
         # Create Node Service for the commander node
         self.create_node_service = self.create_service(
@@ -87,6 +99,17 @@ class ExecutionNode(Node):
             'execution_node_' + str(self.id) + '/stop_execution',
             self.stop_execution
         )
+
+        # Stop Execution topic for the commander node
+        self.stop_execution_subscription = self.create_subscription(
+            String,
+           'stop_execution_node',
+            self.stop_execution_callback,
+            10
+        )
+
+        self.get_logger().info('Execution node created')
+
     
     def create_node(self, request, response):
         """
@@ -139,6 +162,10 @@ class ExecutionNode(Node):
             response.data = str(self.nodes.get(name))
         else:
             response.data = ''
+
+        node_data = yaml.safe_load(response.data)
+        self.get_logger().info(f'Data: {node_data}')
+
         return response
 
     def delete_node(self, request, response):
@@ -254,22 +281,26 @@ class ExecutionNode(Node):
         Stops the execution of every node in this executor
         """
 
-        self.get_logger().info(f'Stopping execution from execution node {self.id}')
+        self.get_logger().info(f'Stopping execution of every cognitive nodes in execution node {self.id}')
 
-        for name in self.nodes:
-            self.get_logger().info(f'Deleting node: {name}...')
+        for name in list(self.nodes.keys()):
             node_to_delete = self.nodes.pop(name)
             node_to_delete.destroy_node()
-            self.get_logger().info(f'Deleted node: {name}.')
+            self.get_logger().info(f'Stopped execution of node: {name}.')
 
         return response
+
+    def stop_execution_callback(self, msg):
+        if int(msg.data) == self.id:
+            self.get_logger().info(f'Stopping execution of execution node {self.id}')
+            self.executor.shutdown()
+            rclpy.shutdown()
 
 # single threaded executor
 def main(args=None):
     rclpy.init(args=args)
-    id = int(sys.argv[1])
     executor = SingleThreadedExecutor() # TODO: TBD if it is single or multi threaded executor.
-    execution_node = ExecutionNode(executor, id)
+    execution_node = ExecutionNode(executor)
     executor.add_node(execution_node)
 
     try:

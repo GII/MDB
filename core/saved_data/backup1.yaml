@@ -1,0 +1,142 @@
+LTM:
+  Nodes:
+    Drive:
+    - activation: 0.0
+      class_name: cognitive_nodes.drive.Drive
+      last_activation: 0.0
+      name: drive1
+      neighbors: []
+      node_type: Drive
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.drive.Drive
+      last_activation: 0.0
+      name: drive2
+      neighbors: []
+      node_type: Drive
+      perception: None
+      publish_activation: false
+    Goal:
+    - activation: 0.0
+      class_name: cognitive_nodes.goal.Goal
+      last_activation: 0.0
+      name: goal1
+      neighbors: []
+      node_type: Goal
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.goal.Goal
+      last_activation: 0.0
+      name: goal2
+      neighbors: []
+      node_type: Goal
+      perception: None
+      publish_activation: false
+    Need:
+    - activation: 0.0
+      class_name: cognitive_nodes.need.Need
+      last_activation: 0.0
+      name: need1
+      neighbors: []
+      node_type: Need
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.need.Need
+      last_activation: 0.0
+      name: need2
+      neighbors: []
+      node_type: Need
+      perception: None
+      publish_activation: false
+    PNode:
+    - activation: 0.0
+      class_name: cognitive_nodes.pnode.PNode
+      last_activation: 0.0
+      name: pnode1
+      neighbors: []
+      node_type: PNode
+      perception: None
+      publish_activation: false
+      spaces:
+      - <cognitive_nodes.space.PointBasedSpace object at 0x7fd670bb9060>
+    - activation: 0.0
+      class_name: cognitive_nodes.pnode.PNode
+      last_activation: 0.0
+      name: pnode2
+      neighbors: []
+      node_type: PNode
+      perception: None
+      publish_activation: false
+      spaces:
+      - <cognitive_nodes.space.PointBasedSpace object at 0x7fd600b73580>
+    Perception:
+    - activation: 0.0
+      class_name: cognitive_nodes.perception.Perception
+      last_activation: 0.0
+      name: perception2
+      neighbors: []
+      node_type: Perception
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.perception.Perception
+      last_activation: 0.0
+      name: perception1
+      neighbors: []
+      node_type: Perception
+      perception: None
+      publish_activation: false
+    Policy:
+    - activation: 0.0
+      class_name: core.policy.Policy
+      last_activation: 0.0
+      name: policy2
+      neighbors: []
+      node_type: Policy
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: core.policy.Policy
+      last_activation: 0.0
+      name: policy1
+      neighbors: []
+      node_type: Policy
+      perception: None
+      publish_activation: false
+    UtilityModel:
+    - activation: 0.0
+      class_name: cognitive_nodes.utility_model.UtilityModel
+      last_activation: 0.0
+      name: utility_model1
+      neighbors: []
+      node_type: UtilityModel
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.utility_model.UtilityModel
+      last_activation: 0.0
+      name: utility_model2
+      neighbors: []
+      node_type: UtilityModel
+      perception: None
+      publish_activation: false
+    WorldModel:
+    - activation: 0.0
+      class_name: cognitive_nodes.world_model.WorldModel
+      last_activation: 0.0
+      name: world_model1
+      neighbors: []
+      node_type: WorldModel
+      perception: None
+      publish_activation: false
+    - activation: 0.0
+      class_name: cognitive_nodes.world_model.WorldModel
+      last_activation: 0.0
+      name: world_model2
+      neighbors: []
+      node_type: WorldModel
+      perception: None
+      publish_activation: false
