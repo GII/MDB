@@ -529,6 +529,10 @@ class LTMSim(object):
             for cylinder in self.perceptions["cylinders"].data:
                 if self.object_too_far(cylinder.distance, cylinder.angle, self.world.name):
                     rospy.logdebug("Object too far in " + self.world.name)
+                    if self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
+                        max_allowed_angle = 0.8 * numpy.arctan2(1.07, 0.37)
+                        if cylinder.angle > max_allowed_angle:
+                            cylinder.angle = max_allowed_angle - 0.1
                     cylinder.distance = self.avoid_reward_by_chance(
                         LTMSim.outer(abs(cylinder.angle)) - 0.1, cylinder.angle
                     )
