@@ -5,4 +5,4 @@
 # - continue
 string command
 string world
-bool reward
+int32 iteration

@@ -1030,7 +1030,7 @@ class LTM(object):
             self.control_publisher.publish(
                 command="reset_world",
                 world=self.current_world,
-                reward=(self.current_reward > 0.9),
+                iteration=self.iteration,
             )
         return changed
 

@@ -77,6 +77,7 @@ class LTMSim(object):
         """Init attributes when a new object is created."""
         self.rng = None
         self.ident = None
+        self.last_reset_iteration = 0
         self.world = None
         self.base_messages = {}
         self.perceptions = {}
@@ -272,6 +273,17 @@ class LTMSim(object):
             distance = numpy.linalg.norm([object_y, object_x])
             angle = numpy.arctan2(object_y, object_x)
             valid = not self.object_too_close(distance, angle)
+            # TODO: Ugly hacks to test curriculum learning
+            # if self.world == World.gripper_and_low_friction_short_arm:
+            #     self.inner = self.normal_outer
+            #     distance, angle = self.random_position(in_valid=True, out_valid=True)
+            #     self.inner = self.normal_inner
+            if self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
+                if self.last_reset_iteration > 6000 and self.last_reset_iteration < 8000:
+                    max_angle = numpy.arctan2(1.07, 0.37)
+                    min_angle = 0.8 * numpy.arctan2(1.07, 0.37)
+                    if angle < min_angle:
+                        angle = self.rng.uniform(min_angle, max_angle)
             if not in_valid:
                 valid = valid and self.object_too_far(distance, angle, self.world.name)
             if not out_valid:
@@ -308,12 +320,6 @@ class LTMSim(object):
             self.perceptions["boxes"].data[0].diameter = 0.12
             # self.perceptions["boxes"].data[0].id = Item.box.value
             self.perceptions["cylinders"].data = []
-            # UGLY HACK TO TEST ONE THING...
-            # if self.world == World.gripper_and_low_friction_short_arm:
-            #     self.inner = self.normal_outer
-            #     distance, angle = self.random_position(in_valid=True, out_valid=True)
-            #     self.inner = self.normal_inner
-            # else:
             distance, angle = self.random_position(in_valid=True, out_valid=True)
             self.perceptions["cylinders"].data.append(self.base_messages["cylinders"]())
             self.perceptions["cylinders"].data[0].distance = distance
@@ -545,6 +551,7 @@ class LTMSim(object):
             # Unfortunately, we need some methods, which use "world", to be class methods,
             # so we use always a class attribute to avoid problems.
             # This should be changed, but it implies several modifications.
+            self.last_reset_iteration = data.iteration
             self.world = World[data.world]
             if self.world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM:
                 LTMSim.outer = LTMSim.short_outer
