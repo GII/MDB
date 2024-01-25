@@ -457,7 +457,7 @@ class SVMSpace(PointBasedSpace):
         point = structured_to_unstructured(candidate_point)
         # Calculate the activation value
         if self.learnable():
-            act = self.model.decision_function(point)[0]
+            act = min(2.0, self.model.decision_function(point)[0]) / 2.0
         else:
             act = 1.0
         return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
