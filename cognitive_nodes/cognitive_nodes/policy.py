@@ -13,7 +13,7 @@ class Policy(CognitiveNode):
     Policy class.
     """
 
-    def __init__(self, name='policy', class_name='core.policy.Policy', **params):
+    def __init__(self, name='policy', class_name='cognitive_nodes.policy.Policy', **params):
         """
         Constructor for the Policy class.
 
@@ -24,7 +24,7 @@ class Policy(CognitiveNode):
         :type name: str
         """
 
-        super().__init__(name, 'core.policy.Policy', **params)
+        super().__init__(name, 'cognitive_nodes.policy.Policy', **params)
 
         self.register_in_LTM({})
 

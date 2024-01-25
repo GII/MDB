@@ -1,10 +1,53 @@
 Experiment:
     iterations: 12000
 LTM:
-    Nodes:     
-        PNode:
+    Nodes:
+        Perception:
             -
-                name: pnode1
-                class_name: cognitive_nodes.pnode.PNode
-                parameters:
-                    space_class: cognitive_nodes.space.PointBasedSpace                                         
+                name: perception1
+                class_name: cognitive_nodes.perception.Perception
+            -
+                name: perception2
+                class_name: cognitive_nodes.perception.Perception
+        Need:
+            -
+                name: need1
+                class_name: cognitive_nodes.need.Need
+            -
+                name: need2
+                class_name: cognitive_nodes.need.Need
+        Goal:
+            -
+                name: goal1
+                class_name: cognitive_nodes.goal.Goal
+            -
+                name: goal2
+                class_name: cognitive_nodes.goal.Goal
+        Drive:
+            -
+                name: drive1
+                class_name: cognitive_nodes.drive.Drive
+            -
+                name: drive2
+                class_name: cognitive_nodes.drive.Drive
+        UtilityModel:
+            -
+                name: utility_model1
+                class_name: cognitive_nodes.utility_model.UtilityModel
+            -
+                name: utility_model2
+                class_name: cognitive_nodes.utility_model.UtilityModel
+        WorldModel:
+            -
+                name: world_model1
+                class_name: cognitive_nodes.world_model.WorldModel
+            -
+                name: world_model2
+                class_name: cognitive_nodes.world_model.WorldModel
+        Policy:
+            -
+                name: policy1
+                class_name: cognitive_nodes.policy.Policy
+            -
+                name: policy2
+                class_name: cognitive_nodes.policy.Policy                                                  

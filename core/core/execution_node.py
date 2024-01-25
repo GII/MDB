@@ -93,6 +93,13 @@ class ExecutionNode(Node):
             self.read_all_nodes
         )
 
+        # Save All Nodes service for the commander node
+        self.save_all_nodes = self.create_service(
+            SaveNode,
+            'execution_node_' + str(self.id) + '/save_all_nodes',
+            self.save_all_nodes
+        )
+
         # Stop Execution service for the commander node
         self.stop_execution = self.create_service(
             StopExecution,
@@ -106,7 +113,7 @@ class ExecutionNode(Node):
            'stop_execution_node',
             self.stop_execution_callback,
             10
-        )
+        )      
 
         self.get_logger().info('Execution node created')
 
@@ -228,6 +235,8 @@ class ExecutionNode(Node):
         """        
         
         name = str(request.name)
+        file_path = str(request.file)
+
         response.loaded = False
 
         node_to_load = self.nodes.get(name)
@@ -236,10 +245,9 @@ class ExecutionNode(Node):
 
             self.get_logger().info(f'Loading node: {name} ...')
 
-            state_file = os.path.join(saved_data_dir, name + '.yaml')
-            if os.path.exists(state_file):
-                with open(state_file, 'r') as file:
-                    data = yaml.load(file, Loader=yaml.FullLoader)
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as file_path:
+                    data = yaml.load(file_path, Loader=yaml.FullLoader)
                 
                 class_name = data['class_name']
                 del data['node_type']
@@ -252,7 +260,7 @@ class ExecutionNode(Node):
                 self.get_logger().info(f'Loaded node: {name}')
                 response.loaded = True
             else:
-                self.get_logger().info(f"File {state_file} not found. Couldn't load node.")
+                self.get_logger().info(f"File {file_path} not found. Couldn't load node.")
         else:
             self.get_logger().info(f"Node {name} already exists. Couldn't load node.")
 
@@ -276,6 +284,40 @@ class ExecutionNode(Node):
 
         return response
     
+    def save_all_nodes(self, _, response):
+        """
+        Saves the data of all the nodes in this execution node to a file.
+        """
+
+        self.get_logger().info(f'Saving all the nodes from execution node {self.id}.')
+
+        ex_folder = 'execution_node_' + str(self.id) + '_data'
+        ex_folder_path = os.path.join(saved_data_dir, ex_folder)
+
+        os.makedirs(ex_folder_path, exist_ok=True)
+
+        for name in self.nodes:
+           
+            self.get_logger().info(f'Saving node: {name} ...')
+
+            node_to_save = self.nodes.get(name)
+            
+            if node_to_save is not None:
+                node_data = node_to_save.get_data()
+                node_file = os.path.join(ex_folder_path, name + '.yaml')
+                
+                with open(node_file, 'w') as file:
+                    yaml.dump(node_data, file)
+
+                self.get_logger().info(f'Saved node {name}.')
+            else:
+                self.get_logger().info(f'Node {name} not found.')         
+
+        response.saved = True
+
+        return response
+
+
     def stop_execution(self, request, response):
         """
         Stops the execution of every node in this executor
@@ -285,6 +327,7 @@ class ExecutionNode(Node):
 
         for name in list(self.nodes.keys()):
             node_to_delete = self.nodes.pop(name)
+            node_to_delete.remove_from_LTM()
             node_to_delete.destroy_node()
             self.get_logger().info(f'Stopped execution of node: {name}.')
 

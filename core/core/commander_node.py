@@ -9,7 +9,7 @@ from core.config import saved_data_dir
 from std_msgs.msg import String
 from core.service_client import ServiceClient
 
-from core_interfaces.srv import AddExecutionNode
+from core_interfaces.srv import AddExecutionNode, DeleteExecutionNode, MoveCognitiveNodeToExecutionNode
 from core_interfaces.srv import CreateNode, ReadNode, DeleteNode, SaveNode, LoadNode
 from core_interfaces.srv import SaveConfig, LoadConfig, StopExecution
 
@@ -43,6 +43,20 @@ class CommanderNode(Node):
             AddExecutionNode,
             'commander/add_executor',
             self.add_execution_node
+        )
+
+        # Delete Execution Node Service for the User
+        self.delete_execution_node_service = self.create_service(
+            DeleteExecutionNode,
+            'commander/delete_executor',
+            self.delete_execution_node
+        )
+
+        # Move Cognitive Node Service for the User
+        self.move_cognitive_node_service = self.create_service(
+            MoveCognitiveNodeToExecutionNode,
+            'commander/move_cognitive_node_to',
+            self.move_cognitive_node_to
         )
 
         # Create Node Service for the user
@@ -110,7 +124,7 @@ class CommanderNode(Node):
 
     def add_execution_node(self, request, response):
         self.last_id += 1
-        new_id = self.last_id
+        new_id = str(self.last_id)
         
         self.get_logger().info(f"Adding new execution node with id {new_id}.")
 
@@ -120,6 +134,90 @@ class CommanderNode(Node):
         response.id = str(new_id)
         return response
 
+    def delete_execution_node(self, request, response):
+        ex_id = request.id
+
+        # save all cognitive nodes
+        self.get_logger().info(f"Saving all the nodes of the executor {ex_id}...")
+        saved = self.send_save_all_nodes_request_to_executor(ex_id)
+
+        if saved:
+            # delete the execution node
+            self.get_logger().info(f'Deleting executor: {ex_id}...')
+            self.send_stop_request_to_executor(ex_id)
+            del self.nodes[ex_id]
+            self.executor_ids.remove(ex_id)
+
+            # load the cognitive nodes in another executor
+
+            folder_name = 'execution_node_' + str(ex_id) + '_data'
+            executor_folder_path = os.path.join(saved_data_dir, folder_name)     
+                
+            if not os.path.exists(executor_folder_path):
+                self.get_logger().info(f'Executor folder {executor_folder_path} not found.')
+        
+            else:
+
+                self.get_logger().info(f'Loading nodes...')
+                for filename in os.listdir(executor_folder_path):
+                    if filename.endswith(".yaml"):
+                        node_file_path = os.path.join(executor_folder_path, filename)
+                        
+                        node_name, _ = os.path.splitext(filename)
+
+                        if self.node_exists(node_name):
+                            self.get_logger().info(f'Node {node_name} already exists.')
+
+                        ex = self.get_lowest_load_executor()
+
+                        executor_response = self.send_load_request_to_executor(ex, node_name, node_file_path)
+
+                        self.register_node(ex, node_name)
+
+                        if executor_response.loaded:
+                            self.get_logger().info(f'Node {node_name} loaded in executor {ex}.')
+
+            response.deleted = True
+
+        else:
+            self.get_logger().info(f"Could not delete executor {ex_id}.")
+            response.deleted = False
+        
+        return response
+    
+    def move_cognitive_node_to(self, request, response):
+        ex_id = request.ex_id
+        node_name = request.name
+        self.get_logger().info(f"Moving node {node_name} to executor {ex_id}...")
+
+        if self.node_exists(node_name):
+
+            current_ex_id = self.get_executor_for_node(node_name)
+
+            # save node data
+
+            self.send_save_request_to_executor(current_ex_id, node_name)
+            
+            # remove node from current executor
+            self.send_delete_request_to_executor(current_ex_id, node_name)
+
+            # load node in new executor
+            file_path = os.path.join(saved_data_dir, node_name + '.yaml')
+
+            self.send_load_request_to_executor(ex_id, node_name, file_path)
+
+            self.get_logger().info(f"Node {node_name} moved to executor {ex_id}.")
+            response.moved = True
+
+        else:
+            self.get_logger().info(f"Node {node_name} not found.")
+            response.moved = False
+
+
+        response.moved = True
+        return response
+
+    
     def create_node(self, request, response):
         """
         Handle the creation of a cognitive node.
@@ -257,6 +355,7 @@ class CommanderNode(Node):
         :rtype: core_interfaces.srv.LoadNode_Response
         """
         name = str(request.name)
+        file_path = str(request.file)
 
         if self.node_exists(name):
             self.get_logger().info(f'Node {name} already exists.')
@@ -266,7 +365,7 @@ class CommanderNode(Node):
             
             ex = self.get_lowest_load_executor()
             
-            executor_response = self.send_load_request_to_executor(ex, name)
+            executor_response = self.send_load_request_to_executor(ex, name, file_path)
             
             self.register_node(ex, name)
             
@@ -503,7 +602,7 @@ class CommanderNode(Node):
         save_client.destroy_node()
         return executor_response
 
-    def send_load_request_to_executor(self, executor_id, name):
+    def send_load_request_to_executor(self, executor_id, name, file_path):
         """
         Send a 'load' request to an executor.
 
@@ -516,7 +615,7 @@ class CommanderNode(Node):
         """
         service_name = 'execution_node_' + str(executor_id) + '/load'
         load_client = ServiceClient(LoadNode, service_name)
-        executor_response = load_client.send_request(name=name)
+        executor_response = load_client.send_request(name=name, file=file_path)
         load_client.destroy_node()
         return executor_response
 
@@ -527,6 +626,13 @@ class CommanderNode(Node):
         read_all_nodes_client.destroy_node()
         return executor_response
     
+    def send_save_all_nodes_request_to_executor(self, executor_id):
+        service_name = 'execution_node_' + str(executor_id) + '/save_all_nodes'
+        save_all_nodes_client = ServiceClient(SaveNode, service_name)
+        executor_response = save_all_nodes_client.send_request()
+        save_all_nodes_client.destroy_node()
+        return executor_response 
+       
     def send_stop_request_to_executor(self, executor_id):
         service_name = 'execution_node_' + str(executor_id) + '/stop_execution'
         stop_execution_client = ServiceClient(StopExecution, service_name)
