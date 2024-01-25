@@ -26,13 +26,12 @@ def pnodes_grouped_success_average():
                 index_col=(0, 1),
             )
         )
-    data = pandas.concat(data).groupby(by=["Iteration", "P-node"])["% success"].agg(["mean", "std"])
-    seaborn.set_theme()
+    data = pandas.concat(data)
+    seaborn.set_theme(context="paper", style="whitegrid")
     seaborn.relplot(
-        data=data, x="Iteration", y="mean", hue="P-node", col="P-node", col_wrap=4, kind="line"
-    ).set_axis_labels("Iteration", "% success")
+        data=data, x="Iteration", y="% success", hue="P-node", col="P-node", col_wrap=4, kind="line"
+    ).set_axis_labels("Iteration", "% rewarded iterations")
     plt.show()
-    # data.to_excel("pnodes_grouped_success_average.xlsx", index=False)
 
 
 if __name__ == "__main__":
