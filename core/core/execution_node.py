@@ -24,16 +24,12 @@ class ExecutionNode(Node):
     It is subscribed to the topic where the commander node sends commands.
     """
 
-    # TODO: Transform all the IDs into strings
-
     def __init__(self, executor):
         """
         Constructor for the ExecutionNode class.
 
         :param executor: The ROS2 executor for the node.
         :type executor: rclpy.executors.SingleThreadedExecutor
-        :param id: The identifier of the execution node.
-        :type id: int
         """
 
         service_name = 'commander/add_executor'
@@ -51,63 +47,63 @@ class ExecutionNode(Node):
 
         self.get_logger().info('Creating execution services')
                 
-        # Create Node Service for the commander node
+        # Create Node Service for the Commander Node
         self.create_node_service = self.create_service(
             CreateNode,
             'execution_node_' + str(self.id) + '/create',
             self.create_node
         )
                 
-        # Read Node Service for the commander node
+        # Read Node Service for the Commander Node
         self.read_node_service = self.create_service(
             ReadNode,
             'execution_node_' + str(self.id) + '/read',
             self.read_node
         )
                 
-        # Delete Node Service for the commander node
+        # Delete Node Service for the Commander Node
         self.delete_node_service = self.create_service(
             DeleteNode,
             'execution_node_' + str(self.id) + '/delete',
             self.delete_node
         )
                 
-        # Save Node Service for the commander node
+        # Save Node Service for the Commander Node
         self.save_node_service = self.create_service(
             SaveNode,
             'execution_node_' + str(self.id) + '/save',
             self.save_node
         )
 
-        # Load Node Service for the commander node
+        # Load Node Service for the Commander Node
         self.load_node_service = self.create_service(
             LoadNode,
             'execution_node_' + str(self.id) + '/load',
             self.load_node
         )
 
-        # Read All Nodes service for the commander node
+        # Read All Nodes service for the Commander Node
         self.read_all_nodes = self.create_service(
             ReadNode,
             'execution_node_' + str(self.id) + '/read_all_nodes',
             self.read_all_nodes
         )
 
-        # Save All Nodes service for the commander node
+        # Save All Nodes service for the Commander Node
         self.save_all_nodes = self.create_service(
             SaveNode,
             'execution_node_' + str(self.id) + '/save_all_nodes',
             self.save_all_nodes
         )
 
-        # Stop Execution service for the commander node
+        # Stop Execution service for the Commander Node
         self.stop_execution = self.create_service(
             StopExecution,
             'execution_node_' + str(self.id) + '/stop_execution',
             self.stop_execution
         )
 
-        # Stop Execution topic for the commander node
+        # Stop Execution topic for the Commander Node
         self.stop_execution_subscription = self.create_subscription(
             String,
            'stop_execution_node',
@@ -124,12 +120,10 @@ class ExecutionNode(Node):
         If the node doesn't have previous data, it is created with the default values.
         In other case, the existent data is loaded.
 
-        :param name: The name of the node to be created.
-        :type name: str
-        :param class_name: The type of the node to be created.
-        :type class_name: str
-        :param data: Optional data to initialize the new node.
-        :type data: dict
+        :param request: The request to create a new node.
+        :type name: core_interfaces.srv.CreateNode_Request
+        :return: The response indicating the success of the creation.
+        :rtype: core_interfaces.srv.CreateNode_Response
         """
 
         class_name = str(request.class_name)
@@ -154,12 +148,12 @@ class ExecutionNode(Node):
 
     def read_node(self, request, response):
         """
-        Retrieve a node by its name.
+        Retrieve information about a node by its name.
 
-        :param name: The name of the node to retrieve.
-        :type name: str
-        :return: The node with the specified name, or None if not found.
-        :rtype: core.cognitive_node.CognitiveNode or None
+        :param request: The request containing the name of the node to read.
+        :type request: core_interfaces.srv.ReadNode_Request
+        :return: The response with the requested node data.
+        :rtype: core_interfaces.srv.ReadNode_Response
         """
         name = str(request.name)
         
@@ -177,10 +171,12 @@ class ExecutionNode(Node):
 
     def delete_node(self, request, response):
         """
-        Delete a node by name.
+        Delete a cognitive node by its name.
 
-        :param name: The name of the node to delete.
-        :type name: str
+        :param request: The request containing the name of the node to delete.
+        :type request: core_interfaces.srv.DeleteNode_Request
+        :return: The response indicating the success of the deletion.
+        :rtype: core_interfaces.srv.DeleteNode_Response
         """
         name = str(request.name)
 
@@ -200,10 +196,13 @@ class ExecutionNode(Node):
 
     def save_node(self, request, response):
         """
-        Save the state of a node to a YAML file.
+        Save the state of a cognitive node.
 
-        :param name: The name of the node to save.
-        :type name: str
+        :param request: The request containing the name of the node to save.
+        :type request: core_interfaces.srv.SaveNode_Request
+
+        :return: The response indicating the success of the saving.
+        :rtype: core_interfaces.srv.SaveNode_Response
         """
 
         name = str(request.name)
@@ -226,13 +225,13 @@ class ExecutionNode(Node):
 
     def load_node(self, request, response):
         """
-        Load the state of a node from a YAML file and create the node.
+        Load a cognitive node from a  file.
 
-        :param name: The name of the node to load.
-        :type name: str
-        :param class_name: The type of the node to be created.
-        :type class_name: str
-        """        
+        :param request: The request containing the name and file path of the node to load.
+        :type request: core_interfaces.srv.LoadNode_Request
+        :return: The response indicating the success of the loading.
+        :rtype: core_interfaces.srv.LoadNode_Response
+        """  
         
         name = str(request.name)
         file_path = str(request.file)
@@ -268,7 +267,9 @@ class ExecutionNode(Node):
     
     def read_all_nodes(self, _, response):
         """
-        Returns a list of nodes with the data of all the nodes in this execution node.
+        Read the data from all cognitive nodes in this execution node.
+        :return: The response containing data from all nodes.
+        :rtype: core_interfaces.srv.ReadNode_Response
         """
 
         self.get_logger().info(f'Reading all the nodes from execution node {self.id}')
@@ -286,7 +287,9 @@ class ExecutionNode(Node):
     
     def save_all_nodes(self, _, response):
         """
-        Saves the data of all the nodes in this execution node to a file.
+        Save data from all cognitive nodes in this execution node.
+        :return: The response indicating the success of the operation.
+        :rtype: core_interfaces.srv.SaveNode_Response
         """
 
         self.get_logger().info(f'Saving all the nodes from execution node {self.id}.')
@@ -320,7 +323,9 @@ class ExecutionNode(Node):
 
     def stop_execution(self, request, response):
         """
-        Stops the execution of every node in this executor
+        Stop the execution of all cognitive nodes in this execution node.
+        :return: The response indicating the success of stopping execution.
+        :rtype: core_interfaces.srv.StopExecution_Response
         """
 
         self.get_logger().info(f'Stopping execution of every cognitive nodes in execution node {self.id}')
@@ -334,6 +339,12 @@ class ExecutionNode(Node):
         return response
 
     def stop_execution_callback(self, msg):
+        """
+        Callback method to stop the execution of this execution node.
+
+        :param msg: The message containing the ID of the execution node to stop.
+        :type msg: std_msgs.msg.String
+        """        
         if int(msg.data) == self.id:
             self.get_logger().info(f'Stopping execution of execution node {self.id}')
             self.executor.shutdown()

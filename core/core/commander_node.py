@@ -26,7 +26,7 @@ class CommanderNode(Node):
         """
         Constructor for the CommanderNode class.
 
-        Creates a ROS 2 node named 'commander node' and a service for the user to send commands.
+        Creates a ROS 2 node named 'commander node' and a service for the User to send commands.
         """
         
         super().__init__('commander')
@@ -59,56 +59,56 @@ class CommanderNode(Node):
             self.move_cognitive_node_to
         )
 
-        # Create Node Service for the user
+        # Create Node Service for the User
         self.create_node_service = self.create_service(
             CreateNode,
             'commander/create',
             self.create_node
         )
                 
-        # Read Node Service for the user
+        # Read Node Service for the User
         self.read_node_service = self.create_service(
             ReadNode,
             'commander/read',
             self.read_node
         )
                 
-        # Delete Node Service for the user
+        # Delete Node Service for the User
         self.delete_node_service = self.create_service(
             DeleteNode,
             'commander/delete',
             self.delete_node
         )
                 
-        # Save Node Service for the user
+        # Save Node Service for the User
         self.save_node_service = self.create_service(
             SaveNode,
             'commander/save',
             self.save_node
         )
 
-        # Load Node Service for the user
+        # Load Node Service for the User
         self.load_node_service = self.create_service(
             LoadNode,
             'commander/load',
             self.load_node
         )
 
-        # Load Config Service for the user
+        # Load Config Service for the User
         self.load_config_service = self.create_service(
             LoadConfig,
             'commander/load_config',
             self.load_experiment
         )
 
-        # Save Config Service for the user
+        # Save Config Service for the User
         self.save_config_service = self.create_service(
             SaveConfig,
             'commander/save_config',
             self.save_config
         )
 
-        # Stop Execution Service for the user
+        # Stop Execution Service for the User
         self.stop_execution_service = self.create_service(
             StopExecution,
             'commander/stop_execution',
@@ -123,6 +123,17 @@ class CommanderNode(Node):
         )
 
     def add_execution_node(self, request, response):
+        """
+        Adds a new execution node to the system.
+
+        This method increments the last used ID, creates a new execution node with the updated ID,
+        and returns the assigned ID in the response.
+
+        :param request: The request to add a new execution node.
+        :type request: core_interfaces.srv.AddExecutionNode_Request
+        :return: The response with the assigned ID for the new execution node.
+        :rtype: core_interfaces.srv.AddExecutionNode_Response
+        """        
         self.last_id += 1
         new_id = str(self.last_id)
         
@@ -135,6 +146,19 @@ class CommanderNode(Node):
         return response
 
     def delete_execution_node(self, request, response):
+        """
+        Deletes an execution node and redistributes its cognitive nodes to other executors.
+
+        This method performs the following steps:
+        1. Saves all cognitive nodes of the specified execution node.
+        2. Deletes the execution node and stops its execution.
+        3. Loads the saved cognitive nodes into other executors.
+
+        :param request: The request to delete an execution node.
+        :type request: core_interfaces.srv.DeleteExecutionNode_Request
+        :return: The response indicating whether the deletion was successful.
+        :rtype: core_interfaces.srv.DeleteExecutionNode_Response
+        """        
         ex_id = request.id
 
         # save all cognitive nodes
@@ -186,6 +210,20 @@ class CommanderNode(Node):
         return response
     
     def move_cognitive_node_to(self, request, response):
+        """
+        Moves a cognitive node from its current executor to a specified executor.
+
+        This method performs the following steps:
+        1. Checks if the specified node exists.
+        2. Saves the data of the node.
+        3. Removes the node from its current executor.
+        4. Loads the node into the specified executor.
+
+        :param request: The request to move a cognitive node.
+        :type request: core_interfaces.srv.MoveCognitiveNodeToExecutionNode_Request
+        :return: The response indicating whether the movement was successful.
+        :rtype: core_interfaces.srv.MoveCognitiveNodeToExecutionNode_Response
+        """        
         ex_id = request.ex_id
         node_name = request.name
         self.get_logger().info(f"Moving node {node_name} to executor {ex_id}...")
@@ -222,6 +260,13 @@ class CommanderNode(Node):
         """
         Handle the creation of a cognitive node.
 
+        This method performs the following steps:
+        1. Extracts information from the creation request, including node name, class name, and parameters.
+        2. Checks if the specified node already exists.
+        3. Determines the executor with the lowest load to distribute the creation request.
+        4. Sends a create request to the selected executor to create the cognitive node.
+        5. Registers the created node in the system.
+
         :param request: The creation request.
         :type request: core_interfaces.srv.CreateNode_Request
         :param response: The response to the creation request.
@@ -256,6 +301,14 @@ class CommanderNode(Node):
         """
         Handle reading data from a cognitive node.
 
+        This method performs the following steps:
+        1. Extracts information the node name from the read request.
+        2. Checks if the specified node exists.
+        3. Retrieves the executor associated with the node.
+        4. Sends a read request to the executor to obtain data from the cognitive node.
+        5. Parses the received data and logs information.
+        6. Sets the response data with the information obtained from the cognitive node.
+
         :param request: The read request.
         :type request: core_interfaces.srv.ReadNode_Request
         :param response: The response to the read request.
@@ -287,6 +340,13 @@ class CommanderNode(Node):
         """
         Handle the deletion of a cognitive node.
 
+        This method performs the following steps:
+        1. Extracts the node name from the delete request.
+        2. Checks if the specified node exists.
+        3. Retrieves the executor associated with the node.
+        4. Sends a delete request to the executor to remove the cognitive node.
+        5. Removes the node from the local data structures.
+        
         :param request: The delete request.
         :type request: core_interfaces.srv.DeleteNode_Request
         :param response: The response to the delete request.
@@ -302,8 +362,6 @@ class CommanderNode(Node):
             response.deleted = False
         
         else:
-            class_name = str(request.class_name)
-
             ex = self.get_executor_for_node(name)
 
             executor_response = self.send_delete_request_to_executor(ex, name)
@@ -318,6 +376,11 @@ class CommanderNode(Node):
     def save_node(self, request, response):
         """
         Handle saving the state of a cognitive node.
+
+        This method performs the following steps:
+        1. Checks if the specified node exists.
+        2. Determines the current executor of the node.
+        3. Sends a save request to the executor to save the state of the node.
 
         :param request: The save request.
         :type request: core_interfaces.srv.SaveNode_Request
@@ -346,6 +409,13 @@ class CommanderNode(Node):
     def load_node(self, request, response):
         """
         Handle loading a cognitive node from a configuration.
+
+        This method performs the following steps:
+        1. Extracts information from the load request, including the node name and file path.
+        2. Checks if the specified node already exists.
+        3. Retrieves the executor with the lowest load.
+        4. Sends a load request to the executor to load the cognitive node from the specified file.
+        5. Registers the loaded node in the local data structures.
 
         :param request: The load request.
         :type request: core_interfaces.srv.LoadNode_Request
@@ -377,7 +447,23 @@ class CommanderNode(Node):
         return response
     
     def load_experiment(self, request, response):
+        """
+        Load an experiment from a file.
 
+        This method performs the following steps:
+        1. Extracts the experiment file path from the load request.
+        2. Checks if the specified experiment file exists.
+        3. Reads the YAML data from the experiment file.
+        4. Retrieves information about cognitive nodes from the loaded data.
+        5. Iterates over the cognitive nodes, creating and registering them in the system.
+
+        :param request: The load experiment request.
+        :type request: core_interfaces.srv.LoadConfig_Request
+        :param response: The response to the load experiment request.
+        :type response: core_interfaces.srv.LoadConfig_Response
+        :return: The response to the load experiment request.
+        :rtype: core_interfaces.srv.LoadConfig_Response
+        """    
         experiment_file = str(request.file)
 
         if not os.path.exists(experiment_file):
@@ -421,6 +507,23 @@ class CommanderNode(Node):
         return response
       
     def save_config(self, request, response):
+        """
+        Saves the state of the system to a YAML file.
+
+        This method performs the following steps:
+        1. Constructs the file path using the saved data directory and the specified file name.
+        2. Prepares the data structure to be saved, including the LTM nodes organized by type.
+        3. Iterates over each execution node to retrieve the data of all cognitive nodes.
+        4. Appends the retrieved node data to the corresponding type in the prepared data structure.
+        5. Writes the final data structure to a YAML file.
+
+        :param request: The save config request.
+        :type request: core_interfaces.srv.SaveConfig_Request
+        :param response: The response to the save config request.
+        :type response: core_interfaces.srv.SaveConfig_Response
+        :return: The response to the save config request.
+        :rtype: core_interfaces.srv.SaveConfig_Response
+        """        
         response.saved = True
         
         file_name = str(request.file)
@@ -452,7 +555,21 @@ class CommanderNode(Node):
         return response
 
     def stop_execution(self, request, response):
-        
+        """
+        Stop the execution of all execution nodes in the system.
+
+        This method performs the following steps:
+        1. Iterates over each execution node to send a stop request and stop its execution.
+        2. Clears the list of nodes associated with each execution node.
+        3. Publishes a stop message for each execution node.
+
+        :param request: The stop execution request.
+        :type request: core_interfaces.srv.StopExecution_Request
+        :param response: The response to the stop execution request.
+        :type response: core_interfaces.srv.StopExecution_Response
+        :return: The response to the stop execution request.
+        :rtype: core_interfaces.srv.StopExecution_Response
+        """
         self.get_logger().info(f'Stopping execution...')
 
         for ex in self.executor_ids:
@@ -620,6 +737,13 @@ class CommanderNode(Node):
         return executor_response
 
     def send_read_all_nodes_request_to_executor(self, executor_id):
+        """
+        Send a request to read data from all cognitive nodes in a specific execution node.
+        :param executor_id: The identifier of the target execution node.
+        :type executor_id:  str
+        :return: The response containing data from all cognitive nodes.
+        :rtype: core_interfaces.srv.ReadNode_Response
+        """
         service_name = 'execution_node_' + str(executor_id) + '/read_all_nodes'
         read_all_nodes_client = ServiceClient(ReadNode, service_name)
         executor_response = read_all_nodes_client.send_request()
@@ -627,6 +751,14 @@ class CommanderNode(Node):
         return executor_response
     
     def send_save_all_nodes_request_to_executor(self, executor_id):
+        """
+        Send a request to save the state of all cognitive nodes in a specific execution node.
+
+        :param executor_id: The identifier of the target execution node.
+        :type executor_id: str
+        :return: The response indicating the success of saving all cognitive nodes.
+        :rtype: core_interfaces.srv.SaveNode_Response
+        """        
         service_name = 'execution_node_' + str(executor_id) + '/save_all_nodes'
         save_all_nodes_client = ServiceClient(SaveNode, service_name)
         executor_response = save_all_nodes_client.send_request()
@@ -634,6 +766,14 @@ class CommanderNode(Node):
         return executor_response 
        
     def send_stop_request_to_executor(self, executor_id):
+        """
+        Send a request to stop the execution of all cognitive nodes in a specific execution node.
+
+        :param executor_id: The identifier of the target execution node.
+        :type executor_id: str
+        :return: The response indicating the success of stopping the execution.
+        :rtype: core_interfaces.srv.StopExecution_Response
+        """        
         service_name = 'execution_node_' + str(executor_id) + '/stop_execution'
         stop_execution_client = ServiceClient(StopExecution, service_name)
         executor_response = stop_execution_client.send_request()

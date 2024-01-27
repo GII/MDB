@@ -13,8 +13,6 @@ class CognitiveNode(ABC, Node):
 
     This class extends the `rclpy.node.Node` class and provides some
     common functionality for cognitive nodes.
-
-    :param name: The name of the node.
     """
 
     def __init__(self, name, class_name, **params):
@@ -22,6 +20,8 @@ class CognitiveNode(ABC, Node):
         Initialize a CognitiveNode.
 
         :param name: The name of the node.
+        :param class_name: The name of the class, i.e: cognitive_nodes.perception.Perception.
+        :param params: Any other attribute of the node.
         """
         super().__init__(name)
         self.name = name
@@ -82,10 +82,13 @@ class CognitiveNode(ABC, Node):
         """
 
         node_data = self.__dict__.copy()
+        
+        # delete any key starting with '_', any topic and any service.
         keys_to_delete = [key for key in node_data.keys() if key.startswith('_') or 'service' in key or 'topic' in key]
         for key in keys_to_delete:
             del node_data[key]
 
+        # list of other keys to delete (filled manually)
         optional_keys_to_delete = ['subscription']
         for key in optional_keys_to_delete:
             if key in node_data:
@@ -95,7 +98,12 @@ class CognitiveNode(ABC, Node):
     
     def register_in_LTM(self, data_dic):
         """
-        Registers the node in the LTM
+        Registers the node in the LTM.
+
+        :param data_dic: A dictionary with the data to be saved.
+        :type data_dic: dict
+        :return: The response from the LTM service.
+        :rtype: core_interfaces.srv.AddNodeToLTM_Response
         """
 
         data = yaml.dump({**data_dic, 'activation': self.activation, 'perception': self.perception})
@@ -108,7 +116,9 @@ class CognitiveNode(ABC, Node):
     
     def remove_from_LTM(self):
         """
-        Removes the node from the LTM. Returns true if the operation was succesful, false otherwise.
+        Removes the node from the LTM. 
+        :return: True if the operation was succesful, False otherwise.
+        :rtype: core_interfaces.srv.DeleteNodeFromLTM_Response
         """
 
         service_name = 'ltm_0' + '/delete_node' # TODO: choose the ltm ID
@@ -119,34 +129,62 @@ class CognitiveNode(ABC, Node):
    
     def calculate_activation(self, perception):
         """
-        Calculate and return the node's activations.
-
-        :param request: The request for calculating activations.
-        :type request: core_interfaces.srv.CalculateActivations_Request
-        :param response: The response containing the activations.
-        :type response: core_interfaces.srv.CalculateActivations_Response
+        Calculate the node's activation for the given perception.
+        :param perception: The perception for which the activation will be calculated.
+        :type perception: float
         """
         raise NotImplementedError
     
     def publish_activation(self, activation):
+        """
+        Publish the activation of this node.
+        :param activation: The activation to be published.
+        :type activation: float
+        """
         msg = Activation()
         msg.activation = activation
         self.publish_activation_topic.publish(msg)
 
     def get_activation_callback(self, request, response): # TODO: implement this method
+        """
+        Callback method to calculate and return the node's activations.
+        This method calculates the activation of the node based on its perception.
+
+        :return: The response with the calculated activation.
+        :rtype: cognitive_node_interfaces.srv.GetActivation_Response
+        """
         self.get_logger().info('Getting node activation...')
-        perception = 0 #Only for avoid errors with calculate_activation method
+        perception = 0 #Only to avoid errors with calculate_activation method
         self.calculate_activation(perception) # TODO: implement logic
         response.activation = self.last_activation
         return response
 
     def get_information_callback(self, request, response): # TODO: implement this method
+        """
+        Callback method to get information about the node.
+
+        This method retrieves information about the node, such as its current activation.
+        The activation value is included in the response for external queries.
+
+        :return: The response with the node's information.
+        :rtype: cognitive_node_interfaces.srv.GetInformation_Response
+        """
         self.get_logger().info('Getting node information...')
         response.current_activation = self.last_activation
         self.get_logger().info('The last activation of the node is: ' + str(response.current_activation))
         return response
 
     def set_activation_topic_callback(self, request, response):
+        """
+        Callback method to control activation topic publishing for the node.
+
+        This method toggles the activation topic publishing for the node based on the provided request.
+
+        :param request: True to publish the activation; False otherwise.
+        :type request: cognitive_node_interfaces.srv.SetActivationTopic_Request
+        :return: True if the node will publish the activation; False otherwise.
+        :rtype: cognitive_node_interfaces.srv.SetActivationTopic_Response
+        """
         activation_topic = request.activation_topic
         self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
         if activation_topic:
@@ -157,7 +195,16 @@ class CognitiveNode(ABC, Node):
         return response
     
     def publish(self, message=None, first_time=False):
-        """Publish node information."""
+        """
+        Publish node information.
+
+        This method publishes information about the node, including its name, neighbors, and activation.
+
+        :param message: The message to publish (optional, a default message is created if not provided).
+        :type message: str
+        :param first_time: Flag indicating whether it's the first time publishing.
+        :type first_time: bool
+        """
         if not message:
             message = self.name + str('_msg')
         if first_time:
