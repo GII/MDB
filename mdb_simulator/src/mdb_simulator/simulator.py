@@ -26,6 +26,7 @@ class World(Enum):
     KITCHEN = 4
     GRIPPER_AND_LOW_FRICTION_SHORT_ARM = 5
     GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO = 6
+    GRIPPER_AND_LOW_FRICTION_OBSTACLE = 7
 
 
 class Item(Enum):
@@ -53,7 +54,6 @@ class LTMSim(object):
     normal_inner = numpy.poly1d(
         numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [0.45, 0.47, 0.525, 0.65, 0.9], 3)
     )
-    inner = normal_inner
     normal_outer = numpy.poly1d(
         numpy.polyfit([0.0, 0.3925, 0.785, 1.1775, 1.57], [1.15, 1.25, 1.325, 1.375, 1.375], 3)
     )
@@ -64,14 +64,6 @@ class LTMSim(object):
             3,
         )
     )
-    large_outer = numpy.poly1d(
-        numpy.polyfit(
-            [0.0, 0.3925, 0.785, 1.1775, 1.57],
-            [1.15 * 1.2, 1.25 * 1.2, 1.325 * 1.2, 1.375 * 1.2, 1.375 * 1.2],
-            3,
-        )
-    )
-    outer = normal_outer
 
     def __init__(self):
         """Init attributes when a new object is created."""
@@ -95,22 +87,26 @@ class LTMSim(object):
     @classmethod
     def object_too_close(cls, dist, ang):
         """Return True if the object is too close to the robot to be caught."""
-        return dist < cls.inner(abs(ang))
+        return dist < cls.normal_inner(abs(ang))
 
     # This is really ugly. Because it is used in some scripts, we need this is a class method,
     # but it depends on the world...
     @classmethod
-    def object_too_far(cls, dist, ang, world):
+    def object_too_far(cls, dist, ang, world_name):
         """Return True if the object is out of range of the robot."""
-        if world == World.GRIPPER_AND_LOW_FRICTION.name:
-            cls.outer = cls.normal_outer
-            too_far = dist > cls.outer(abs(ang))
-        if world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
-            cls.outer = cls.short_outer
-            too_far = dist > cls.outer(abs(ang))
-        if world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO.name:
-            cls.outer = cls.normal_outer
-            too_far = (dist > cls.outer(abs(ang))) or (ang > (0.8 * numpy.arctan2(1.07, 0.37)))
+        if world_name == World.GRIPPER_AND_LOW_FRICTION.name:
+            too_far = dist > cls.normal_outer(abs(ang))
+        if world_name == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
+            too_far = dist > cls.short_outer(abs(ang))
+        if world_name == World.GRIPPER_AND_LOW_FRICTION_OBSTACLE.name:
+            if abs(ang) < 0.17:
+                too_far = dist > cls.short_outer(abs(ang))
+            else:
+                too_far = dist > cls.normal_outer(abs(ang))
+        if world_name == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO.name:
+            too_far = (dist > cls.normal_outer(abs(ang))) or (
+                ang > (0.8 * numpy.arctan2(1.07, 0.37))
+            )
         return too_far
 
     @classmethod
@@ -145,11 +141,7 @@ class LTMSim(object):
     @classmethod
     def send_object_outofreach(cls, ang, world):
         """Calculate the coordinates of the object when moving it out of reach."""
-        if world == World.GRIPPER_AND_LOW_FRICTION.name:
-            cls.outer = cls.normal_outer
-        if world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
-            cls.outer = cls.short_outer
-        dist = cls.outer(abs(ang))
+        dist = cls.normal_outer(abs(ang))
         y_coord = dist * math.sin(ang)
         x_coord = dist * math.cos(ang)
         if y_coord < -1.07:
@@ -165,7 +157,7 @@ class LTMSim(object):
     @classmethod
     def calculate_closest_position(cls, ang):
         """Calculate the closest feasible position for an object taking into account the angle."""
-        dist = cls.inner(abs(ang))
+        dist = cls.normal_inner(abs(ang))
         y_coord = dist * math.sin(ang)
         x_coord = dist * math.cos(ang)
         if y_coord < -0.38:
@@ -274,16 +266,21 @@ class LTMSim(object):
             angle = numpy.arctan2(object_y, object_x)
             valid = not self.object_too_close(distance, angle)
             # TODO: Ugly hacks to test curriculum learning
-            # if self.world == World.gripper_and_low_friction_short_arm:
-            #     self.inner = self.normal_outer
-            #     distance, angle = self.random_position(in_valid=True, out_valid=True)
-            #     self.inner = self.normal_inner
-            if self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
-                if self.last_reset_iteration > 6000 and self.last_reset_iteration < 8000:
+            if self.last_reset_iteration >= 6000 and self.last_reset_iteration < 8000:
+                # if self.world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM:
+                #     max_distance = self.normal_outer(abs(angle))
+                #     min_distance = self.short_outer(abs(angle))
+                #     distance = self.rng.uniform(low=min_distance, high=max_distance)
+                if self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
                     max_angle = numpy.arctan2(1.07, 0.37)
                     min_angle = 0.8 * numpy.arctan2(1.07, 0.37)
                     if angle < min_angle:
-                        angle = self.rng.uniform(min_angle, max_angle)
+                        angle = self.rng.uniform(low=min_angle, high=max_angle)
+                elif self.world == World.GRIPPER_AND_LOW_FRICTION_OBSTACLE:
+                    angle = self.rng.uniform(low=-0.17, high=0.17)
+                    max_distance = self.normal_outer(abs(angle))
+                    min_distance = self.short_outer(abs(angle))
+                    distance = self.rng.uniform(low=min_distance, high=max_distance)
             if not in_valid:
                 valid = valid and self.object_too_far(distance, angle, self.world.name)
             if not out_valid:
@@ -310,6 +307,7 @@ class LTMSim(object):
             World.GRIPPER_AND_LOW_FRICTION,
             World.NO_GRIPPER_AND_HIGH_FRICTION,
             World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM,
+            World.GRIPPER_AND_LOW_FRICTION_OBSTACLE,
             World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO,
         ]:
             self.perceptions["boxes"].data = []
@@ -539,9 +537,15 @@ class LTMSim(object):
                         max_allowed_angle = 0.8 * numpy.arctan2(1.07, 0.37)
                         if cylinder.angle > max_allowed_angle:
                             cylinder.angle = max_allowed_angle - 0.1
-                    cylinder.distance = self.avoid_reward_by_chance(
-                        LTMSim.outer(abs(cylinder.angle)) - 0.1, cylinder.angle
-                    )
+                        distance = self.normal_outer(abs(cylinder.angle))
+                    elif self.world == World.GRIPPER_AND_LOW_FRICTION_OBSTACLE:
+                        if abs(cylinder.angle) < 0.17:
+                            distance = self.short_outer(abs(cylinder.angle))
+                        else:
+                            distance = self.normal_outer(abs(cylinder.angle))
+                    else:
+                        distance = self.normal_outer(abs(cylinder.angle))
+                    cylinder.distance = self.avoid_reward_by_chance(distance - 0.1, cylinder.angle)
                     break
 
     def new_command_callback(self, data):
@@ -553,10 +557,6 @@ class LTMSim(object):
             # This should be changed, but it implies several modifications.
             self.last_reset_iteration = data.iteration
             self.world = World[data.world]
-            if self.world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM:
-                LTMSim.outer = LTMSim.short_outer
-            else:
-                LTMSim.outer = LTMSim.normal_outer
             self.random_perceptions()
             for ident, publisher in self.publishers.items():
                 rospy.logdebug("Publishing " + ident + " = " + str(self.perceptions[ident].data))
