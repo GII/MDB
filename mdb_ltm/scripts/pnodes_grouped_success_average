@@ -36,7 +36,6 @@ def pnodes_grouped_success_average():
             open_file(name),
             sep="\t",
             names=("Iteration", "P-node", "Successes", "Activations", "% success"),
-            index_col=(0, 1),
         )
         if "puntos" in name:
             space_type = "Baseline"
@@ -47,10 +46,15 @@ def pnodes_grouped_success_average():
         table["Type"] = space_type
         data.append(table)
     data = pandas.concat(data)
-    seaborn.set_theme(context="paper", style="whitegrid")
-    seaborn.relplot(
+    data["P-node"] = data["P-node"].str.replace(
+        "pnode_GRIPPER_AND_LOW_FRICTION__object_in_box_standalone__", ""
+    )
+    rc_params = {"axes.linewidth": 1.5}
+    seaborn.set_theme(context="paper", style="whitegrid", font_scale=1.6, rc=rc_params)
+    plot = seaborn.relplot(
         data=data, x="Iteration", y="% success", hue="Type", col="P-node", col_wrap=4, kind="line"
-    ).set_axis_labels("Iteration", "% rewarded iterations")
+    )
+    plot.set_axis_labels("Iteration", "% rewarded iterations")
     plt.show()
 
 
