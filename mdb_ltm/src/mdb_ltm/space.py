@@ -463,53 +463,93 @@ class SVMSpace(PointBasedSpace):
         return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act
 
 
-class DNNSpace(Space):
-    """Calculate the new activation value using the output of a DNN."""
-
+class ANNSpace(PointBasedSpace):
+    """
+    Use and train a Neural Network to calculate the activations
+    """
     def __init__(self, **kwargs):
-        """Initialize."""
-        self.headers = [
-            "ball_in_right_hand",
-            "ball_dist",
-            "box_size",
-            "ball_in_left_hand",
-            "box_ang",
-            "ball_ang",
-            "box_dist",
-            "ball_size",
-        ]
-        self.feature_columns = [tf.feature_column.numeric_column(i) for i in self.headers]
-        self.net = tf.estimator.DNNClassifier(
-            hidden_units=[20, 10, 5],
-            feature_columns=self.feature_columns,
-            model_dir="pnode00_03000",
-            n_classes=2,
-            optimizer="Adam",
-            activation_fn=tf.nn.relu,
-        )
-        super(DNNSpace, self).__init__(**kwargs)
+        """Init attributes when a new object is created."""
+
+        #Define train values
+        output_activation = 'sigmoid'
+        optimizer = tf.optimizers.Adam()
+        loss = tf.losses.BinaryCrossentropy()
+        metrics=['accuracy']
+        # self.n_splits = 5
+        self.batch_size = 50
+        self.epochs = 50
+        self.max_data = 400
+        self.first_data = 0
+        #Define the Neural Network's model
+        self.model = tf.keras.Sequential([
+            tf.keras.layers.Dense(128, activation='relu', input_shape =(8,)),
+            tf.keras.layers.Dense(64, activation='relu'),
+            tf.keras.layers.Dense(32, activation='relu'),
+            tf.keras.layers.Dense(1, activation=output_activation)
+        ])
+
+        #Compile the model
+        self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+        #Initialize variables
+        self.there_are_points = False
+        self.there_are_antipoints = False
+        super().__init__(**kwargs)
 
     def add_point(self, perception, confidence):
-        """Add a new point to the p-node."""
+        """Add a new point to the PNode"""
+        pos = None
 
+        if confidence > 0.0:
+            self.there_are_points = True
+        else:
+            self.there_are_antipoints = True
+
+        if self.there_are_points and self.there_are_antipoints:
+            candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+            self.copy_perception(candidate_point, 0, perception)
+            point = tf.convert_to_tensor(structured_to_unstructured(candidate_point))
+            prediction = self.model.call(point)[0][0]
+            pos = super().add_point(perception, confidence)
+            
+            members = structured_to_unstructured(self.members[0 : self.size][list(self.members.dtype.names)])
+            memberships = self.memberships[0 : self.size].copy()
+            memberships[memberships > 0] = 1.0
+            memberships[memberships <= 0] = 0.0
+
+            prediction = 1.0 if prediction >= 0.5 else 0.0
+
+            if self.size >= self.max_data:
+                self.first_data = self.size - self.max_data
+        
+            if (((confidence <= 0 and prediction == 1.0) or (confidence >= 0 and prediction == 0.0))):
+                rospy.loginfo(f"Training... {self.ident}")
+                X = members[self.first_data : self.size]
+                Y = memberships[self.first_data : self.size]
+                n_0 = int(len(Y[Y == 0.0]))
+                n_1 = int(len(Y[Y == 1.0]))
+                weight_for_0 = (1 / n_0) * ((self.size-self.first_data) / 2.0) if n_0 != 0 else 1.0
+                weight_for_1 = (1 / n_1) * ((self.size-self.first_data) / 2.0) if n_1 != 0 else 1.0
+                class_weight = {0: weight_for_0, 1: weight_for_1}
+                self.model.fit(x=X, y=Y, batch_size=self.batch_size, epochs=self.epochs, verbose = 0, class_weight=class_weight)
+
+        else:
+            pos = super().add_point(perception, confidence)
+        
+        return pos
+        
     def get_probability(self, perception):
         """Calculate the new activation value."""
-        predict_data = pandas.DataFrame([perception], columns=self.headers)
-        predict_input_fn = tf.estimator.inputs.pandas_input_fn(
-            x=predict_data,
-            batch_size=1,
-            num_epochs=1,
-            shuffle=False,
-            target_column="Confidence",
-        )
-        predictions = list(self.net.predict(input_fn=predict_input_fn))
-        prediction = predictions[0]
-        if prediction["class_ids"] == 1:
-            activation = prediction["probabilities"][1]
+        candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
+        self.copy_perception(candidate_point, 0, perception)
+        point = tf.convert_to_tensor(structured_to_unstructured(candidate_point))
+        if self.there_are_points:
+            if self.there_are_antipoints:
+                act = self.model.call(point)[0][0]
+                act = 1.0 if act >= 0.5 else 0.0
+            else:
+                act = 1.0
         else:
-            activation = -1
-        return (
-            min(activation, self.parent_space.get_probability(perception))
-            if self.parent_space
-            else activation
-        )
+            act = 0.0
+        return min(act, self.parent_space.get_probability(perception)) if self.parent_space else act   
+
