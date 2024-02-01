@@ -94,19 +94,19 @@ class LTMSim(object):
     @classmethod
     def object_too_far(cls, dist, ang, world_name):
         """Return True if the object is out of range of the robot."""
-        if world_name == World.GRIPPER_AND_LOW_FRICTION.name:
-            too_far = dist > cls.normal_outer(abs(ang))
         if world_name == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM.name:
             too_far = dist > cls.short_outer(abs(ang))
-        if world_name == World.GRIPPER_AND_LOW_FRICTION_OBSTACLE.name:
+        elif world_name == World.GRIPPER_AND_LOW_FRICTION_OBSTACLE.name:
             if abs(ang) < 0.17:
                 too_far = dist > cls.short_outer(abs(ang))
             else:
                 too_far = dist > cls.normal_outer(abs(ang))
-        if world_name == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO.name:
+        elif world_name == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO.name:
             too_far = (dist > cls.normal_outer(abs(ang))) or (
                 ang > (0.8 * numpy.arctan2(1.07, 0.37))
             )
+        else:
+            too_far = dist > cls.normal_outer(abs(ang))
         return too_far
 
     @classmethod
@@ -533,7 +533,9 @@ class LTMSim(object):
             for cylinder in self.perceptions["cylinders"].data:
                 if self.object_too_far(cylinder.distance, cylinder.angle, self.world.name):
                     rospy.logdebug("Object too far in " + self.world.name)
-                    if self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
+                    if self.world == World.GRIPPER_AND_LOW_FRICTION_SHORT_ARM:
+                        distance = self.short_outer(abs(cylinder.angle))
+                    elif self.world == World.GRIPPER_AND_LOW_FRICTION_DAMAGED_SERVO:
                         max_allowed_angle = 0.8 * numpy.arctan2(1.07, 0.37)
                         if cylinder.angle > max_allowed_angle:
                             cylinder.angle = max_allowed_angle - 0.1
