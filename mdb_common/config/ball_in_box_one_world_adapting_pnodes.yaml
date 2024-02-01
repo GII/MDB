@@ -5,7 +5,7 @@ Experiment:
     trials: 50
     worlds:
         - GRIPPER_AND_LOW_FRICTION
-        - GRIPPER_AND_LOW_FRICTION_OBSTACLE
+        - GRIPPER_AND_LOW_FRICTION_SHORT_ARM
 Control:
     id: ltm_simulator
     control_prefix: /mdb/control

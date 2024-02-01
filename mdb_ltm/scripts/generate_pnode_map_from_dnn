@@ -54,7 +54,9 @@ def calculate_activations(headers, perceptions):
         activation_fn=tf.nn.relu,
     )
     data = pd.DataFrame(perceptions, columns=headers[2:-1])
-    predict_input_fn = tf.estimator.inputs.pandas_input_fn(x=data, batch_size=1, num_epochs=1, shuffle=False)
+    predict_input_fn = tf.estimator.inputs.pandas_input_fn(
+        x=data, batch_size=1, num_epochs=1, shuffle=False
+    )
     predictions = net.predict(input_fn=predict_input_fn)
     predictions_column = np.empty([perceptions.shape[0]])
     #    for i, prediction in enumerate(predictions):
@@ -107,7 +109,9 @@ def generate_pnode_map():
         "--pnode",
         help="Id of the P-node for which we want to generate the activation map",
     )
-    parser.add_argument("-i", "--iteration", type=int, help="The number of the iteration we want to inspect")
+    parser.add_argument(
+        "-i", "--iteration", type=int, help="The number of the iteration we want to inspect"
+    )
     parser.add_argument("-s", "--step", type=float, help="Resolution")
     parser.add_argument("-t", "--pnode_class", help="P-Node class")
     args, _ = parser.parse_known_args()
@@ -117,7 +121,13 @@ def generate_pnode_map():
     iteration = kwargs["iteration"]
     step = kwargs["step"]
     pnode_class = kwargs["pnode_class"]
-    if (file_name is None) or (pnode_name is None) or (iteration is None) or (step is None) or (pnode_class is None):
+    if (
+        (file_name is None)
+        or (pnode_name is None)
+        or (iteration is None)
+        or (step is None)
+        or (pnode_class is None)
+    ):
         parser.print_help()
     else:
         headers, pnode = load_pnodes_file(file_name, pnode_name, iteration, pnode_class)

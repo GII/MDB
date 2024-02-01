@@ -6,6 +6,9 @@ https://github.com/GII/MDB
 """
 
 import argparse
+import sys
+import bz2
+import magic
 
 
 def strtobool(val):
@@ -16,6 +19,17 @@ def strtobool(val):
     if val in ("n", "no", "f", "false", "off", "0"):
         return 0
     raise ValueError(f"invalid truth value {val}")
+
+
+def open_file(name):
+    """Open a file using its magic number to identify its contents."""
+    file_type = magic.from_file(name)
+    if "text" in file_type:
+        return open(name, encoding="utf-8")
+    if "bzip2" in file_type:
+        return bz2.open(name)
+    print("Unsupported file!!!")
+    sys.exit(1)
 
 
 def generate_grouped_statistics():
@@ -40,7 +54,7 @@ def generate_grouped_statistics():
     if (iterations is None) or (file_name is None):
         parser.print_help()
     else:
-        with open(file_name, "r", encoding="utf-8") as stat_file:
+        with open_file(file_name) as stat_file:
             stat_file.readline()
             pnodes_activations = {}
             pnodes_success = {}

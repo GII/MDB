@@ -6,9 +6,23 @@ https://github.com/GII/MDB
 """
 
 import argparse
+import sys
+import bz2
+import magic
 import pandas
 import matplotlib.pyplot as plt
 import seaborn
+
+
+def open_file(name):
+    """Open a file using its magic number to identify its contents."""
+    file_type = magic.from_file(name)
+    if "text" in file_type:
+        return open(name, encoding="utf-8")
+    if "bzip2" in file_type:
+        return bz2.open(name)
+    print("Unsupported file!!!")
+    sys.exit(1)
 
 
 def goodness_average():
@@ -19,9 +33,8 @@ def goodness_average():
     data = []
     for file_name in args.files:
         data.append(
-            pandas.read_csv(
-                file_name,
-                sep="\t",
+            pandas.read_table(
+                open_file(file_name),
                 names=(
                     "Iteration",
                     "Average reward",

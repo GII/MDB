@@ -6,10 +6,10 @@ https://github.com/GII/MDB
 """
 
 import argparse
-import bz2
 import sys
-import pandas
+import bz2
 import magic
+import pandas
 import matplotlib.pyplot as plt
 import seaborn
 
@@ -32,9 +32,8 @@ def pnodes_grouped_success_average():
     args = parser.parse_args()
     data = []
     for name in args.files:
-        table = pandas.read_csv(
+        table = pandas.read_table(
             open_file(name),
-            sep="\t",
             names=("Iteration", "P-node", "Successes", "Activations", "% success"),
         )
         if "puntos" in name:

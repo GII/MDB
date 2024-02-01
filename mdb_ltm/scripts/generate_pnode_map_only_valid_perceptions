@@ -73,7 +73,9 @@ def scan_values(headers, pnode, step, line_start):
                             print_line(pnode, perception, line_start)
                             perception[headers["ball_in_left_hand"]] = 1.0
                             perception[headers["ball_in_right_hand"]] = 1.0
-                            if lc.object_pickable_withtwohands(ball_dist, 188.0, 20.0, ball_ang, 81.0):
+                            if lc.object_pickable_withtwohands(
+                                ball_dist, 188.0, 20.0, ball_ang, 81.0
+                            ):
                                 print_line(pnode, perception, line_start)
                             perception[headers["ball_size"]] = 0.15
                             perception[headers["ball_in_left_hand"]] = 0.0
@@ -89,7 +91,9 @@ def scan_values(headers, pnode, step, line_start):
                                 print_line(pnode, perception, line_start)
                             perception[headers["ball_in_left_hand"]] = 1.0
                             perception[headers["ball_in_right_hand"]] = 1.0
-                            if lc.object_pickable_withtwohands(ball_dist, 188.0, 20.0, ball_ang, 81.0):
+                            if lc.object_pickable_withtwohands(
+                                ball_dist, 188.0, 20.0, ball_ang, 81.0
+                            ):
                                 print_line(pnode, perception, line_start)
 
 
@@ -108,7 +112,9 @@ def generate_pnode_map():
         "--pnode",
         help="Id of the P-node for which we want to generate the activation map",
     )
-    parser.add_argument("-i", "--iteration", type=int, help="The number of the iteration we want to inspect")
+    parser.add_argument(
+        "-i", "--iteration", type=int, help="The number of the iteration we want to inspect"
+    )
     parser.add_argument("-s", "--step", type=float, help="Resolution")
     args, _ = parser.parse_known_args()
     kwargs = vars(args)
