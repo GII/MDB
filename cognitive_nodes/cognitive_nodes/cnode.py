@@ -22,9 +22,9 @@ class CNode(CognitiveNode):
         for name in neighbors_name:
             service_name = 'cognitive_node/' + str(name) + '/get_activation'
             activation_client = ServiceClient(GetActivation, service_name)
-            # TODO: We don't know the format of the perception variable. It could contain only one perception or
+            # We don't know the format of the perception variable. It could contain only one perception or
             # several ones
-            activation = activation_client.send_request() #TODO: Send the perception and calculate act here
+            activation = activation_client.send_request(perception = perception)
             activation_client.destroy_node()
             node_activations.append(activation)
 
