@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import yaml
 from rclpy.node import Node
 
@@ -7,7 +6,7 @@ from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
 
-class CognitiveNode(ABC, Node):
+class CognitiveNode(Node):
     """
     A base class for cognitive nodes in the system.
 
@@ -154,8 +153,9 @@ class CognitiveNode(ABC, Node):
         :rtype: cognitive_node_interfaces.srv.GetActivation_Response
         """
         self.get_logger().info('Getting node activation...')
-        perception = 0 #Only to avoid errors with calculate_activation method
-        self.calculate_activation(perception) # TODO: implement logic
+        perception = request.perception
+        if perception:
+            self.calculate_activation(perception)
         response.activation = self.last_activation
         return response
 

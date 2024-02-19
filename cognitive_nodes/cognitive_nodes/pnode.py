@@ -84,7 +84,7 @@ class PNode(CognitiveNode):
         if space:
             self.last_activation = space.get_probability(perception)
         else:
-            self.last_activation = 0
+            self.last_activation = 0.0
  
         if self.activation_topic:
             self.publish_activation(self.last_activation)
