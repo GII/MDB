@@ -154,8 +154,10 @@ class CognitiveNode(Node):
         """
         self.get_logger().info('Getting node activation...')
         perception = request.perception
-        if perception:
-            self.calculate_activation(perception)
+        # If percepcion = None, we indicate the condition in the corresponding cognitive
+        # node because, for instance, the CNode doesn't need perception to calculate its 
+        # activation
+        self.calculate_activation(perception)
         response.activation = self.last_activation
         return response
 
