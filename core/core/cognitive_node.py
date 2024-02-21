@@ -161,7 +161,7 @@ class CognitiveNode(Node):
         response.activation = self.last_activation
         return response
 
-    def get_information_callback(self, request, response): # TODO: implement this method
+    def get_information_callback(self, request, response):
         """
         Callback method to get information about the node.
 
@@ -172,8 +172,15 @@ class CognitiveNode(Node):
         :rtype: cognitive_node_interfaces.srv.GetInformation_Response
         """
         self.get_logger().info('Getting node information...')
+        response.node_name = self.name
+        response.node_type = self.node_type
         response.current_activation = self.last_activation
-        self.get_logger().info('The last activation of the node is: ' + str(response.current_activation))
+        response.neighbors_name = [neighbor["name"] for neighbor in self.neighbors]
+        response.neighbors_type = [neighbor["node_type"] for neighbor in self.neighbors]
+        self.get_logger().info("The type of the node " + str(response.node_name) + "is " + str(response.node_type) +
+                              ". Its last activation is: " + str(response.current_activation) +
+                               ". It's neighbors are: " + str(response.neighbors_name) + ". The node" +
+                               "type of each neighbor is: " + str(response.neighbors_type))
         return response
 
     def set_activation_topic_callback(self, request, response):
@@ -195,33 +202,7 @@ class CognitiveNode(Node):
             self.publish_activation = False
         response.activation_topic = activation_topic
         return response
-    
-    def publish(self, message=None, first_time=False):
-        """
-        Publish node information.
-
-        This method publishes information about the node, including its name, neighbors, and activation.
-
-        :param message: The message to publish (optional, a default message is created if not provided).
-        :type message: str
-        :param first_time: Flag indicating whether it's the first time publishing.
-        :type first_time: bool
-        """
-        if not message:
-            message = self.name + str('_msg')
-        if first_time:
-            message.command = "new"
-        else:
-            message.command = "update"
-        message.node_name = self.name
-        message.neighbor_names = [node.name for node in self.neighbors]
-        message.neighbor_types = [node.node_type for node in self.neighbors]
-        if isinstance(self.activation, list):
-            message.activation = max(self.activation)
-        else:
-            message.activation = self.activation
-        self.node_publisher.publish(message)        
-    
+        
     def __str__(self):
         """
         Returns a YAML representation of the node's data.

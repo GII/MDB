@@ -1,2 +1,6 @@
 ---
+string node_name
+string node_type
 float32 current_activation
+string[] neighbors_name
+string[] neighbors_type
