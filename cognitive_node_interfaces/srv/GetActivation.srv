@@ -1,3 +1,3 @@
-float64[] perception
+Float64MultiArray perception
 ---
 float32 activation

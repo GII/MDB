@@ -63,14 +63,7 @@ class PNode(CognitiveNode):
             space = self.spaces[0].__class__()
             self.spaces.append(space)
         added_point_pos = space.add_point(point, confidence)
-        point_message = self.data_message()
-        point_message.id = self.ident
-        if added_point_pos != -1:
-            point_message.command = "new"
-            point_message.point = self.spaces[0].members[added_point_pos]
-            point_message.confidence = self.spaces[0].memberships[added_point_pos]
-            self.data_publisher.publish(point_message)
-
+        
     def calculate_activation(self, perception=None):
         """
         Calculate the new activation value.
@@ -80,17 +73,16 @@ class PNode(CognitiveNode):
         :return: If there is space, returns the activation of the PNode. If not, returns 0
         :rtype: float
         """
-        if perception:
-            space = self.get_space(perception)
-            if space:
-                self.last_activation = space.get_probability(perception)
-            else:
-                self.last_activation = 0.0
+        space = self.get_space(perception)
+        if space:
+            self.activation = space.get_probability(perception)
+        else:
+            self.activation = 0.0
     
         if self.activation_topic:
-            self.publish_activation(self.last_activation)
+            self.publish_activation(self.activation)
             
-        return self.last_activation
+        return self.activation
 
     def get_space(self, perception):
         """

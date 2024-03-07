@@ -5,6 +5,8 @@ from core.service_client import ServiceClient
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
+from cognitive_node_interfaces.msg import Float64MultiArray
+from cognitive_node_interfaces.msg import MultiArrayDimension
 
 class CognitiveNode(Node):
     """
@@ -29,13 +31,12 @@ class CognitiveNode(Node):
         self.node_type = node_type
 
         self.perception = None
-        self.activation = 0.0
 
         # self.threshold = threshold
         self.neighbors = [] # List of dics, like [{"name": "pnode1", "node_type": "PNode"}, {"name": "cnode1", "node_type": "CNode"}]
 
-        self.publish_activation = False
-        self.last_activation = 0.0
+        self.activation_topic = False
+        self.activation = 0.0
 
         for key, value in params.items():
             setattr(self, key, value)
@@ -125,6 +126,51 @@ class CognitiveNode(Node):
         ltm_response = delete_node_client.send_request(name=self.name)
         delete_node_client.destroy_node()
         return ltm_response.deleted
+    
+    @staticmethod
+    def perception_dict_to_msg(perception_dict):
+        msg = Float64MultiArray()
+        if perception_dict:
+            msg.layout.data_offset = 0
+            msg.layout.dim = []
+            len_float = 8 #bytes
+            for sensor, data in perception_dict.items():
+                for values in enumerate(data):
+                    dimension = MultiArrayDimension()
+                    dimension.size_stride_units = 'bytes'
+                    dimension.sensor = sensor + str(values[0])
+                    dimension.labels = list(values[1].keys())
+                    dimension.size = len(values[1])*len_float #bytes
+                    dimension.stride = len_float #bytes
+                    msg.layout.dim.append(dimension)
+                    for value in values[1].values():
+                        msg.data.append(value)
+        else:
+            msg.data = []
+        return msg
+    
+    @staticmethod
+    def perception_msg_to_dict(msg):
+        perception_dict = {}
+        first_value = 0 
+        for dim in msg.layout.dim:
+            sensor = dim.sensor[:-1]
+            labels = dim.labels
+            size = dim.size
+            stride = dim.stride
+            num_elements = size//stride
+            final_value = num_elements + first_value
+            values = msg.data[first_value:final_value]
+            values_dict = {labels[i]: values[i] for i in range(len(labels))}
+
+            if not sensor in perception_dict.keys():
+                perception_dict[sensor] = [values_dict]
+            else:
+                perception_dict[sensor].append(values_dict)
+                
+            first_value += num_elements
+
+        return perception_dict
    
     def calculate_activation(self, perception):
         """
@@ -142,8 +188,12 @@ class CognitiveNode(Node):
         """
         msg = Activation()
         msg.activation = activation
+        msg.node_name = self.name
+        msg.node_type = self.node_type
         self.publish_activation_topic.publish(msg)
-
+        self.get_logger().info("Activation for " + str(msg.node_type) + str(msg.node_name) +
+                               ": " + str(msg.activation))
+ 
     def get_activation_callback(self, request, response): # TODO: implement this method
         """
         Callback method to calculate and return the node's activations.
@@ -153,12 +203,11 @@ class CognitiveNode(Node):
         :rtype: cognitive_node_interfaces.srv.GetActivation_Response
         """
         self.get_logger().info('Getting node activation...')
-        perception = request.perception
-        # If percepcion = None, we indicate the condition in the corresponding cognitive
-        # node because, for instance, the CNode doesn't need perception to calculate its 
-        # activation
-        self.calculate_activation(perception)
-        response.activation = self.last_activation
+        perception = self.perception_msg_to_dict(request.perception)
+        # It's probably that we'll have to add more node type exceptions
+        if perception or self.node_type == 'CNode':
+            self.calculate_activation(perception)
+        response.activation = self.activation
         return response
 
     def get_information_callback(self, request, response):
@@ -174,7 +223,7 @@ class CognitiveNode(Node):
         self.get_logger().info('Getting node information...')
         response.node_name = self.name
         response.node_type = self.node_type
-        response.current_activation = self.last_activation
+        response.current_activation = self.activation
         response.neighbors_name = [neighbor["name"] for neighbor in self.neighbors]
         response.neighbors_type = [neighbor["node_type"] for neighbor in self.neighbors]
         self.get_logger().info("The type of the node " + str(response.node_name) + "is " + str(response.node_type) +
@@ -196,10 +245,7 @@ class CognitiveNode(Node):
         """
         activation_topic = request.activation_topic
         self.get_logger().info('Setting activation topic to ' + str(activation_topic) + '...')
-        if activation_topic:
-            self.publish_activation = True
-        else:
-            self.publish_activation = False
+        self.activation_topic = activation_topic
         response.activation_topic = activation_topic
         return response
         

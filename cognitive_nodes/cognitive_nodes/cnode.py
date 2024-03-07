@@ -23,16 +23,17 @@ class CNode(CognitiveNode):
             service_name = 'cognitive_node/' + str(name) + '/get_activation'
             activation_client = ServiceClient(GetActivation, service_name)
             # We don't know the format of the perception variable. It could contain only one perception or
-            # several ones
+            # several ones 
+            perception = self.perception_dict_to_msg(perception)
             activation = activation_client.send_request(perception = perception)
             activation_client.destroy_node()
             node_activations.append(activation)
 
         activation_list = numpy.prod(node_activations)
-        self.last_activation = numpy.max(activation_list)
+        self.activation = numpy.max(activation_list)
         #TODO: Selection of the perception that have the max CNode or PNode activation (if it exists), as in the old MDB
 
-        self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.last_activation))
+        self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.activation))
 
 
     def update_activation_old_mdb(self, **kwargs):
