@@ -1,1 +1,1 @@
-saved_data_dir = '/home/cristina/ros2_ws/src/core/saved_data' # TODO: Change to relative dir
+saved_data_dir = '' # TODO: Change to relative dir

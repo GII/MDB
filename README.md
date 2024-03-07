@@ -13,7 +13,7 @@ Source the local setup files and launch the core part of the system.
 
 ```bash
 source install/setup.bash
-ros2 launch mdb_launch.py
+ros2 ros2 launch core mdb_launch.py 
 ```
 
 ### Terminal 2

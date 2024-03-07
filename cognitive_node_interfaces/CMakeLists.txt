@@ -14,6 +14,9 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Activation.msg"
   "msg/Value.msg"
+  "msg/Float64MultiArray.msg"
+  "msg/MultiArrayDimension.msg"
+  "msg/MultiArrayLayout.msg"
   "srv/AddPoint.srv"
   "srv/Evaluate.srv"
   "srv/Execute.srv"
