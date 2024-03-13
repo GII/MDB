@@ -5,8 +5,8 @@ from core.service_client import ServiceClient
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
 from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
 from cognitive_node_interfaces.msg import Activation
-from cognitive_node_interfaces.msg import Float64MultiArray
-from cognitive_node_interfaces.msg import MultiArrayDimension
+from cognitive_node_interfaces.msg import Perception
+from cognitive_node_interfaces.msg import PerceptionParameters
 
 class CognitiveNode(Node):
     """
@@ -129,14 +129,14 @@ class CognitiveNode(Node):
     
     @staticmethod
     def perception_dict_to_msg(perception_dict):
-        msg = Float64MultiArray()
+        msg = Perception()
         if perception_dict:
             msg.layout.data_offset = 0
             msg.layout.dim = []
             len_float = 8 #bytes
             for sensor, data in perception_dict.items():
                 for values in enumerate(data):
-                    dimension = MultiArrayDimension()
+                    dimension = PerceptionParameters()
                     dimension.size_stride_units = 'bytes'
                     dimension.sensor = sensor + str(values[0])
                     dimension.labels = list(values[1].keys())
