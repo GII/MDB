@@ -40,13 +40,14 @@ class Drive(CognitiveNode):
         # TODO: implement logic
         response.set = True
         return response
+
+    def evaluate(self, perception):
+        raise NotImplementedError
     
-    def evaluate_callback(self, request, response): # TODO: implement
-        perception = request.perception
-        self.get_logger().info('Evaluating for perception ' +str(perception) + '...')
-        # TODO: implement logic
-        valuation = 3.0
-        response.valuation = valuation
+    def evaluate_callback(self, request, response):
+        perception, weight = request.perception, request.weight
+        self.get_logger().info('Evaluating for perception ' + str(perception) + '...')
+        response.valuation = self.evaluate(perception, weight)
         return response
     
     def get_success_rate_callback(self, request, response): # TODO: implement

@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 
 from core.cognitive_node import CognitiveNode
-from cognitive_node_interfaces.srv import SetActivation, IsSatisfied
+from cognitive_node_interfaces.srv import SetActivation, IsSatisfied, SetWeight
 
 import random
 
@@ -27,6 +27,21 @@ class Need(CognitiveNode):
             self.is_satisfied_callback
         )
 
+        self.set_weight_service = self.create_service(
+            SetWeight,
+            'need/' + str(name) + '/set_weight',
+            self.set_weight_service
+        )
+
+        self.weight = 1.0
+
+    def set_weight_callback(self, request, response):
+        weight_value = request.weight
+        self.weight = weight_value
+        self.get_logger().info('Setting weight value ' + str(weight_value) + '...')
+        response.set = True
+        return response
+
     def set_activation_callback(self, request, response):
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
@@ -42,7 +57,7 @@ class Need(CognitiveNode):
 
 
     def calculate_activation(self, need):
-        return random.random()
+        return self.weight * random.random()
 
 
 def main(args=None):
