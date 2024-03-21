@@ -37,7 +37,7 @@ class Drive(CognitiveNode):
     def set_activation_callback(self, request, response): # TODO: implement
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
-        # TODO: implement logic
+        self.activation = activation
         response.set = True
         return response
 
@@ -57,7 +57,10 @@ class Drive(CognitiveNode):
         return response
 
     def calculate_activation(self, drive):
-        return random.random()
+        self.activation = random.random()
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+        return self.activation
 
 
 def main(args=None):

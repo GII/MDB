@@ -42,8 +42,9 @@ class WorldModel(CognitiveNode):
         )
 
     def set_activation_callback(self, request, response): # TODO: implement
-        self.get_logger().info('Setting activation..')
-        # TODO: implement logic
+        activation = request.activation
+        self.get_logger().info('Setting activation ' + str(activation) + '...')
+        self.activation = activation
         response.set = True
         return response
     
@@ -69,7 +70,9 @@ class WorldModel(CognitiveNode):
         return response
 
     def calculate_activation(self, world_model):
-        return random.random()
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+        return self.activation
 
 
 def main(args=None):

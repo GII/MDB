@@ -34,11 +34,9 @@ class Perception(CognitiveNode):
             self.set_inputs_callback
         )
 
-        # Default subscription
-        # TODO: Obtain the parameters from the configuration file
-        # self.input = self.create_subscription(self.data_topic, self.data_message, callback=self.read_perception_callback)
-
     def calculate_activation(self, perception):
+        if self.activation_topic:
+            self.publish_activation(self.activation)
         return self.activation
     
     def set_activation_callback(self, request, response):

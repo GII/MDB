@@ -193,6 +193,19 @@ class CognitiveNode(Node):
         self.publish_activation_topic.publish(msg)
         self.get_logger().info("Activation for " + str(msg.node_type) + str(msg.node_name) +
                                ": " + str(msg.activation))
+        
+    @staticmethod
+    def separate_perceptions(perception):
+        perceptions = []
+        for i in range(max([len(sensor) for sensor in perception.values()])):
+                perception_line = {} 
+                for sensor, value in perception.items():
+                    sid = i % len(value)
+                    perception_line[sensor + str(sid)] = value[sid]
+                perceptions.append(perception_line)
+
+        return perceptions
+
  
     def get_activation_callback(self, request, response): # TODO: implement this method
         """

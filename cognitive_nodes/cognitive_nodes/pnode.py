@@ -30,7 +30,7 @@ class PNode(CognitiveNode):
         self.add_point_service = self.create_service(AddPoint, 'pnode/' + str(name) + '/add_point', self.add_point_callback)
 
 
-    def add_point_callback(self, request, response): # TODO: Consider error adding point
+    def add_point_callback(self, request, response):
         """
         Callback function for adding a point (or anti-point) to a specific PNode.
 
@@ -41,8 +41,9 @@ class PNode(CognitiveNode):
         :return: The response indicating if the point was added to the PNode.
         :rtype: core_interfaces.srv.AddPoint_Response
         """
-        point = request.point
+        point_msg = request.point
         confidence = request.confidence
+        point = self.perception_msg_to_dict(point_msg)
         self.add_point(point,confidence)
         self.get_logger().info('Adding point: ' + str(point) + 'Confidence: ' + str(confidence))
         response.added = True
@@ -73,12 +74,20 @@ class PNode(CognitiveNode):
         :return: If there is space, returns the activation of the PNode. If not, returns 0
         :rtype: float
         """
-        space = self.get_space(perception)
-        if space:
-            self.activation = space.get_probability(perception)
-        else:
-            self.activation = 0.0
-    
+        if perception:
+            activations = []
+            perceptions = self.separate_perceptions(perception)
+            for perception_line in perceptions:
+                space = self.get_space(perception)
+                if space:
+                    activation_value = space.get_probability(perception_line)
+                else:
+                    activation_value = 0.0
+
+                activations.append(activation_value) 
+            
+            self.activation == activations[0] if len(activations) == 1 else activations
+        
         if self.activation_topic:
             self.publish_activation(self.activation)
             

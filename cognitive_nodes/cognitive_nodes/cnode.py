@@ -22,8 +22,6 @@ class CNode(CognitiveNode):
         for name in neighbors_name:
             service_name = 'cognitive_node/' + str(name) + '/get_activation'
             activation_client = ServiceClient(GetActivation, service_name)
-            # We don't know the format of the perception variable. It could contain only one perception or
-            # several ones 
             perception = self.perception_dict_to_msg(perception)
             activation = activation_client.send_request(perception = perception)
             activation_client.destroy_node()
@@ -34,29 +32,9 @@ class CNode(CognitiveNode):
         #TODO: Selection of the perception that have the max CNode or PNode activation (if it exists), as in the old MDB
 
         self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.activation))
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+            
+        return self.activation
 
-
-    def update_activation_old_mdb(self, **kwargs):
-        """
-        Calculate the new activation value.
-
-        This activation value is the product of the activation value of the connected nodes, excluding the policy.
-        It is assumed that all the neighbors have the same list of perceptions but, probably, it should
-        be checked (although this would have a huge performance penalty).
-        """
-        pnode = self.p_node
-        activation_list = numpy.prod([node.activation for node in self.neighbors if node.type != "Policy"], axis=0)
-        self.activation = numpy.max(activation_list)
-        if self.activation > self.threshold:
-            self.perception = pnode.perception[numpy.argmax(activation_list)]
-        else:
-            # Even if there is not C-node activation, we want to know the perception that leaded to the hightest
-            # P-node activation, in order to add a point to the P-node / create a new P-node and C-node
-            # when a random policy is executed and that execution would satisfy a goal in that goal was activated.
-            # This is an interin solution, see __add_point()...
-            if numpy.max(pnode.activation) > self.threshold:
-                self.perception = pnode.perception[numpy.argmax(pnode.activation)]
-            else:
-                self.perception = []
-        # rospy.logdebug(self.type + " activation for " + self.ident + " = " + str(self.activation))
-        self.publish()
+    

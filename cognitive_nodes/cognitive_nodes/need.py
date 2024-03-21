@@ -45,7 +45,7 @@ class Need(CognitiveNode):
     def set_activation_callback(self, request, response):
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
-        # TODO: implement logic
+        self.activation = activation
         response.set = True
         return response
     
@@ -57,8 +57,10 @@ class Need(CognitiveNode):
 
 
     def calculate_activation(self, need):
-        return self.weight * random.random()
-
+        self.activation = self.weight * random.random()
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+        return self.activation
 
 def main(args=None):
     rclpy.init(args=args)

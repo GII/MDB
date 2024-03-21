@@ -1,4 +1,4 @@
-float64[] point
+Perception point
 float32 confidence
 ---
 bool added

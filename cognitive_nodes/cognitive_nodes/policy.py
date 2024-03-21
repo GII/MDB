@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from core.cognitive_node import CognitiveNode
 import random
+import numpy
 
 from std_msgs.msg import Int64
 from core.service_client import ServiceClient
@@ -38,34 +39,9 @@ class Policy(CognitiveNode):
             Execute,
             'policy/' + str(name) + '/execute',
             self.execute_callback
-        )
+        )         
 
-    def update_activation_from_old_mdb(self, **kwargs):
-        """
-        Calculate the new activation value.
-
-        This activation value is the maximum of the connected c-nodes.
-        """
-        cnodes = [node for node in self.neighbors if node["type"] == "CNode"]
-        if cnodes:
-            for cnode in cnodes:
-                service_name = 'cognitive_node/' + str(cnode["name"]) + '/get_activation'
-                get_activation_client = ServiceClient(GetActivation, service_name)
-                response = get_activation_client.send_request()
-                activation = response.activation
-
-        else:
-            self.perception = []
-            self.activation = 0.0
-        self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.activation))
-        self.publish()     
-
-    def execute_from_old_mdb(self):
-        """Run the policy."""
-        self.get_logger().info("Executing policy " + self.ident)
-        self.data_publisher.publish(self.ident)           
-
-    def calculate_activation(self, perception): # TODO: Implmement this method
+    def calculate_activation(self, perception):
         """
         Calculate the activation level of the policy: a random float between 0 and 1.
 
@@ -74,7 +50,24 @@ class Policy(CognitiveNode):
         :return: The activation level, a random float between 0 and 1.
         :rtype: float
         """
-        return random.random()
+        cnodes = [neighbor["name"] for neighbor in self.neighbors if neighbor["node_type"] == "CNode"]
+        if cnodes:
+            cnode_activations = []
+            for cnode in cnodes:
+                service_name = 'cognitive_node/' + str(cnode) + '/get_activation'
+                activation_client = ServiceClient(GetActivation, service_name)
+                perception = self.perception_dict_to_msg(perception = None)
+                activation = activation_client.send_request(perception = perception)
+                activation_client.destroy_node()
+                cnode_activations.append(activation)
+                self.activation = numpy.max(cnode_activations)
+        else:
+            self.activation = 0.0
+        
+        self.get_logger().info(self.node_type + " activation for " + self.name + " = " + str(self.activation))
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+        return self.activation
     
     def execute_callback(self, request, response): # TODO: implement
 
@@ -94,10 +87,10 @@ class Policy(CognitiveNode):
         response.policy = self.name
         return response
     
-    def set_activation_callback(self, request, response): # TODO: implement
+    def set_activation_callback(self, request, response):
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
-        # TODO: implement logic
+        self.activation = activation
         response.set = True
         return response
 

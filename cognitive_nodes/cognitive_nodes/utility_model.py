@@ -35,8 +35,9 @@ class UtilityModel(CognitiveNode):
         )
 
     def set_activation_callback(self, request, response): # TODO: implement
-        self.get_logger().info('Setting activation..')
-        # TODO: implement logic
+        activation = request.activation
+        self.get_logger().info('Setting activation ' + str(activation) + '...')
+        self.activation = activation
         response.set = True
         return response
     
@@ -57,7 +58,10 @@ class UtilityModel(CognitiveNode):
 
 
     def calculate_activation(self, utility_model):
-        return random.random()
+        self.activation = random.random()
+        if self.activation_topic:
+            self.publish_activation(self.activation)
+        return self.activation
 
 
 def main(args=None):
