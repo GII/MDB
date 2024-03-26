@@ -14,7 +14,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 #from core_interfaces.srv import SendToLTM
 
 from core.service_client import ServiceClient
-from cognitive_node_interfaces.srv import Execute, GetActivation
+from cognitive_node_interfaces.srv import Execute, GetActivation, IsReached
 from cognitive_node_interfaces.msg import Perception
 from core_interfaces.srv import GetNodeFromLTM
 
@@ -38,14 +38,18 @@ class MainLoop(Node):
         Initializes the MainLoop node and starts the main loop execution.
         """        
         super().__init__(name)
-        self.iteration = 0
+        self.iteration = 1
         self.iterations= 0
         self.trials=0
         self.current_policy = None
         self.paused=False
         self.stop=False
         self.LTM_id = "" #id of LTM currently being run by cognitive loop
-        self.LTM_cache= {'Drive': [], 'Goal': [], 'Need': [], 'Policy': [], 'Perception': [],'PNode': [], 'UtilityModel': [], 'WorldModel': []}
+
+        #TODO: Change to list of dicts
+        # List of dics, like [{"name": "pnode1", "node_type": "PNode", "activation": 0.0}, {"name": "cnode1", "node_type": "CNode", "activation": 0.0}]
+        #self.LTM_cache= {'Drive': [], 'Goal': [], 'Need': [], 'Policy': [], 'Perception': [],'PNode': [], 'UtilityModel': [], 'WorldModel': []}
+        self.LTM_cache=[]
         self.perception_suscribers={}
         self.perception_cache={}
         self.reward_threshold= 0.9
@@ -86,7 +90,13 @@ class MainLoop(Node):
     
     def configure_perceptions(self): #TODO(efallash): Add condition so that perceptions that are already included do not create a new suscription. For the case that new perceptions are added to the LTM and only some perceptions need to be configured
         self.get_logger().info('Configuring perceptions...')
-        for perception in self.LTM_cache['Perception']:
+        perceptions=[perception for perception in self.LTM_cache if perception['node_type']=='Perception']
+
+        self.get_logger().info(str(perceptions))
+
+        for perception_dict in perceptions:
+            perception=perception_dict['name']
+
             subscriber=self.create_subscription(Perception, f'/perception/{perception}/value', self.receive_perception_callback, 1, callback_group= self.perception_callback_group)
             self.get_logger().debug(f'Subscription to: /perception/{perception}/value created')
             self.perception_suscribers[perception]=subscriber
@@ -106,7 +116,7 @@ class MainLoop(Node):
             sensing[sensor]=self.perception_cache[sensor]['data']
             self.perception_cache[sensor]['flag'].clear()
 
-        self.get_logger().info(str(sensing))
+        self.get_logger().debug('Perceptions: '+str(sensing))
         return sensing
 
     def receive_perception_callback(self, msg):
@@ -116,7 +126,7 @@ class MainLoop(Node):
             if sensor in self.perception_cache:
                 self.perception_cache[sensor]['data']=perception_dict[sensor]
                 self.perception_cache[sensor]['flag'].set() 
-                self.get_logger().info(f'Receiving perception: {sensor} ...')
+                self.get_logger().debug(f'Receiving perception: {sensor} ...')
             else:
                 self.get_logger().error('Received sensor not registered in local perception cache!!!')
             
@@ -130,13 +140,19 @@ class MainLoop(Node):
         client = ServiceClient(GetNodeFromLTM, service_name)
         ltm_response = client.send_request(name=request)
 
+        
+
         client.destroy_node()
         #Process data string
         ltm_cache=yaml.safe_load(ltm_response.data)
 
-        #Save dict with list of nodes in LTM cache
+        self.get_logger().info(str(ltm_cache))
+
         for node_type in ltm_cache.keys():
-            self.LTM_cache[node_type]= [*ltm_cache[node_type]]        
+            for node in ltm_cache[node_type].keys():
+                self.LTM_cache.append({'name': node, 'node_type': node_type, 'activation': ltm_cache[node_type][node]['activation']})
+
+        self.get_logger().info(str(self.LTM_cache))
         return None
 
     def ltm_change_callback(self):
@@ -153,21 +169,16 @@ class MainLoop(Node):
         :return: The selected policy.
         :rtype: str
         """
-        
-        policy_activations={}
-        for policy in self.LTM_cache['Policy']:
-            service_name = 'cognitive_node/' + str(policy) + '/get_activation'
-            activation_client = ServiceClient(GetActivation, service_name)
-            perception = CognitiveNode.perception_dict_to_msg(sensing)
-            activation = activation_client.send_request(perception = perception)
-            activation_client.destroy_node()
-            policy_activations[policy]=activation.activation
+        self.update_activations(sensing)
 
-        self.get_logger().info('Test select_policy - Activations: '+ str(policy_activations))
+        policy_activations={}
+        for node in self.LTM_cache:
+            if node['node_type']=='Policy':
+                policy_activations[node['name']]=node['activation']
+
+        self.get_logger().debug('Select_policy - Activations: '+ str(policy_activations))
 
         policy = max(zip(policy_activations.values(), policy_activations.keys()))[1]
-
-        self.get_logger().info('Test select_policy - Selected Policy: ' + str(policy))
 
         if not policy_activations[policy]:
             policy= self.random_policy()
@@ -183,7 +194,7 @@ class MainLoop(Node):
         """
 
         if self.policies_to_test==[]:
-            self.policies_to_test = copy(self.LTM_cache['Policy'])
+            self.policies_to_test = [node['name'] for node in self.LTM_cache if node['node_type']=='Policy']
         
         policy = random.choice(self.policies_to_test)
 
@@ -197,14 +208,10 @@ class MainLoop(Node):
             if policy in self.policies_to_test:
                 self.policies_to_test.remove(policy)
         else:
-            self.policies_to_test = copy(self.LTM_cache['Policy'])
+            self.policies_to_test = [node['name'] for node in self.LTM_cache if node['node_type']=='Policy']
 
     def sensorial_changes(self, sensing, old_sensing):
         """Return false if all perceptions have the same value as the previous step. True otherwise."""
-
-        self.get_logger().info('Test sensorial_changes - sensing: '+str(sensing))
-        self.get_logger().info('Test sensorial_changes - old_sensing: '+str(old_sensing))
-
 
         for sensor in sensing:
             for perception, perception_old in zip(sensing[sensor], old_sensing[sensor]):
@@ -212,15 +219,42 @@ class MainLoop(Node):
                     for attribute in perception:
                         difference = abs(perception[attribute] - perception_old[attribute])
                         if difference > 0.01:
+                            self.get_logger().debug('Sensorial change detected')
                             return True
                 else:
                     if abs(perception[0] - perception_old[0]) > 0.01:
+                        self.get_logger().debug('Sensorial change detected')
                         return True
+        self.get_logger().debug('No sensorial change detected')
         return False
     
-    def update_activations(self): # TODO(efallash): implement
+    def update_activations(self, perception, new_sensings=True): # TODO(efallash): implement
         self.get_logger().info('Updating activations...')
-        pass
+
+        for node in self.LTM_cache:
+            if node['node_type']== 'PNode':
+                if new_sensings:
+                    activation=self.request_activation(node['name'], perception)
+                    node['activation']=activation
+            else:
+                activation=self.request_activation(node['name'], perception)
+                node['activation']=activation
+
+        self.get_logger().info(str(self.LTM_cache))
+
+
+
+
+
+
+    def request_activation(self, name, sensing):
+        service_name = 'cognitive_node/' + str(name) + '/get_activation'
+        activation_client = ServiceClient(GetActivation, service_name)
+        perception = CognitiveNode.perception_dict_to_msg(sensing)
+        activation = activation_client.send_request(perception = perception)
+        activation_client.destroy_node()
+        return activation.activation
+        
 
     def execute_policy(self, policy):
         """
@@ -241,13 +275,44 @@ class MainLoop(Node):
         client.destroy_node()
         return policy_response.policy
     
+    def get_current_goal(self): #TODO(efallash): implement
+        self.get_logger().info('Selecting goal with higher activation...')
+
+        goal_activations={}
+        for node in self.LTM_cache:
+            if node['node_type']=='Goal':
+                goal_activations[node['name']]=node['activation']
+
+
+        self.get_logger().info('Select__current_goal - Activations: '+ str(goal_activations))
+
+        goal = max(zip(goal_activations.values(), goal_activations.keys()))[1]
+        
+        return goal
+        
+    
     def get_current_reward(self): # TODO(efallash): implement
-        self.get_logger().info('Reading rewards...')
-        pass
+        self.get_logger().info('Reading reward...')
+
+        service_name = 'goal/' + str(self.current_goal) + '/is_reached'
+        reward_client = ServiceClient(IsReached, service_name)
+        reward = reward_client.send_request()
+        reward_client.destroy_node()
+
+        self.get_logger().info(f'get_current_reward - Reward {reward.reached}')
+
+        return reward.reached
 
     def update_pnodes_reward_basis(self): # TODO(efallash): implement
         self.get_logger().info('Updating p-nodes/c-nodes...')
-        pass
+
+
+
+
+
+
+
+        
 
     def add_point(self): # TODO(efallash): implement
         self.get_logger().info('Adding point...')
@@ -257,8 +322,11 @@ class MainLoop(Node):
         self.get_logger().info('Adding antipoint...')
         pass
 
-    def new_cnode(self): # TODO(efallash): implement
+    def new_cnode(self, perception, goal, policy): # TODO(efallash): implement
         self.get_logger().info('Creating Cnode...')
+        
+
+
         pass
 
     def reset_world(self): # TODO(efallash): implement
@@ -269,9 +337,7 @@ class MainLoop(Node):
         self.get_logger().info('Writing files publishing status...')
         pass
 
-    def get_current_goal(self): #TODO(efallash): implement
-        self.get_logger().info('Selecting goal with higher activation...')
-        pass
+
 
 
 

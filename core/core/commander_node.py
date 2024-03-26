@@ -502,6 +502,23 @@ class CommanderNode(Node):
                         
                         self.get_logger().info(f'Node {name} created in executor {ex}.')
 
+            if data.get('Experiment'):
+                experiment_data=data['Experiment']
+                name=experiment_data['name']
+                class_name=experiment_data['class_name']
+                if experiment_data.get('parameters'):
+                    params_dict=experiment_data['parameters']
+                    params_dict['LTM_id']='ltm_0' #TODO Handle multiple LTMs
+                    parameters=str(params_dict)
+
+                self.get_logger().info(f"Loading {class_name} {name}...")
+
+                ex= self.get_lowest_load_executor()
+
+                executor_response= self.send_create_request_to_executor(ex, name, class_name, parameters)
+                self.register_node(ex, name)
+                self.get_logger().info(f'Process {name} created in executor {ex}.')
+
             response.loaded = True
                    
         return response
