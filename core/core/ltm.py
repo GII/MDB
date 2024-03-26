@@ -299,16 +299,25 @@ class LTM(Node):
         :rtype: GetNodeFromLTM_Response
         """        
         name = str(request.name)
-        for node_type in self.cognitive_nodes:
-            if name in self.cognitive_nodes[node_type]:
-                data_dic = self.cognitive_nodes[node_type][name]
-                data = yaml.dump(data_dic)
-                self.get_logger().info(f"{node_type} {name}: {data}")
-                response.data = data
-                return response
-        self.get_logger().info(f"{node_type} {name} doesn't exist.")
-        response.data = ""
-        return response
+
+        if name == "": #Return dict with all nodes if empty string is passed
+            data_dic = self.cognitive_nodes
+            data= yaml.dump(data_dic)
+            self.get_logger().info(f"Sending all nodes in LTM: {self.id}")
+            response.data=data
+            return response
+
+        else:
+            for node_type in self.cognitive_nodes:
+                if name in self.cognitive_nodes[node_type]:
+                    data_dic = self.cognitive_nodes[node_type][name]
+                    data = yaml.dump(data_dic)
+                    self.get_logger().info(f"{node_type} {name}: {data}")
+                    response.data = data
+                    return response
+            self.get_logger().info(f"{node_type} {name} doesn't exist.")
+            response.data = ""
+            return response
     
     def set_changes_topic_callback(self, request, response):
         """

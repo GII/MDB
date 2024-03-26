@@ -1,0 +1,72 @@
+Experiment:
+    name: main_loop
+    class_name: cognitive_processes.main_loop.MainLoop
+    parameters: 
+        iterations: 20
+        trials: 10
+        subgoals: False
+
+LTM:
+    Nodes:
+        Perception:
+            -
+                name: perception1
+                class_name: cognitive_nodes.perception.Perception
+            -
+                name: perception2
+                class_name: cognitive_nodes.perception.Perception
+        Goal:
+            -
+                name: goal1
+                class_name: cognitive_nodes.goal.Goal
+            -
+                name: goal2
+                class_name: cognitive_nodes.goal.Goal
+        Drive:
+            -
+                name: drive1
+                class_name: cognitive_nodes.drive.Drive
+            -
+                name: drive2
+                class_name: cognitive_nodes.drive.Drive
+        UtilityModel:
+            -
+                name: utility_model1
+                class_name: cognitive_nodes.utility_model.UtilityModel
+            -
+                name: utility_model2
+                class_name: cognitive_nodes.utility_model.UtilityModel
+        WorldModel:
+            -
+                name: world_model1
+                class_name: cognitive_nodes.world_model.WorldModel
+            -
+                name: world_model2
+                class_name: cognitive_nodes.world_model.WorldModel
+        Policy:
+            -
+                name: policy1
+                class_name: cognitive_nodes.policy.Policy
+            -
+                name: policy2
+                class_name: cognitive_nodes.policy.Policy
+            -
+                name: policy3
+                class_name: cognitive_nodes.policy.Policy  
+            -
+                name: policy4
+                class_name: cognitive_nodes.policy.Policy  
+            -
+                name: policy5
+                class_name: cognitive_nodes.policy.Policy  
+        PNode:
+            -
+                name: pnode1
+                class_name: cognitive_nodes.pnode.PNode
+                parameters:
+                    space_class: cognitive_nodes.space.PointBasedSpace
+            -
+                name: pnode2
+                class_name: cognitive_nodes.pnode.PNode
+                parameters:
+                    space_class: cognitive_nodes.space.PointBasedSpace                                                      
