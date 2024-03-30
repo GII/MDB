@@ -38,6 +38,9 @@ class CognitiveNode(Node):
         self.activation_topic = False
         self.activation = 0.0
 
+        self.perception = []
+        self.threshold = 0.0
+
         for key, value in params.items():
             setattr(self, key, value)
 
@@ -129,6 +132,14 @@ class CognitiveNode(Node):
     
     @staticmethod
     def perception_dict_to_msg(perception_dict):
+        """
+        Transform a perception dictionary into a ROS message
+
+        :param perception_dict: Dictionary that contais the perceptions
+        :type perception_dict: dict
+        :return: The ROS message with the perception
+        :rtype: cognitve_node_interfaces.msg.Perception
+        """
         msg = Perception()
         if perception_dict:
             msg.layout.data_offset = 0
@@ -151,6 +162,14 @@ class CognitiveNode(Node):
     
     @staticmethod
     def perception_msg_to_dict(msg):
+        """
+        Transform a ROS message that contains a perception into a dictionary 
+
+        :param msg: The ROS message with the perception
+        :type msg: cognitve_node_interfaces.msg.Perception
+        :return: The dictionary with the perceptions
+        :rtype: dict
+        """
         perception_dict = {}
         first_value = 0 
         for dim in msg.layout.dim:
@@ -196,6 +215,14 @@ class CognitiveNode(Node):
         
     @staticmethod
     def separate_perceptions(perception):
+        """
+        Separate a dicionary with several percepcions in several ones with one perception
+
+        :param perception: The dictionary with all perceptions
+        :type perception: dict
+        :return: A list with the several dictionaries
+        :rtype: list
+        """
         perceptions = []
         for i in range(max([len(sensor) for sensor in perception.values()])):
                 perception_line = {} 

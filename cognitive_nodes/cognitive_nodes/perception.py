@@ -8,9 +8,20 @@ from cognitive_node_interfaces.msg import Value
 import random
 
 class Perception(CognitiveNode):
-
+    """
+    Perception class
+    """
     def __init__(self, name='perception', class_name = 'cognitive_nodes.perception.Perception', **params):
+        """
+        Constructor for the Perception class
 
+        Initializes a Perception instance with the given name and registers it in the ltm.
+        
+        :param name: The name of the Perception instance
+        :type name: str¡
+        :param class_name: The name of the Perception class
+        :type class_name: str
+        """
         super().__init__(name, class_name, **params)
         self.register_in_LTM({})
 
@@ -34,18 +45,37 @@ class Perception(CognitiveNode):
             self.set_inputs_callback
         )
 
-    def calculate_activation(self, perception):
+    def calculate_activation(self, perception = None):
+        """
+        Returns the the activation value of the instance
+
+        :param perception: Perception does not influence the activation of the instance
+        :type perception: dict
+        :return: The activation of the instance
+        :rtype: float
+        """
         if self.activation_topic:
             self.publish_activation(self.activation)
         return self.activation
     
     def set_activation_callback(self, request, response):
+        """
+        Attention mechanisms can modify the activation of a perception instance
+
+        :param request: The request that contains the new activation value
+        :type request: cognitive_node_interfaces.srv.SetActivation_Request
+        :param response: The response indicating if the activation was set
+        :type response: cognitive_node_interfaces.srv.SetActivation_Response
+        :return: The response indicating if the activation was set
+        :rtype: cognitive_node_interfaces.srv.SetActivation_Response
+        """
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
         self.activation = activation
         response.set = True
         return response
     
+    #TODO Finish the set inputs implementation
     def set_inputs_callback(self, request, response):
         inputs = request.inputs
         self.get_logger().info('Setting inputs...' + str(inputs) + '...')

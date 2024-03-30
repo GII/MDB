@@ -13,7 +13,6 @@ class Policy(CognitiveNode):
     """
     Policy class.
     """
-
     def __init__(self, name='policy', class_name='cognitive_nodes.policy.Policy', **params):
         """
         Constructor for the Policy class.
@@ -23,6 +22,8 @@ class Policy(CognitiveNode):
 
         :param name: The name of the policy.
         :type name: str
+        :param class_name: The name of the Policy class
+        :type class_name: str
         """
 
         super().__init__(name, 'cognitive_nodes.policy.Policy', **params)
@@ -43,11 +44,12 @@ class Policy(CognitiveNode):
 
     def calculate_activation(self, perception):
         """
-        Calculate the activation level of the policy: a random float between 0 and 1.
+        Calculate the activation level of the policy by obtaining that of its neighboring CNodes
+        As in CNodes, an arbitrary perception can be propagated, calculating the final policy activation for that perception.
 
-        Mock method that pretends to calculate the activation level of the policy node.
-
-        :return: The activation level, a random float between 0 and 1.
+        :param perception: Arbitrary perception
+        :type perception: dict
+        :return: The activation of the Policy
         :rtype: float
         """
         cnodes = [neighbor["name"] for neighbor in self.neighbors if neighbor["node_type"] == "CNode"]
@@ -76,11 +78,11 @@ class Policy(CognitiveNode):
         It logs the execution and returns the policy name in the response.
 
         :param request: The request to execute the policy.
-        :type request: core_interfaces.srv.ExecutePolicy_Request
+        :type request: cognitive_node_interfaces.srv.ExecutePolicy_Request
         :param response: The response indicating the executed policy.
-        :type response: core_interfaces.srv.ExecutePolicy_Response
+        :type response: cognitive_node_interfaces.srv.ExecutePolicy_Response
         :return: The response with the executed policy name.
-        :rtype: core_interfaces.srv.ExecutePolicy_Response
+        :rtype: cognitive_node_interfaces.srv.ExecutePolicy_Response
         """
         self.get_logger().info('Executing policy: ' + self.name + '...')
         # TODO: implement logic
@@ -88,6 +90,17 @@ class Policy(CognitiveNode):
         return response
     
     def set_activation_callback(self, request, response):
+        """
+        CNodes can modify a policy's activation
+
+        :param request: The request that contains the new activation value
+        :type request: cognitive_node_interfaces.srv.SetActivation_Request
+        :param response: The response indicating if the activation was set
+        :type response: cognitive_node_interfaces.srv.SetActivation_Response
+        :return: The response indicating if the activation was set
+        :rtype: cognitive_node_interfaces.srv.SetActivation_Response
+        """
+
         activation = request.activation
         self.get_logger().info('Setting activation ' + str(activation) + '...')
         self.activation = activation

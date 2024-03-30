@@ -12,8 +12,8 @@ class Space(object):
     def __init__(self, ident=None, **kwargs):
         """Init attributes when a new object is created
 
-        :param ident: _description_, defaults to None
-        :type ident: _type_, optional
+        :param ident: The name of the space
+        :type ident: str
         """
         self.ident = ident
         self.parent_space = None
@@ -45,13 +45,13 @@ class PointBasedSpace(Space):
         - Otherwise, if this space is a specialization, use the fields in perception that are NOT in parent_space.
         - Otherwise, use every field in perception.
 
-        :param perception: _description_
-        :type perception: _type_
-        :param base_dtype: _description_
-        :type base_dtype: _type_
-        :param size: _description_
-        :type size: _type_
-        :return: _description_
+        :param perception: The perception that sizes the structured array
+        :type perception: dict
+        :param base_dtype: The dtype of the structured array
+        :type base_dtype: numpy.dtype
+        :param size: The size of the structured array
+        :type size: int
+        :return: The structured array, filled with zeros
         :rtype: numpy.ndarray
         """
         if getattr(perception, "dtype", None):
@@ -93,12 +93,12 @@ class PointBasedSpace(Space):
         """
         Copy a perception to a structured array.
 
-        :param space: _description_
-        :type space: _type_
-        :param position: _description_
-        :type position: _type_
-        :param perception: _description_
-        :type perception: _type_
+        :param space: An structured array, filled with zeros
+        :type space: numpy.ndarray
+        :param position: Position of the array in which the perception is added
+        :type position: int
+        :param perception: The perception thah is copied in the structured array
+        :type perception: dict
         """
         if getattr(perception, "dtype", None):
             for name in perception.dtype.names:
@@ -113,6 +113,19 @@ class PointBasedSpace(Space):
 
     @staticmethod
     def get_closest_point_and_antipoint_info(members, memberships, foreigner):
+        """
+        Obtain info about the closest point and antipoint for a given foreigner
+
+        :param members: Set of the points and antipoints
+        :type members: numpy.ndarray
+        :param memberships: The confidence of the points contained in members
+        :type memberships: numpy.ndarray
+        :param foreigner: The given foreigner point in order to obtain the info
+        :type foreigner: numpy.ndarray
+        :return: The position of in the members array the closest point and antipoins and 
+        their distance with the foreigner point
+        :rtype: int (position), float (distance)
+        """
         distances = numpy.linalg.norm(members - foreigner, axis=1)
         closest_point_pos = None
         closest_point_dist = numpy.finfo(float).max
@@ -133,10 +146,10 @@ class PointBasedSpace(Space):
         """
         Return a new space with those fields that are in r"space" and not in r"self".
 
-        :param space: _description_, defaults to None
-        :type space: _type_, optional
-        :return: _description_
-        :rtype: _type_
+        :param space: Space used to specialize
+        :type space: cognitive_nodes.space
+        :return: The new space
+        :rtype: cognitive_nodes.space
         """
         new_space = type(self)()
         new_space.parent_space = self
@@ -148,14 +161,14 @@ class PointBasedSpace(Space):
         """
         Add a new point to the p-node.
 
-        :param perception: _description_
-        :type perception: _type_
-        :param confidence: _description_
-        :type confidence: _type_
-        :raises RuntimeError: _description_
-        :raises RuntimeError: _description_
-        :return: _description_
-        :rtype: _type_
+        :param perception: A given perception to add
+        :type perception: dict
+        :param confidence: The confidence of the added point that specifies if it is a point or an 
+        antipoint
+        :type confidence: float
+        :raises RuntimeError: If LTM operation cannot continue
+        :return: The position of the added point
+        :rtype: int
         """
         added_point_pos = -1
         # Currently, we don't add the point if it is an anti-point and the space does not activate for it.
@@ -197,9 +210,9 @@ class PointBasedSpace(Space):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :raises NotImplementedError: _description_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :raises NotImplementedError: The method has to be implemented in a child class
         """
         raise NotImplementedError
 
@@ -209,12 +222,12 @@ class PointBasedSpace(Space):
 
         That happens if this space has a given value of probability for every point belonging to the other space.
 
-        :param space: _description_
-        :type space: _type_
-        :param threshold: _description_, defaults to 0.9
-        :type threshold: float, optional
-        :return: _description_
-        :rtype: _type_
+        :param space: Space that is checked if it is included
+        :type space: cognitive_nodes.space
+        :param threshold: Minimum probability value
+        :type threshold: float
+        :return: Indicates whether the space is contained or not
+        :rtype: bool
         """
         contained = False
         if space.size:
@@ -229,10 +242,10 @@ class PointBasedSpace(Space):
         """
         Check if other space has exactly the same sensors that this one.
 
-        :param space: _description_
-        :type space: _type_
-        :return: _description_
-        :rtype: _type_
+        :param space: The space to check
+        :type space: cognitive_nodes.space
+        :return: Indicates whether the space has the same sensors or not
+        :rtype: bool
         """
         answer = False
         if self.size and space.size:
@@ -245,8 +258,8 @@ class PointBasedSpace(Space):
         """
         Prune sensors that are present only in this space or in the space given for comparison.
 
-        :param space: _description_
-        :type space: _type_
+        :param space: The given space
+        :type space: cognitive_nodes.space
         """
         common_sensors = [(name, float) for name in self.members.dtype.names if name in space.members.dtype.names]
         self.members = require_fields(self.members, common_sensors)
@@ -280,10 +293,10 @@ class ClosestPointBasedSpace(PointBasedSpace):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :return: The activation value
+        :rtype: float
         """
         # Create a new structured array for the new perception
         candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
@@ -322,10 +335,10 @@ class CentroidPointBasedSpace(PointBasedSpace):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :return: The activation value
+        :rtype: float
         """
         # Create a new structured array for the new perception
         candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
@@ -375,10 +388,10 @@ class NormalCentroidPointBasedSpace(PointBasedSpace):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :return: The activation value
+        :rtype: float
         """
         # Create a new structured array for the new perception
         candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
@@ -435,10 +448,10 @@ class SVMSpace(PointBasedSpace):
 
     def learnable(self):
         """
-        _summary_
+        Only antipoints are considered learnables
 
-        :return: _description_
-        :rtype: _type_
+        :return: Return if the perception (point) is learnable or not
+        :rtype: bool
         """
         for i in self.memberships[0 : self.size]:
             if numpy.isclose(i, -1.0):
@@ -447,12 +460,12 @@ class SVMSpace(PointBasedSpace):
 
     def prune_points(self, score, memberships):
         """
-        _summary_
+        Prune points depending on the model score obtained
 
-        :param score: _description_
-        :type score: _type_
-        :param memberships: _description_
-        :type memberships: _type_
+        :param score: Score that determines the pruning
+        :type score: float
+        :param memberships: The confidence of the points
+        :type memberships: numpy.ndarray
         """
         if numpy.isclose(score, 1.0):
             self.size = len(self.model.support_vectors_)
@@ -462,10 +475,10 @@ class SVMSpace(PointBasedSpace):
 
     def fit_and_score(self):
         """
-        _summary_
+        Fit and score the SVM Model
 
-        :return: _description_
-        :rtype: _type_
+        :return: The score of the model
+        :rtype: float
         """
         members = structured_to_unstructured(
             self.members[0 : self.size][list(self.members.dtype.names)]
@@ -476,7 +489,7 @@ class SVMSpace(PointBasedSpace):
         self.model.fit(members, memberships)
         score = self.model.score(members, memberships)
         Node.get_logger().logdebug(
-            "SVM: iteraciones "
+            "SVM: iterations "
             + str(self.model.n_iter_)
             + " support vectors "
             + str(len(self.model.support_vectors_))
@@ -489,7 +502,7 @@ class SVMSpace(PointBasedSpace):
 
     def remove_close_points(self):
         """
-        _summary_
+        Remove points that are too close in space
         """
         threshold = 0
         previous_size = self.size
@@ -520,12 +533,13 @@ class SVMSpace(PointBasedSpace):
         """
         Add a new point to the p-node.
 
-        :param perception: _description_
-        :type perception: _type_
-        :param confidence: _description_
-        :type confidence: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: A given perception to add
+        :type perception: dict
+        :param confidence: The confidence of the added point that specifies if it is a point or an 
+        antipoint
+        :type confidence: float
+        :return: The position of the added point
+        :rtype: int
         """
         pos = super().add_point(perception, confidence)
         if self.learnable():
@@ -542,10 +556,10 @@ class SVMSpace(PointBasedSpace):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :return: The activation value
+        :rtype: float
         """
         # Create a new structured array for the new perception
         candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
@@ -599,14 +613,15 @@ class ANNSpace(PointBasedSpace):
 
     def add_point(self, perception, confidence):
         """
-        Add a new point to the P-node
+        Add a new point to the p-node.
 
-        :param perception: _description_
-        :type perception: _type_
-        :param confidence: _description_
-        :type confidence: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: A given perception to add
+        :type perception: dict
+        :param confidence: The confidence of the added point that specifies if it is a point or an 
+        antipoint
+        :type confidence: float
+        :return: The position of the added point
+        :rtype: int
         """
         pos = None
 
@@ -652,10 +667,10 @@ class ANNSpace(PointBasedSpace):
         """
         Calculate the new activation value.
 
-        :param perception: _description_
-        :type perception: _type_
-        :return: _description_
-        :rtype: _type_
+        :param perception: The given perception to calculate the activation
+        :type perception: dict
+        :return: The activation value
+        :rtype: float
         """
         candidate_point = self.create_structured_array(perception, self.members.dtype, 1)
         self.copy_perception(candidate_point, 0, perception)

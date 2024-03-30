@@ -7,7 +7,6 @@ class PNode(CognitiveNode):
     """
     PNode class
     """
-
     def __init__(self, name= 'pnode', class_name = 'cognitive_nodes.pnode.PNode', space_class = None, space = None, **params):
         """
         Constructor for the PNode class.
@@ -20,9 +19,9 @@ class PNode(CognitiveNode):
         :param class_name: The name of the PNode class.
         :type class_name: str
         :param space_class: The class of the space used to define the PNode
-        :type space_class: str or None
+        :type space_class: str
         :param space: The space used to define the PNode
-        :type space: core.space or None
+        :type space: cognitive_nodes.space
         """
         super().__init__(name, class_name, **params)
         self.spaces = [space if space else class_from_classname(space_class)(name + " space")]
@@ -32,14 +31,14 @@ class PNode(CognitiveNode):
 
     def add_point_callback(self, request, response):
         """
-        Callback function for adding a point (or anti-point) to a specific PNode.
+        Callback method for adding a point (or anti-point) to a specific PNode.
 
         :param request: The request that contains the point that is added and its confidence.
-        :type request: core_interfaces.srv.AddPoint_Request
+        :type request: cognitive_node_interfaces.srv.AddPoint_Request
         :param response: The response indicating if the point was added to the PNode.
         :type respone: core_interfaces.srv.AddPoint_Response
         :return: The response indicating if the point was added to the PNode.
-        :rtype: core_interfaces.srv.AddPoint_Response
+        :rtype: cognitive_node_interfaces.srv.AddPoint_Response
         """
         point_msg = request.point
         confidence = request.confidence
@@ -55,7 +54,7 @@ class PNode(CognitiveNode):
         Add a new point (or anti-point) to the PNode.
         
         :param point: The point that is added to the PNode
-        :type point: Any
+        :type point: dict
         :param confidence: Indicates if the perception added is a point or an antipoint.
         :type confidence: float
         """
@@ -67,10 +66,10 @@ class PNode(CognitiveNode):
         
     def calculate_activation(self, perception=None):
         """
-        Calculate the new activation value.
+        Calculate the new activation value for a given perception
 
         :param perception: The perception for which PNode activation is calculated.
-        :type perception: Any or None
+        :type perception: dict
         :return: If there is space, returns the activation of the PNode. If not, returns 0
         :rtype: float
         """
@@ -100,9 +99,9 @@ class PNode(CognitiveNode):
         conversions between sensing, perception and space.)
 
         :param perception: The perception for which PNode activation is calculated.
-        :type perception: Any
+        :type perception: dict
         :return: If there is space, returns it. If not, returns None.
-        :rtype: Any or None
+        :rtype: cognitive_nodes.space or None
         """
         temp_space = self.spaces[0].__class__()
         temp_space.add_point(perception, 1.0)
