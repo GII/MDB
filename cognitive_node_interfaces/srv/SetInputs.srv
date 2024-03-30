@@ -1,3 +1,4 @@
-string[] inputs
+string input_topic
+string process_data_class
 ---
 bool set

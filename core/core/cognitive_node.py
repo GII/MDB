@@ -244,9 +244,9 @@ class CognitiveNode(Node):
         """
         self.get_logger().info('Getting node activation...')
         perception = self.perception_msg_to_dict(request.perception)
-        # It's probably that we'll have to add more node type exceptions
-        if perception or self.node_type == 'CNode':
-            self.calculate_activation(perception)
+        if perception:
+            self.perception = perception
+        self.calculate_activation(perception)
         response.activation = self.activation
         return response
 

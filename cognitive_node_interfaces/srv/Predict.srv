@@ -1,4 +1,4 @@
 string timestamp
 string policy
 ---
-float64[] perception
+Perception perception

@@ -1,0 +1,4 @@
+float32 angle
+---
+float32 dist_near
+float32 ang_near
