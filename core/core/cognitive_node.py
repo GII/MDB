@@ -3,7 +3,7 @@ from rclpy.node import Node
 
 from core.service_client import ServiceClient
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM
-from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic
+from cognitive_node_interfaces.srv import GetActivation, GetInformation, SetActivationTopic, AddNeighbor, DeleteNeighbor
 from cognitive_node_interfaces.msg import Activation
 from cognitive_node_interfaces.msg import Perception
 from cognitive_node_interfaces.msg import PerceptionParameters
@@ -70,6 +70,20 @@ class CognitiveNode(Node):
             SetActivationTopic,
             'cognitive_node/' + str(name) + '/set_activation_topic',
             self.set_activation_topic_callback
+        )
+
+        #Add Neighbor Service
+        self.add_neighbor_service = self.create_service(
+            AddNeighbor,
+            'cognitive_node/' + str(name) + '/add_neighbor',
+            self.add_neighbor_callback
+        )
+
+        #Delete Neighbor Service
+        self.delete_neighbor_service = self.create_service(
+            DeleteNeighbor,
+            'cognitive_node/' + str(name) + '/delete_neighbor',
+            self.delete_neighbor_callback
         )
 
     def get_data(self):
@@ -233,8 +247,51 @@ class CognitiveNode(Node):
 
         return perceptions
 
- 
-    def get_activation_callback(self, request, response): # TODO: implement this method
+    def add_neighbor_callback(self, request, response):
+        """
+        Add a neighbor to the nodes neighbors collection
+
+        :param request: The request that contains the neighbor info
+        :type request: cognitive_node_interfaces.srv.AddNeighbor_Request
+        :param response: The response that indicates if the neighbor was added
+        :type response: cognitive_node_interfaces.srv.AddNeighbor_Response
+        :return: The response that indicates if the neighbor was added
+        :rtype: cognitive_node_interfaces.srv.AddNeighbor_Response
+        """
+        name = request.neighbor_name
+        type = request.neighbor_type
+        neighbor = {'name':name, 'node_type':type}
+        self.neighbors.append(neighbor)
+        response.added = True
+        return response
+    
+    def delete_neighbor_callback(self, request, response):
+        """
+        Delete a neighbor to the nodes neighbors collection
+
+        :param request: The request that contains the neighbor info
+        :type request: cognitive_node_interfaces.srv.DeleteNeighbor_Request
+        :param response: The response that indicates if the neighbor was deleted
+        :type response: cognitive_node_interfaces.srv.DeleteNeighbor_Response
+        :return: The response that indicates if the neighbor was deleted
+        :rtype: cognitive_node_interfaces.srv.DeleteNeighbor_Response
+        """
+        name = request.neighbor_name
+        type = request.neighbor_type
+        neighbor_to_delete = {'name':name, 'node_type':type}
+
+        for neighbor in self.neighbors:
+            if neighbor == neighbor_to_delete:
+                self.neighbors.remove(neighbor)
+                response.deleted = True
+            else:
+                response.deleted = False
+        
+        return response
+
+        
+
+    def get_activation_callback(self, request, response): 
         """
         Callback method to calculate and return the node's activations.
         This method calculates the activation of the node based on its perception.

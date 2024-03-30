@@ -1,0 +1,4 @@
+string neighbor_name
+string neighbor_type
+---
+bool added
