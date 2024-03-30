@@ -13,7 +13,7 @@ class Policy(CognitiveNode):
     """
     Policy class.
     """
-    def __init__(self, name='policy', class_name='cognitive_nodes.policy.Policy', **params):
+    def __init__(self, name='policy', class_name='cognitive_nodes.policy.Policy', publisher = None, **params):
         """
         Constructor for the Policy class.
 
@@ -24,10 +24,12 @@ class Policy(CognitiveNode):
         :type name: str
         :param class_name: The name of the Policy class
         :type class_name: str
+        :param publisher: The publisher to publicate the execution of the policy
+        :type publisher: rclpy.Node.publisher
         """
-
+        
         super().__init__(name, 'cognitive_nodes.policy.Policy', **params)
-
+        self.publisher = publisher
         self.register_in_LTM({})
 
         self.set_activation_service = self.create_service(
@@ -71,7 +73,7 @@ class Policy(CognitiveNode):
             self.publish_activation(self.activation)
         return self.activation
     
-    def execute_callback(self, request, response): # TODO: implement
+    def execute_callback(self, request, response):
 
         """
         Mock method that pretends to execute the policy.
@@ -85,7 +87,7 @@ class Policy(CognitiveNode):
         :rtype: cognitive_node_interfaces.srv.ExecutePolicy_Response
         """
         self.get_logger().info('Executing policy: ' + self.name + '...')
-        # TODO: implement logic
+        self.publisher.publish(self.name)
         response.policy = self.name
         return response
     

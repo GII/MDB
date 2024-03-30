@@ -1,4 +1,5 @@
-string input_topic
-string process_data_class
+string[] input_topics
+string[] input_msgs
+string[] process_data_classes
 ---
 bool set
