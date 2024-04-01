@@ -18,6 +18,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PerceptionLayout.msg"
   "msg/PerceptionParameters.msg"
   "srv/AddPoint.srv"
+  "srv/AddNeighbor.srv"
+  "srv/DeleteNeighbor.srv"
   "srv/Evaluate.srv"
   "srv/Execute.srv"
   "srv/GetActivation.srv"

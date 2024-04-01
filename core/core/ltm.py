@@ -5,6 +5,8 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from core_interfaces.srv import AddNodeToLTM, DeleteNodeFromLTM, GetNodeFromLTM, ReplaceNodeFromLTM, SetChangesTopic
+from cognitive_node_interfaces.srv import AddNeighbor, DeleteNeighbor
+from core.service_client import ServiceClient
 
 class LTM(Node):
     """
@@ -355,6 +357,23 @@ class LTM(Node):
         :type node_data: dict
         """
         self.cognitive_nodes[node_type][node_name] = node_data
+
+        #TODO: Neighbor handling
+
+        if not node_data['neighbors']:
+            if node_type=='Perception':
+                goals= [{'name': goal, 'node_type': 'Goal'} for goal in self.cognitive_nodes['Goal']]
+                world_models= [{'name': WM, 'node_type': 'WorldModel'} for WM in self.cognitive_nodes['WorldModel']]
+                policies= [{'name': policy, 'node_type': 'Policy'} for policy in self.cognitive_nodes['Policy']]
+                neighbors=goals+world_models+policies
+                self.cognitive_nodes[node_type][node_name]['neighbors']=neighbors
+            else:
+                neighbors=[{'name': perception, 'node_type': 'Perception'} for perception in self.cognitive_nodes['Perception']]
+                self.cognitive_nodes[node_type][node_name]['neighbors']=neighbors 
+
+
+        for neighbor in node_data['neighbors']:
+            self.add_neighbor(node_name,node_type,neighbor) 
         self.publish_state()
     
     def delete_node(self, node_type, node_name):
@@ -397,6 +416,12 @@ class LTM(Node):
         return node_type in self.cognitive_nodes
     
     # endregion CRUD operations
+
+    def add_neighbor(self, neighbor_name, neighbor_type, service_node_name): #TODO Implement
+        service_name = 'cognitive_node/' + service_node_name + '/add_neighbor'
+        neighbor_client=ServiceClient(AddNeighbor, service_name)
+        result=neighbor_client.send_request(neighbor_name=neighbor_name, neighbor_type=neighbor_type)
+        return result
 
 def main(args=None):
     rclpy.init()
