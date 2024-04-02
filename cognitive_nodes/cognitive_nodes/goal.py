@@ -4,7 +4,7 @@ from rclpy.node import Node
 from core.cognitive_node import CognitiveNode
 from core.service_client import ServiceClient
 from cognitive_node_interfaces.srv import SetActivation, IsReached, GetReward
-from cognitive_node_interfaces.srv import GetIteration, SensorialChanges, ObjectTooFar, CalculateClosestPosition, ObjectPickableWithTwoHands
+from cognitive_node_interfaces.srv import GetIteration, ObjectTooFar, CalculateClosestPosition, ObjectPickableWithTwoHands
 
 from core.utils import class_from_classname
 from math import isclose
@@ -40,6 +40,7 @@ class Goal(CognitiveNode):
         self.end = None
         self.period = None
         self.sim_service = 'mdb_simulator'
+        self.old_perception = []
 
         if data:
             self.new_from_configuration_file(data)
@@ -116,6 +117,7 @@ class Goal(CognitiveNode):
         self.get_logger().info('Checking if is reached..')
         perception = self.perception_msg_to_dict(request.perception)
         if perception:
+            self.old_perception = self.perception
             self.perception = perception
         self.get_reward()
         if isclose(self.reward, 1.0):
@@ -137,6 +139,7 @@ class Goal(CognitiveNode):
         """
         perception = self.perception_msg_to_dict(request.perception)
         if perception:
+            self.old_perception = self.perception
             self.perception = perception
         self.get_reward()
         response.reward = self.reward
@@ -209,17 +212,24 @@ class Goal(CognitiveNode):
     
     def sensorial_changes(self):
         """
-        Check if there are sensorial changes in the environment
-
+        Return false if all perceptions have the same value as the previous step. 
+        True otherwise.
+        
         :return: Value that indicates if there are changes or not
         :rtype: bool
         """
-        service_name = self.sim_service + '/sensorial_changes'
-        changes_client = ServiceClient(SensorialChanges, service_name)
-        perception = self.perception_dict_to_msg(self.perception)
-        changes = changes_client.send_request(perception = perception)
-        changes_client.destroy_node()
-        return changes
+        for sensor in self.perception:
+            for perception, perception_old in zip(self.perception[sensor], self.perception[sensor]):
+                if isinstance(perception, dict):
+                    for attribute in perception:
+                        difference = abs(perception[attribute] - perception_old[attribute])
+                        if difference > 0.01:
+                            return True
+                else:
+                    if abs(perception[0] - perception_old[0]) > 0.01:
+                        return True
+        return False
+    
     
     def object_too_far(self, distance, angle):
         """
@@ -267,7 +277,7 @@ class Goal(CognitiveNode):
         pickable_client.destroy_node()
         return pickable
     
-    def object_in_close_box(self, perceptions):
+    def object_in_close_box(self):
         """
         Check if there is an object inside of a box.
 
@@ -277,11 +287,11 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         inside = False
-        for box in perceptions["boxes"].raw.data:
-            if not self.object_too_far(box.distance, box.angle):
-                for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
-                        abs(box.angle - cylinder.angle) < 0.05
+        for box in self.perception["boxes"]:
+            if not self.object_too_far(box["distance"], box["angle"]):
+                for cylinder in self.perception["cylinders"]:
+                    inside = (abs(box["distance"] - cylinder["distance"]) < 0.05) and (
+                        abs(box["angle"] - cylinder["angle"]) < 0.05
                     )
                     if inside:
                         break
@@ -297,17 +307,17 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         inside = False
-        for box in perceptions["boxes"].raw.data:
-            if self.object_too_far(box.distance, box.angle):
-                for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
-                        abs(box.angle - cylinder.angle) < 0.05
+        for box in self.perception["boxes"]:
+            if not self.object_too_far(box["distance"], box["angle"]):
+                for cylinder in self.perception["cylinders"]:
+                    inside = (abs(box["distance"] - cylinder["distance"]) < 0.05) and (
+                        abs(box["angle"] - cylinder["angle"]) < 0.05
                     )
                     if inside:
                         break
         return inside
     
-    def object_with_robot(self,perceptions):
+    def object_with_robot(self):
         """
         Check if there is an object adjacent to the robot.
 
@@ -317,18 +327,17 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         together = False
-        if not Goal.object_held(perceptions):
-            for cylinder in perceptions["cylinders"].raw.data:
-                dist_near, ang_near = self.calculate_closest_position(cylinder.angle)
-                together = (abs(cylinder.distance - dist_near) < 0.05) and (
-                    abs(cylinder.angle - ang_near) < 0.05
+        if not Goal.object_held():
+            for cylinder in self.perception["cylinders"]:
+                dist_near, ang_near = self.calculate_closest_position(cylinder["angle"])
+                together = (abs(cylinder["distance"] - dist_near) < 0.05) and (
+                    abs(cylinder["angle"] - ang_near) < 0.05
                 )
                 if together:
                     break
         return together
 
-    @staticmethod
-    def object_held_with_left_hand(perceptions):
+    def object_held_with_left_hand(self):
         """
         Check if an object is held with the left hand.
 
@@ -337,10 +346,9 @@ class Goal(CognitiveNode):
         :return: A value that indicates if the object is held or not
         :rtype: bool
         """
-        return perceptions["ball_in_left_hand"].raw.data
+        return self.perception['ball_in_left_hand'][0]['data']
 
-    @staticmethod
-    def object_held_with_right_hand(perceptions):
+    def object_held_with_right_hand(self):
         """
         Check if an object is held with the right hand.
 
@@ -349,10 +357,10 @@ class Goal(CognitiveNode):
         :return: A value that indicates if the object is held or not
         :rtype: bool
         """
-        return perceptions["ball_in_right_hand"].raw.data
+        return self.perception['ball_in_right_hand'][0]['data']
 
     @classmethod
-    def object_held(cls, perceptions):
+    def object_held(cls):
         """
         Check if an object is held with one hand.
 
@@ -361,12 +369,9 @@ class Goal(CognitiveNode):
         :return: A value that indicates if the object is held or not
         :rtype: bool
         """
-        return cls.object_held_with_left_hand(perceptions) or cls.object_held_with_right_hand(
-            perceptions
-        )
+        return cls.object_held_with_left_hand() or cls.object_held_with_right_hand()
 
-    @staticmethod
-    def object_held_before(perceptions):
+    def object_held_before(self):
         """
         Check if an object was held with one hand.
 
@@ -376,12 +381,11 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         return (
-            perceptions["ball_in_left_hand"].old_raw.data
-            or perceptions["ball_in_right_hand"].old_raw.data
+            self.old_perception['ball_in_left_hand'][0]['data']
+            or self.old_perception['ball_in_right_hand'][0]['data']
         )
 
-    @staticmethod
-    def object_held_with_two_hands(perceptions):
+    def object_held_with_two_hands(self):
         """
         Check if an object is held with two hands.
 
@@ -391,11 +395,11 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         return (
-            perceptions["ball_in_left_hand"].raw.data and perceptions["ball_in_right_hand"].raw.data
+            self.perception['ball_in_left_hand'][0]['data']
+            and self.perception['ball_in_right_hand'][0]['data']
         )
 
-    @staticmethod
-    def ball_and_box_on_the_same_side(perceptions):
+    def ball_and_box_on_the_same_side(self):
         """
         Check if an object and a box are on the same side.
 
@@ -405,15 +409,15 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         same_side = False
-        for box in perceptions["boxes"].raw.data:
-            same_side = (perceptions["ball_in_left_hand"].raw.data and box.angle > 0) or (
-                perceptions["ball_in_right_hand"].raw.data and not (box.angle > 0)
+        for box in self.perception["boxes"]:
+            same_side = (self.perception['ball_in_left_hand'][0]['data'] and box['angle'] > 0) or (
+                self.perception['ball_in_right_hand'][0]['data'] and not (box['angle'] > 0)
             )
             if same_side:
                 break
         return same_side
 
-    def object_pickable_withtwohands(self, perceptions):
+    def object_pickable_withtwohands(self):
         """
         Check if an object can be hold with two hands.
 
@@ -423,15 +427,15 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         pickable = False
-        for cylinder in perceptions["cylinders"].raw.data:
-            pickable = (not Goal.object_held(perceptions)) and self.object_pickable_withtwohands(
-                cylinder.distance, cylinder.angle
+        for cylinder in self.perception["cylinders"]:
+            pickable = (not Goal.object_held()) and self.object_pickable_withtwohands(
+                cylinder["distance"], cylinder["angle"]
             )
             if pickable:
                 break
         return pickable
 
-    def object_was_approximated(self, perceptions):
+    def object_was_approximated(self):
         """
         Check if an object was moved towards the robot's reachable area.
 
@@ -442,18 +446,17 @@ class Goal(CognitiveNode):
         """
         approximated = False
         for old, cur in zip(
-            perceptions["cylinders"].old_raw.data, perceptions["cylinders"].raw.data
+            self.old_perception["cylinders"], self.perception["cylinders"]
         ):
             approximated = not self.object_too_far(
-                cur.distance,
-                cur.angle,
-            ) and self.object_too_far(old.distance, old.angle)
+                cur["distance"],
+                cur["angle"],
+            ) and self.object_too_far(old["distance"], old["angle"])
             if approximated:
                 break
         return approximated
 
-    @staticmethod
-    def hand_was_changed(perceptions):
+    def hand_was_changed(self):
         """
         Check if the held object changed from one hand to another.
 
@@ -464,21 +467,21 @@ class Goal(CognitiveNode):
         """
         return (
             (
-                perceptions["ball_in_left_hand"].raw.data
-                and (not perceptions["ball_in_right_hand"].raw.data)
+                self.perception['ball_in_left_hand'][0]['data']
+                and (not self.perception['ball_in_left_hand'][0]['data'])
             )
             and (
-                (not perceptions["ball_in_left_hand"].old_raw.data)
-                and perceptions["ball_in_right_hand"].old_raw.data
+                (not self.old_perception['ball_in_left_hand'][0]['data'])
+                and self.old_perception['ball_in_right_hand'][0]['data']
             )
         ) or (
             (
-                (not perceptions["ball_in_left_hand"].raw.data)
-                and perceptions["ball_in_right_hand"].raw.data
+                (not self.perception['ball_in_left_hand'][0]['data'])
+                and self.perception['ball_in_left_hand'][0]['data']
             )
             and (
-                perceptions["ball_in_left_hand"].old_raw.data
-                and (not perceptions["ball_in_right_hand"].old_raw.data)
+                self.old_perception['ball_in_left_hand'][0]['data']
+                and (not self.old_perception['ball_in_right_hand'][0]['data'])
             )
         )
 
@@ -493,18 +496,18 @@ class Goal(CognitiveNode):
         :rtype: bool
         """
         carrot_inside = eggplant_inside = cabbage_inside = False
-        for box in perceptions["boxes"].raw.data:
-            if box.color == "skillet":
-                for cylinder in perceptions["cylinders"].raw.data:
-                    inside = (abs(box.distance - cylinder.distance) < 0.05) and (
-                        abs(box.angle - cylinder.angle) < 0.05
+        for box in perceptions["boxes"]:
+            if box["color"] == "skillet":
+                for cylinder in perceptions["cylinders"]:
+                    inside = (abs(box["distance"] - cylinder["distance"]) < 0.05) and (
+                        abs(box["angle"] - cylinder["angle"]) < 0.05
                     )
                     if inside:
-                        if cylinder.color == "carrot":
+                        if cylinder["color"] == "carrot":
                             carrot_inside = True
-                        elif cylinder.color == "eggplant":
+                        elif cylinder["color"] == "eggplant":
                             eggplant_inside = True
-                        elif cylinder.color == "cabbage":
+                        elif cylinder["color"] == "cabbage":
                             cabbage_inside = True
         return carrot_inside and eggplant_inside and cabbage_inside
 
@@ -523,8 +526,8 @@ class GoalObjectHeldLeftHand(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_held_with_left_hand(self.perception) and (
-                        not self.object_held_with_right_hand(self.perception)
+                    if self.object_held_with_left_hand() and (
+                        not self.object_held_with_right_hand()
                     ):
                         reward = activation
                         if reward > self.reward:
@@ -546,8 +549,8 @@ class GoalObjectHeldRightHand(Goal):
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
                     if (
-                        not self.object_held_with_left_hand(self.perception)
-                    ) and self.object_held_with_right_hand(self.perception):
+                        not self.object_held_with_left_hand()
+                    ) and self.object_held_with_right_hand():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -567,9 +570,7 @@ class GoalObjectHeld(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_held(
-                        self.perception
-                    ) and not self.object_held_with_two_hands(self.perception):
+                    if self.object_held() and not self.object_held_with_two_hands():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -589,7 +590,7 @@ class GoalObjectHeldWithTwoHands(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_held_with_two_hands(self.perception):
+                    if self.object_held_with_two_hands():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -609,7 +610,7 @@ class GoalChangedHands(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.hand_was_changed(self.perception):
+                    if self.hand_was_changed():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -630,9 +631,9 @@ class GoalFrontalObject(Goal):
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
                     if (
-                        self.object_pickable_withtwohands(self.perception)
-                        and (not self.object_in_close_box(self.perception))
-                        and (not self.object_with_robot(self.perception))
+                        self.object_pickable_withtwohands()
+                        and (not self.object_in_close_box())
+                        and (not self.object_with_robot())
                     ):
                         reward = activation
                         if reward > self.reward:
@@ -653,7 +654,7 @@ class GoalObjectInCloseBox(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_in_close_box(self.perception):
+                    if self.object_in_close_box():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -673,7 +674,7 @@ class GoalObjectWithRobot(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_with_robot(self.perception):
+                    if self.object_with_robot():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -693,7 +694,7 @@ class GoalObjectInFarBox(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_in_far_box(self.perception):
+                    if self.object_in_far_box():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -713,7 +714,7 @@ class GoalApproximatedObject(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.object_was_approximated(self.perception):
+                    if self.object_was_approximated():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -733,7 +734,7 @@ class GoalVegetablesInSkillet(Goal):
         if self.sensorial_changes():
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
-                    if self.food_in_skillet(self.perception):
+                    if self.food_in_skillet():
                         reward = activation
                         if reward > self.reward:
                             self.reward = reward
@@ -751,25 +752,24 @@ class GoalObjectInBoxStandalone(Goal):
         :rtype: float
         """
         self.reward = 0.0
-        perceptions = self.perception
         # This is not coherent at all. I need to change it...
         # Or self.activation is not a list any longer...
         # or perceptions should be flattened
         for activation in self.activation:
             if (self.sensorial_changes()) and isclose(activation, 1.0):
-                if self.object_in_close_box(perceptions) or self.object_in_far_box(perceptions):
+                if self.object_in_close_box() or self.object_in_far_box():
                     self.reward = 1.0
-                elif self.object_held(perceptions):
-                    if self.object_held_with_two_hands(perceptions):
+                elif self.object_held():
+                    if self.object_held_with_two_hands():
                         self.reward = 0.6
-                    elif self.ball_and_box_on_the_same_side(perceptions):
+                    elif self.ball_and_box_on_the_same_side():
                         self.reward = 0.6
-                    elif not self.object_held_before(perceptions):
+                    elif not self.object_held_before():
                         self.reward = 0.3
-                elif not self.object_held_before(perceptions):
-                    if self.object_pickable_withtwohands(perceptions):
+                elif not self.object_held_before():
+                    if self.object_pickable_withtwohands():
                         self.reward = 0.3
-                    elif self.object_was_approximated(perceptions):
+                    elif self.object_was_approximated():
                         self.reward = 0.2
         return self.reward
     
@@ -784,18 +784,17 @@ class GoalObjectWithRobotStandalone(Goal):
         :rtype: float
         """
         self.reward = 0.0
-        perceptions = self.perception
         for activation in self.activation:
             if (self.sensorial_changes()) and isclose(activation, 1.0):
-                if self.object_with_robot(perceptions):
+                if self.object_with_robot():
                     self.reward = 1.0
-                elif self.object_held(perceptions):
-                    if not self.object_held_before(perceptions):
+                elif self.object_held():
+                    if not self.object_held_before():
                         self.reward = 0.6
-                elif not self.object_held_before(perceptions):
-                    if self.object_pickable_withtwohands(perceptions):
+                elif not self.object_held_before():
+                    if self.object_pickable_withtwohands():
                         self.reward = 0.3
-                    elif self.object_was_approximated(perceptions):
+                    elif self.object_was_approximated():
                         self.reward = 0.2
         return self.reward
     

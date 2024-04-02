@@ -301,8 +301,6 @@ class CognitiveNode(Node):
         """
         self.get_logger().info('Getting node activation...')
         perception = self.perception_msg_to_dict(request.perception)
-        if perception:
-            self.perception = perception
         self.calculate_activation(perception)
         response.activation = self.activation
         return response
