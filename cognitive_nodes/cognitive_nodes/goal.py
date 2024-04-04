@@ -15,7 +15,7 @@ class Goal(CognitiveNode):
     """
     Goal class
     """
-    def __init__(self, name='goal', data = None, class_name = 'cognitive_nodes.goal.Goal', space_class = None, space = None, **params):
+    def __init__(self, name='goal', data = None, class_name = 'cognitive_nodes.goal.Goal', space_class = None, space = None, robot_service = 'simulator/', **params):
         """
         Constructor of the Goal class
 
@@ -31,6 +31,8 @@ class Goal(CognitiveNode):
         :type space_class: str
         :param space: The space used to define the Goal
         :type space: cognitive_nodes.space
+        :param robot_service: The ROS service prefix to connect with robot or simulator
+        :type robot_service: str
         """
         super().__init__(name, class_name, **params)
         self.register_in_LTM({})
@@ -39,7 +41,7 @@ class Goal(CognitiveNode):
         self.start = None
         self.end = None
         self.period = None
-        self.sim_service = 'mdb_simulator'
+        self.robot_service = robot_service
         self.old_perception = []
 
         if data:
@@ -256,7 +258,7 @@ class Goal(CognitiveNode):
         closest_position_client.destroy_node()
         return dist_near, ang_near
     
-    def object_pickable_with_two_hands(self):
+    def object_pickable_with_two_hands_request(self):
         """
         Check of an obkect is pickable with the two hands of the robot
 
@@ -410,7 +412,7 @@ class Goal(CognitiveNode):
                 break
         return same_side
 
-    def object_pickable_withtwohands(self):
+    def object_pickable_with_two_hands(self):
         """
         Check if an object can be hold with two hands.
 
@@ -421,7 +423,7 @@ class Goal(CognitiveNode):
         """
         pickable = False
         for cylinder in self.perception["cylinders"]:
-            pickable = (not Goal.object_held()) and self.object_pickable_withtwohands(
+            pickable = (not Goal.object_held()) and self.object_pickable_with_two_hands_request(
                 cylinder["distance"], cylinder["angle"]
             )
             if pickable:
@@ -624,7 +626,7 @@ class GoalFrontalObject(Goal):
             for _, activation in zip(self.perception, self.activation):
                 if activation > self.threshold:
                     if (
-                        self.object_pickable_withtwohands()
+                        self.object_pickable_with_two_hands()
                         and (not self.object_in_close_box())
                         and (not self.object_with_robot())
                     ):
@@ -760,7 +762,7 @@ class GoalObjectInBoxStandalone(Goal):
                     elif not self.object_held_before():
                         self.reward = 0.3
                 elif not self.object_held_before():
-                    if self.object_pickable_withtwohands():
+                    if self.object_pickable_with_two_hands():
                         self.reward = 0.3
                     elif self.object_was_approximated():
                         self.reward = 0.2
@@ -785,7 +787,7 @@ class GoalObjectWithRobotStandalone(Goal):
                     if not self.object_held_before():
                         self.reward = 0.6
                 elif not self.object_held_before():
-                    if self.object_pickable_withtwohands():
+                    if self.object_pickable_with_two_hands():
                         self.reward = 0.3
                     elif self.object_was_approximated():
                         self.reward = 0.2
