@@ -1,6 +1,6 @@
 import rclpy
 from core.cognitive_node import CognitiveNode
-from core.utils import class_from_classname
+from core.utils import class_from_classname, perception_msg_to_dict, separate_perceptions
 from cognitive_node_interfaces.srv import AddPoint
 
 class PNode(CognitiveNode):
@@ -42,7 +42,7 @@ class PNode(CognitiveNode):
         """
         point_msg = request.point
         confidence = request.confidence
-        point = self.perception_msg_to_dict(point_msg)
+        point = perception_msg_to_dict(point_msg)
         self.add_point(point,confidence)
         self.get_logger().info('Adding point: ' + str(point) + 'Confidence: ' + str(confidence))
         response.added = True
@@ -75,7 +75,7 @@ class PNode(CognitiveNode):
         """
         if perception:
             activations = []
-            perceptions = self.separate_perceptions(perception)
+            perceptions = separate_perceptions(perception)
             for perception_line in perceptions:
                 space = self.get_space(perception)
                 if space:

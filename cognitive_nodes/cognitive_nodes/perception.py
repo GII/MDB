@@ -4,7 +4,7 @@ from rclpy.node import Node
 from core.cognitive_node import CognitiveNode
 from cognitive_node_interfaces.srv import SetActivation, SetInputs
 from cognitive_node_interfaces.msg import Value
-from core.utils import class_from_classname
+from core.utils import class_from_classname, perception_dict_to_msg
 
 import random
 
@@ -155,7 +155,7 @@ class Perception(CognitiveNode):
             value.append(dict(data=self.reading.data))
 
         sensor[self.name] = value
-        sensor_msg = self.perception_dict_to_msg(sensor)
+        sensor_msg = perception_dict_to_msg(sensor)
         self.perception_publisher.publish(sensor_msg)
 
 

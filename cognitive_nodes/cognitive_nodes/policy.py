@@ -9,6 +9,8 @@ from core.service_client import ServiceClient
 from cognitive_node_interfaces.srv import SetActivation, Execute
 from cognitive_node_interfaces.srv import GetActivation
 
+from core.utils import perception_dict_to_msg
+
 class Policy(CognitiveNode):
     """
     Policy class.
@@ -60,7 +62,7 @@ class Policy(CognitiveNode):
             for cnode in cnodes:
                 service_name = 'cognitive_node/' + str(cnode) + '/get_activation'
                 activation_client = ServiceClient(GetActivation, service_name)
-                perception = self.perception_dict_to_msg(perception = None)
+                perception = perception_dict_to_msg(perception = None)
                 activation = activation_client.send_request(perception = perception)
                 activation_client.destroy_node()
                 cnode_activations.append(activation)

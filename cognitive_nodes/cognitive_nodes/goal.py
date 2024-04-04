@@ -6,7 +6,7 @@ from core.service_client import ServiceClient
 from cognitive_node_interfaces.srv import SetActivation, IsReached, GetReward
 from cognitive_node_interfaces.srv import GetIteration, ObjectTooFar, CalculateClosestPosition, ObjectPickableWithTwoHands
 
-from core.utils import class_from_classname
+from core.utils import class_from_classname, perception_dict_to_msg, perception_msg_to_dict
 from math import isclose
 
 import random
@@ -115,7 +115,7 @@ class Goal(CognitiveNode):
         :rtype: cognitive_node_interfaces.srv.IsReached_Response
         """
         self.get_logger().info('Checking if is reached..')
-        perception = self.perception_msg_to_dict(request.perception)
+        perception = perception_msg_to_dict(request.perception)
         if perception:
             self.old_perception = self.perception
             self.perception = perception
@@ -137,7 +137,7 @@ class Goal(CognitiveNode):
         :return: Response that contais the reward
         :rtype: cognitive_node_interfaces.srv.GetReward_Response
         """
-        perception = self.perception_msg_to_dict(request.perception)
+        perception = perception_msg_to_dict(request.perception)
         if perception:
             self.old_perception = self.perception
             self.perception = perception
@@ -211,15 +211,9 @@ class Goal(CognitiveNode):
         return iteration
     
     def sensorial_changes(self):
-        """
-        Return false if all perceptions have the same value as the previous step. 
-        True otherwise.
-        
-        :return: Value that indicates if there are changes or not
-        :rtype: bool
-        """
+        """Return false if all perceptions have the same value as the previous step. True otherwise."""
         for sensor in self.perception:
-            for perception, perception_old in zip(self.perception[sensor], self.perception[sensor]):
+            for perception, perception_old in zip(self.perception[sensor], self.per[sensor]):
                 if isinstance(perception, dict):
                     for attribute in perception:
                         difference = abs(perception[attribute] - perception_old[attribute])
@@ -229,7 +223,6 @@ class Goal(CognitiveNode):
                     if abs(perception[0] - perception_old[0]) > 0.01:
                         return True
         return False
-    
     
     def object_too_far(self, distance, angle):
         """
@@ -272,7 +265,7 @@ class Goal(CognitiveNode):
         """
         service_name = self.sim_service + '/object_pickable_with_two_hands'
         pickable_client = ServiceClient(ObjectPickableWithTwoHands, service_name)
-        perception = self.perception_dict_to_msg(self.perception)
+        perception = perception_dict_to_msg(self.perception)
         pickable = pickable_client.send_request(perception=perception)
         pickable_client.destroy_node()
         return pickable

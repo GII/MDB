@@ -3,6 +3,7 @@ import rclpy
 from core.cognitive_node import CognitiveNode
 from core.service_client import ServiceClient
 from cognitive_node_interfaces.srv import GetActivation
+from core.utils import perception_dict_to_msg
 
 
 class CNode(CognitiveNode):
@@ -41,7 +42,7 @@ class CNode(CognitiveNode):
         for name in neighbors_name:
             service_name = 'cognitive_node/' + str(name) + '/get_activation'
             activation_client = ServiceClient(GetActivation, service_name)
-            perception = self.perception_dict_to_msg(perception)
+            perception = perception_dict_to_msg(perception)
             activation = activation_client.send_request(perception = perception)
             activation_client.destroy_node()
             node_activations.append(activation)
